@@ -6,3 +6,7 @@ authors = [
     {name = "Safdar Ali", email = "your@email.com"}
 ]
 dependencies = []
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
