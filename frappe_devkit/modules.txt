@@ -1,1 +1,1 @@
-devkit
+frappe_devkit
