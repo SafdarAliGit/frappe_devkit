@@ -1,0 +1,105 @@
+{
+    "actions": [],
+    "allow_import": 0,
+    "allow_rename": 0,
+    "autoname": "format:DKLOG-{####}",
+    "creation": "2025-01-01 00:00:00.000000",
+    "doctype": "DocType",
+    "document_type": "Document",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "action",
+        "reference",
+        "column_break_1",
+        "app_name",
+        "module",
+        "section_break_2",
+        "file_path",
+        "scaffolded_on"
+    ],
+    "fields": [
+        {
+            "fieldname": "action",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "Action",
+            "options": "App\nDocType\nReport\nModule\nWorkspace\nCustom Field\nProperty Setter\nClient Script\nHook\nOverride\nPatch\nPrint Format\nServer Script\nNotification\nDashboard Chart\nNumber Card\nRole Permission",
+            "reqd": 1,
+            "bold": 1
+        },
+        {
+            "fieldname": "reference",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Reference",
+            "reqd": 1,
+            "bold": 1
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "app_name",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "App Name",
+            "reqd": 1
+        },
+        {
+            "fieldname": "module",
+            "fieldtype": "Data",
+            "label": "Module"
+        },
+        {
+            "fieldname": "section_break_2",
+            "fieldtype": "Section Break",
+            "label": "Details"
+        },
+        {
+            "fieldname": "file_path",
+            "fieldtype": "Small Text",
+            "label": "File Path",
+            "read_only": 1
+        },
+        {
+            "fieldname": "scaffolded_on",
+            "fieldtype": "Datetime",
+            "label": "Scaffolded On",
+            "read_only": 1
+        }
+    ],
+    "issingle": 0,
+    "istable": 0,
+    "links": [],
+    "modified": "2025-06-01 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "devkit",
+    "name": "DevKit Scaffold Log",
+    "naming_rule": "Expression",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "quick_entry": 0,
+    "search_fields": "reference,app_name,action",
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "title_field": "reference",
+    "track_changes": 0,
+    "track_seen": 0,
+    "track_views": 0
+}

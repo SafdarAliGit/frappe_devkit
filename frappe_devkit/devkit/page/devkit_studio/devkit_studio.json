@@ -1,0 +1,18 @@
+{
+    "creation": "2025-01-01 00:00:00.000000",
+    "doctype": "Page",
+    "icon": "octicon octicon-tools",
+    "modified": "2025-01-01 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "devkit",
+    "name": "devkit-studio",
+    "owner": "Administrator",
+    "page_name": "devkit-studio",
+    "roles": [
+        {
+            "role": "System Manager"
+        }
+    ],
+    "standard": "Yes",
+    "title": "DevKit Studio"
+}

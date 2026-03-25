@@ -1,0 +1,10 @@
+{
+    "app_name": "frappe_devkit",
+    "color": "#1D9E75",
+    "doctype": "Module Def",
+    "icon": "octicon octicon-tools",
+    "module_name": "devkit",
+    "name": "devkit",
+    "app": "frappe_devkit",
+    "restrict_to_domain": ""
+}
