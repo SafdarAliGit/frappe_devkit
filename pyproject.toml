@@ -1,5 +1,5 @@
 [project]
-name = "frappe-devkit"
+name = "frappe_devkit"
 version = "0.0.1"
 description = "Frappe development utilities"
 authors = [
