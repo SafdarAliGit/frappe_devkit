@@ -3,8 +3,8 @@
     "color": "#1D9E75",
     "doctype": "Module Def",
     "icon": "octicon octicon-tools",
-    "module_name": "devkit",
-    "name": "devkit",
+    "module_name": "frappe_devkit",
+    "name": "frappe_devkit",
     "app": "frappe_devkit",
     "restrict_to_domain": ""
 }
