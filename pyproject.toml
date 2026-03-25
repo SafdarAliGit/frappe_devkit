@@ -1,7 +1,8 @@
-[build-system]
-requires = ["flit_core >=3.4,<4"]
-build-backend = "flit_core.buildapi"
-
 [project]
-name = "frappe_devkit"
-version = "1.0.0"
+name = "frappe-devkit"
+version = "0.0.1"
+description = "Frappe development utilities"
+authors = [
+    {name = "Safdar Ali", email = "your@email.com"}
+]
+dependencies = []
