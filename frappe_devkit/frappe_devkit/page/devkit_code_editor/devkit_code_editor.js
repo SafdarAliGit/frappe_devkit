@@ -172,7 +172,8 @@ class DevKitCodeEditor {
 .dkce-tb-btn:hover { background: #454545; color: #fff; }
 .dkce-root.light .dkce-tb-btn { color: #555; }
 .dkce-root.light .dkce-tb-btn:hover { background: #ddd; color: #000; }
-.dkce-tb-btn.active { background: #094771; color: #fff; }
+.dkce-tb-btn.active { background: #1a1a1a; color: #fff; }
+#dkce-btn-terminal.active { background: #0a1520; color: #60cdff; border: 1px solid #1e3a52; }
 /* ── Professional back button ── */
 #dkce-btn-back {
     display: flex; align-items: center; gap: 5px;
@@ -252,6 +253,10 @@ class DevKitCodeEditor {
 }
 .dkce-sidebar.collapsed { width: 0; }
 .dkce-root.light .dkce-sidebar { background: #f3f3f3; border-color: #ddd; }
+.dkce-sidebar-resize {
+    width: 4px; cursor: col-resize; flex-shrink: 0; background: transparent; z-index: 10;
+}
+.dkce-sidebar-resize:hover, .dkce-sidebar-resize.dragging { background: rgba(0,122,204,.55); }
 
 .dkce-panel-hdr {
     padding: 7px 12px; font-size: 11px; font-weight: 700;
@@ -603,6 +608,12 @@ class DevKitCodeEditor {
 .dkce-git-act-btn.branch:hover  { background: #3d2500; }
 .dkce-git-act-btn.neutral { background: #2d2d2d; color: #ccc; border-color: #454545; }
 .dkce-git-act-btn.neutral:hover { background: #3c3c3c; }
+.dkce-git-act-btn.stage-all   { background: #073922; color: #73c991; border-color: #2b6c40; }
+.dkce-git-act-btn.stage-all:hover   { background: #0d5a34; }
+.dkce-git-act-btn.unstage-all { background: #2a1800; color: #e2a91b; border-color: #8a5000; }
+.dkce-git-act-btn.unstage-all:hover { background: #3d2500; }
+.dkce-git-act-btn.discard-all { background: #3a0707; color: #f44747; border-color: #7a1414; }
+.dkce-git-act-btn.discard-all:hover { background: #550a0a; }
 .dkce-git-section-hdr { padding: 4px 8px; font-size: 10px; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: .06em; background: #1a1a1a; border-bottom: 1px solid #252526; flex-shrink: 0; }
 .dkce-git-file-acts { display: flex; gap: 2px; flex-shrink: 0; }
 .dkce-git-file-act { padding: 1px 6px; border: 1px solid transparent; border-radius: 2px; cursor: pointer; font-size: 10px; line-height: 14px; }
@@ -631,18 +642,23 @@ class DevKitCodeEditor {
     border-bottom: 1px solid #2a2a2a; flex-shrink: 0; user-select: none;
 }
 .dkce-terminal-hdr-title { font-size: 11px; font-weight: 600; color: #aaa; margin-right: 4px; white-space: nowrap; letter-spacing: .04em; }
-.dkce-term-shortcuts { display: flex; gap: 3px; flex: 1; overflow: hidden; }
+.dkce-term-shortcuts { display: flex; gap: 4px; flex: 1; overflow: hidden; align-items: center; }
 .dkce-term-sc-btn {
-    background: none; border: 1px solid #333; color: #777;
-    border-radius: 3px; padding: 0 8px; font-size: 10px; cursor: pointer;
-    white-space: nowrap; line-height: 16px; flex-shrink: 0; transition: none;
+    background: #b8b8c0; border: none; color: #1a1a1a;
+    border-radius: 4px; padding: 0 10px; font-size: 11px; cursor: pointer;
+    white-space: nowrap; line-height: 22px; height: 22px; flex-shrink: 0;
+    font-family: 'Cascadia Code','Consolas',monospace; letter-spacing: 0;
+    transition: background .1s, color .1s;
 }
-.dkce-term-sc-btn:hover { border-color: #555; color: #ccc; background: #252525; }
+.dkce-term-sc-btn:hover { background: #cdcdd4; color: #111; }
+.dkce-term-sc-btn:active { background: #a0a0a8; }
 .dkce-terminal-hdr-btn {
-    background: none; border: none; color: #555; cursor: pointer;
-    padding: 0 6px; font-size: 13px; line-height: 20px; border-radius: 2px; flex-shrink: 0;
+    background: none; border: none; color: #606060; cursor: pointer;
+    padding: 4px 7px; line-height: 1; border-radius: 3px;
+    flex-shrink: 0; transition: background .12s, color .12s;
+    display: flex; align-items: center; justify-content: center;
 }
-.dkce-terminal-hdr-btn:hover { background: #2c2c2c; color: #aaa; }
+.dkce-terminal-hdr-btn:hover { background: #2d2d2d; color: #c0c0c0; }
 /* Output area */
 .dkce-terminal-output {
     flex: 1; overflow-y: auto; padding: 6px 14px 2px;
@@ -659,18 +675,18 @@ class DevKitCodeEditor {
 /* Input row */
 .dkce-terminal-input-row {
     display: flex; align-items: center; gap: 0;
-    padding: 3px 14px 5px; border-top: 1px solid #1e1e1e;
-    background: #0d0d0d; flex-shrink: 0; position: relative;
+    padding: 4px 14px 6px; border-top: 1px solid #0a1e30;
+    background: #071521; flex-shrink: 0; position: relative;
 }
 .dkce-term-prompt-label {
-    color: #4ec9b0; font-family: 'Cascadia Code','Consolas',monospace;
+    color: #ffffff; font-family: 'Cascadia Code','Consolas',monospace;
     font-size: 13px; white-space: nowrap; user-select: none; flex-shrink: 0;
 }
-.dkce-term-dollar { color: #cccccc; margin: 0 6px 0 4px; flex-shrink: 0; user-select: none; }
+.dkce-term-dollar { color: #ffffff; margin: 0 6px 0 4px; flex-shrink: 0; user-select: none; }
 .dkce-term-input {
     flex: 1; background: none; border: none; outline: none;
-    color: #cccccc; font-family: 'Cascadia Code','Consolas',monospace;
-    font-size: 13px; caret-color: #aeafad; padding: 0; min-width: 0;
+    color: #ffffff; font-family: 'Cascadia Code','Consolas',monospace;
+    font-size: 13px; caret-color: #ffffff; padding: 0; min-width: 0;
 }
 /* Completion popup — anchored inside input-row */
 .dkce-term-comp-popup {
@@ -750,7 +766,7 @@ class DevKitCodeEditor {
     <div class="dkce-tb-spacer"></div>
     <button class="dkce-tb-btn" id="dkce-btn-refresh-git" title="Refresh Git Status">↻ Git</button>
     <div class="dkce-tb-sep"></div>
-    <button class="dkce-tb-btn" id="dkce-btn-terminal" title="Toggle Terminal (Ctrl+\`)">⬛ Terminal</button>
+    <button class="dkce-tb-btn" id="dkce-btn-terminal" title="Toggle Terminal (Ctrl+\`)"><span style="font-size:12px;opacity:.85">&gt;_</span> Terminal</button>
   </div>
 
   <!-- Body -->
@@ -802,12 +818,22 @@ class DevKitCodeEditor {
         </div>
         <div class="dkce-git-branch" id="dkce-git-branch">⎇ —</div>
         <div class="dkce-git-actions">
-          <button class="dkce-git-act-btn commit"  id="dkce-git-btn-commit" title="Commit">✓ Commit</button>
-          <button class="dkce-git-act-btn push"    id="dkce-git-btn-push"   title="Push">↑ Push</button>
-          <button class="dkce-git-act-btn pull"    id="dkce-git-btn-pull"   title="Pull">↓ Pull</button>
-          <button class="dkce-git-act-btn branch"  id="dkce-git-btn-branch" title="Branches">⎇ Branch</button>
-          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-log"    title="Log">📋 Log</button>
-          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-stash"  title="Stash">📦 Stash</button>
+          <button class="dkce-git-act-btn commit"  id="dkce-git-btn-commit"     title="Commit staged changes">✓ Commit</button>
+          <button class="dkce-git-act-btn push"    id="dkce-git-btn-push"       title="Push to remote">↑ Push</button>
+          <button class="dkce-git-act-btn pull"    id="dkce-git-btn-pull"       title="Pull from remote">↓ Pull</button>
+          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-fetch"      title="Fetch from remote">⇅ Fetch</button>
+          <button class="dkce-git-act-btn branch"  id="dkce-git-btn-branch"     title="Branches">⎇ Branch</button>
+          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-merge"      title="Merge a branch">⑃ Merge</button>
+        </div>
+        <div class="dkce-git-actions" style="border-top:1px solid #2a2a2a;">
+          <button class="dkce-git-act-btn stage-all" id="dkce-git-btn-stage-all"   title="Stage all changes (git add -A)">+ Stage All</button>
+          <button class="dkce-git-act-btn unstage-all" id="dkce-git-btn-unstage-all" title="Unstage all (git reset HEAD)">− Unstage All</button>
+          <button class="dkce-git-act-btn discard-all" id="dkce-git-btn-discard-all" title="Discard all unstaged changes">✕ Discard All</button>
+          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-diff"        title="Show diff of all changes">≠ Diff</button>
+          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-log"         title="Commit log">≡ Log</button>
+          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-stash"       title="Stash changes">↯ Stash</button>
+          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-reset"       title="Reset HEAD (soft/mixed/hard)">↺ Reset</button>
+          <button class="dkce-git-act-btn neutral" id="dkce-git-btn-tag"         title="Create or list tags">🏷 Tag</button>
         </div>
         <div class="dkce-git-scroll" id="dkce-git-scroll" style="overflow-y:auto;flex:1;">
           <div class="dkce-tree-loading">Select an app to see git status</div>
@@ -904,6 +930,7 @@ class DevKitCodeEditor {
 
 
     </div>
+    <div class="dkce-sidebar-resize" id="dkce-sidebar-resize"></div>
 
     <!-- Editor area -->
     <div class="dkce-editor-area">
@@ -938,8 +965,8 @@ class DevKitCodeEditor {
             <button class="dkce-term-sc-btn" data-cmd="ls apps/">apps/</button>
             <button class="dkce-term-sc-btn" data-cmd="ls sites/">sites/</button>
           </div>
-          <button class="dkce-terminal-hdr-btn" id="dkce-term-btn-clear" title="Clear (Ctrl+L)">⌫</button>
-          <button class="dkce-terminal-hdr-btn" id="dkce-term-btn-close" title="Close (Ctrl+\`)">✕</button>
+          <button class="dkce-terminal-hdr-btn" id="dkce-term-btn-clear" title="Clear (Ctrl+L)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block"><path d="M2 13h12M4 10l3-8M8 10l-1-3M12 10L9 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+          <button class="dkce-terminal-hdr-btn" id="dkce-term-btn-close" title="Close (Ctrl+\`)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
         <div class="dkce-terminal-output" id="dkce-terminal-output"></div>
         <div class="dkce-terminal-input-row" id="dkce-terminal-input-row">
@@ -1219,13 +1246,21 @@ class DevKitCodeEditor {
         $(document).on('click', '#dkce-act-claude',   () => this._switchPanel('claude'));
 
         // Enhanced git actions
-        $(document).on('click', '#dkce-git-btn-refresh', () => this._refreshGit());
-        $(document).on('click', '#dkce-git-btn-commit',  () => this._gitCommit());
-        $(document).on('click', '#dkce-git-btn-push',    () => this._gitPush());
-        $(document).on('click', '#dkce-git-btn-pull',    () => this._gitPull());
-        $(document).on('click', '#dkce-git-btn-branch',  () => this._gitBranches());
-        $(document).on('click', '#dkce-git-btn-log',     () => this._gitLog());
-        $(document).on('click', '#dkce-git-btn-stash',   () => this._gitStash());
+        $(document).on('click', '#dkce-git-btn-refresh',     () => this._refreshGit());
+        $(document).on('click', '#dkce-git-btn-commit',      () => this._gitCommit());
+        $(document).on('click', '#dkce-git-btn-push',        () => this._gitPush());
+        $(document).on('click', '#dkce-git-btn-pull',        () => this._gitPull());
+        $(document).on('click', '#dkce-git-btn-fetch',       () => this._gitFetch());
+        $(document).on('click', '#dkce-git-btn-branch',      () => this._gitBranches());
+        $(document).on('click', '#dkce-git-btn-merge',       () => this._gitMerge());
+        $(document).on('click', '#dkce-git-btn-stage-all',   () => this._gitStageAll());
+        $(document).on('click', '#dkce-git-btn-unstage-all', () => this._gitUnstageAll());
+        $(document).on('click', '#dkce-git-btn-discard-all', () => this._gitDiscardAll());
+        $(document).on('click', '#dkce-git-btn-diff',        () => this._gitDiff());
+        $(document).on('click', '#dkce-git-btn-log',         () => this._gitLog());
+        $(document).on('click', '#dkce-git-btn-stash',       () => this._gitStash());
+        $(document).on('click', '#dkce-git-btn-reset',       () => this._gitReset());
+        $(document).on('click', '#dkce-git-btn-tag',         () => this._gitTag());
 
         // History panel
         $(document).on('click', '#dkce-hist-btn-refresh', () => this._loadHistory());
@@ -1333,6 +1368,9 @@ class DevKitCodeEditor {
                 this._termHideCompletions();
             }
         });
+
+        // Sidebar resize handle
+        $(document).on('mousedown', '#dkce-sidebar-resize', e => this._sidebarResizeStart(e));
 
         // Terminal resize handle
         $(document).on('mousedown', '#dkce-terminal-resize', e => this._termResizeStart(e));
@@ -3733,6 +3771,177 @@ class DevKitCodeEditor {
         }, 'Git Stash', 'Run');
     }
 
+    _gitStageAll() {
+        if (!this.state.currentApp) { this._toast('Select an app first', 'warn'); return; }
+        frappe.call({
+            method: 'frappe_devkit.api.code_editor.git_stage_all',
+            args: { app_name: this.state.currentApp },
+            freeze: false,
+            callback: r => {
+                if (r.message && r.message.ok) { this._toast('All changes staged', 'success'); this._refreshGit(); }
+                else { this._toast('Stage all failed', 'error'); }
+            },
+        });
+    }
+
+    _gitUnstageAll() {
+        if (!this.state.currentApp) { this._toast('Select an app first', 'warn'); return; }
+        frappe.call({
+            method: 'frappe_devkit.api.code_editor.git_unstage_all',
+            args: { app_name: this.state.currentApp },
+            freeze: false,
+            callback: r => {
+                if (r.message && r.message.ok) { this._toast('All changes unstaged', 'info'); this._refreshGit(); }
+                else { this._toast('Unstage all failed', 'error'); }
+            },
+        });
+    }
+
+    _gitDiscardAll() {
+        if (!this.state.currentApp) { this._toast('Select an app first', 'warn'); return; }
+        frappe.confirm(
+            `<b>Discard ALL unstaged changes?</b><br><small style="color:#f44747">This cannot be undone. Untracked files are kept.</small>`,
+            () => {
+                frappe.call({
+                    method: 'frappe_devkit.api.code_editor.git_discard_all',
+                    args: { app_name: this.state.currentApp },
+                    freeze: false,
+                    callback: r => {
+                        if (r.message && r.message.ok) {
+                            this._toast('All unstaged changes discarded', 'warn');
+                            this._refreshGit();
+                        } else { this._toast('Discard all failed', 'error'); }
+                    },
+                });
+            }
+        );
+    }
+
+    _gitFetch() {
+        if (!this.state.currentApp) { this._toast('Select an app first', 'warn'); return; }
+        frappe.prompt([
+            { label: 'Remote', fieldname: 'remote', fieldtype: 'Data', default: 'origin' },
+        ], ({ remote }) => {
+            this._toast('Fetching…', 'info');
+            frappe.call({
+                method: 'frappe_devkit.api.code_editor.git_fetch',
+                args: { app_name: this.state.currentApp, remote: remote || 'origin' },
+                callback: r => {
+                    if (r.message && r.message.ok) {
+                        this._toast(`Fetch complete: ${r.message.output || 'up to date'}`, 'success');
+                        this._refreshGit();
+                    } else { this._toast('Fetch failed — check server logs', 'error'); }
+                },
+            });
+        }, 'Git Fetch', 'Fetch');
+    }
+
+    _gitMerge() {
+        if (!this.state.currentApp) { this._toast('Select an app first', 'warn'); return; }
+        frappe.call({
+            method: 'frappe_devkit.api.code_editor.git_branches',
+            args: { app_name: this.state.currentApp },
+            callback: r => {
+                const branches = (r.message || []).filter(b => !b.current);
+                const opts = branches.map(b => b.name).join('\n');
+                frappe.prompt([
+                    { label: 'Branch to merge into current', fieldname: 'branch', fieldtype: 'Select', options: opts, reqd: 1 },
+                    { label: 'No fast-forward (--no-ff)', fieldname: 'no_ff', fieldtype: 'Check', default: 0 },
+                ], ({ branch, no_ff }) => {
+                    this._toast(`Merging ${branch}…`, 'info');
+                    frappe.call({
+                        method: 'frappe_devkit.api.code_editor.git_merge',
+                        args: { app_name: this.state.currentApp, branch, no_ff: no_ff ? 1 : 0 },
+                        callback: r2 => {
+                            if (r2.message && r2.message.ok) {
+                                frappe.msgprint({ title: 'Merge Complete', message: `<pre style="font-size:12px">${_esc(r2.message.output || 'done')}</pre>` });
+                                this._refreshGit();
+                            } else { this._toast('Merge failed — check server logs', 'error'); }
+                        },
+                    });
+                }, 'Git Merge', 'Merge');
+            },
+        });
+    }
+
+    _gitDiff() {
+        if (!this.state.currentApp) { this._toast('Select an app first', 'warn'); return; }
+        const filePath = this.state.activeTab ? this.state.tabs.find(t => t.id === this.state.activeTab)?.filePath : '';
+        frappe.prompt([
+            { label: 'File path (blank = all changes)', fieldname: 'file_path', fieldtype: 'Data', default: filePath || '' },
+            { label: 'Staged only', fieldname: 'staged', fieldtype: 'Check', default: 0 },
+        ], ({ file_path, staged }) => {
+            frappe.call({
+                method: 'frappe_devkit.api.code_editor.git_diff',
+                args: { app_name: this.state.currentApp, file_path: file_path || '', staged: staged ? 1 : 0 },
+                callback: r => {
+                    if (r.message) {
+                        const out = r.message.output || '(no diff)';
+                        const $ov = $(`<div class="dkce-overlay">
+                            <div class="dkce-dialog" style="width:700px;max-height:80vh;">
+                                <button class="dkce-dialog-close">×</button>
+                                <h3>≠ Git Diff${file_path ? ': ' + _esc(file_path) : ''}</h3>
+                                <pre style="font-size:11px;overflow:auto;max-height:60vh;background:#0d0d0d;padding:10px;border-radius:4px;color:#ccc;white-space:pre;font-family:'Cascadia Code','Consolas',monospace;">${_esc(out)}</pre>
+                                <div class="dkce-dialog-footer"><button class="dkce-dialog-btn secondary dkce-close-dialog">Close</button></div>
+                            </div>
+                        </div>`).appendTo('body');
+                        $ov.on('click', '.dkce-close-dialog, .dkce-dialog-close', () => $ov.remove());
+                        $ov.on('click', e => { if (e.target === $ov[0]) $ov.remove(); });
+                    }
+                },
+            });
+        }, 'Git Diff', 'Show Diff');
+    }
+
+    _gitReset() {
+        if (!this.state.currentApp) { this._toast('Select an app first', 'warn'); return; }
+        frappe.prompt([
+            { label: 'Mode', fieldname: 'mode', fieldtype: 'Select', options: 'soft\nmixed\nhard', default: 'mixed',
+              description: 'soft=keep staged, mixed=unstage all, hard=discard all changes' },
+            { label: 'Target (commit hash, HEAD~1, etc.)', fieldname: 'target', fieldtype: 'Data', default: 'HEAD~1' },
+        ], ({ mode, target }) => {
+            const msg = mode === 'hard'
+                ? `<b>Hard reset to ${_esc(target)}?</b><br><small style="color:#f44747">All uncommitted changes will be lost.</small>`
+                : `Reset (${mode}) to ${_esc(target)}?`;
+            frappe.confirm(msg, () => {
+                frappe.call({
+                    method: 'frappe_devkit.api.code_editor.git_reset',
+                    args: { app_name: this.state.currentApp, mode, target: target || 'HEAD~1' },
+                    callback: r => {
+                        if (r.message && r.message.ok) {
+                            this._toast(`Reset --${mode} to ${target} done`, mode === 'hard' ? 'warn' : 'success');
+                            this._refreshGit();
+                        } else { this._toast('Reset failed — check server logs', 'error'); }
+                    },
+                });
+            });
+        }, 'Git Reset', 'Reset');
+    }
+
+    _gitTag() {
+        if (!this.state.currentApp) { this._toast('Select an app first', 'warn'); return; }
+        frappe.prompt([
+            { label: 'Action', fieldname: 'action', fieldtype: 'Select', options: 'list\ncreate\ndelete', default: 'list' },
+            { label: 'Tag name (for create/delete)', fieldname: 'name', fieldtype: 'Data', default: '' },
+            { label: 'Message (annotated tag, optional)', fieldname: 'message', fieldtype: 'Data', default: '' },
+        ], ({ action, name, message }) => {
+            frappe.call({
+                method: 'frappe_devkit.api.code_editor.git_tag',
+                args: { app_name: this.state.currentApp, action, name: name || '', message: message || '' },
+                callback: r => {
+                    if (r.message && r.message.ok) {
+                        if (action === 'list') {
+                            frappe.msgprint({ title: 'Tags', message: `<pre style="font-size:12px">${_esc(r.message.output || 'No tags')}</pre>` });
+                        } else {
+                            this._toast(`Tag ${action}: ${name || 'done'}`, 'success');
+                            this._refreshGit();
+                        }
+                    } else { this._toast(`Tag ${action} failed`, 'error'); }
+                },
+            });
+        }, 'Git Tag', 'Run');
+    }
+
     // ── Terminal ────────────────────────────────────────────────────────────
 
     _toggleTerminal(forceState) {
@@ -4123,6 +4332,30 @@ class DevKitCodeEditor {
     }
 
     // ── Resize ──────────────────────────────────────────────────────────────
+
+    _sidebarResizeStart(e) {
+        e.preventDefault();
+        const s = this.state.settings;
+        const startX = e.clientX;
+        const startW = s.sidebarWidth;
+        $('#dkce-sidebar-resize').addClass('dragging');
+
+        const onMove = ev => {
+            const newW = Math.max(160, Math.min(startW + (ev.clientX - startX), 520));
+            s.sidebarWidth = Math.round(newW);
+            document.getElementById('dkce-root').style.setProperty('--dkce-sidebar-w', s.sidebarWidth + 'px');
+            $('#dkce-s-sw-val').text(s.sidebarWidth);
+            if (this.editor) this.editor.layout();
+        };
+        const onUp = () => {
+            $('#dkce-sidebar-resize').removeClass('dragging');
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            this._saveSettings();
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    }
 
     _termResizeStart(e) {
         e.preventDefault();

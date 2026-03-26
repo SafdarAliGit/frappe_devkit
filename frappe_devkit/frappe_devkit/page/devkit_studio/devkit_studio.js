@@ -46,6 +46,13 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 /* ═══ RESET within scope ═══ */
 .dkst-root * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ═══ TEXT SELECTION — allow copying doctype names & output everywhere ═══ */
+.dkst-panel-area, .dkst-panel-area * { user-select: text; -webkit-user-select: text; }
+.dkst-term { user-select: text; -webkit-user-select: text; }
+.dkst-statusbar { user-select: text; -webkit-user-select: text; }
+/* Keep nav items non-selectable (they are clickable buttons) */
+.dkst-sb-item, .dkst-sb-section, .dkst-sb-logo-title { user-select: none; -webkit-user-select: none; }
+
 /* ═══ ROOT SHELL — true 100vh ═══ */
 .dkst-root {
   position: fixed;
@@ -91,6 +98,35 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
   margin-top: 2px;
   letter-spacing: .04em;
 }
+.dkst-sb-search-wrap {
+  padding: 8px 10px 6px;
+  background: rgba(0,0,0,.12);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+.dkst-sb-search {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 5px;
+  color: #d4c8f8;
+  font-size: 12px;
+  padding: 5px 8px 5px 26px;
+  outline: none;
+  transition: border-color .15s, background .15s;
+}
+.dkst-sb-search::placeholder { color: #6a5ea0; }
+.dkst-sb-search:focus { border-color: #7a5cc0; background: rgba(255,255,255,.11); }
+.dkst-sb-search-ico {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #6a5ea0;
+}
+.dkst-sb-search-wrap { position: relative; }
 .dkst-sb-body {
   flex: 1;
   overflow-y: auto;
@@ -99,12 +135,15 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 .dkst-sb-body::-webkit-scrollbar { width: 3px; }
 .dkst-sb-body::-webkit-scrollbar-thumb { background: #4a3880; border-radius: 2px; }
 .dkst-sb-section {
-  padding: 14px 14px 3px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .12em;
+  padding: 16px 14px 5px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .10em;
   text-transform: uppercase;
-  color: #5a4888;
+  color: #a090d8;
+  background: rgba(255,255,255,.03);
+  border-left: 3px solid rgba(155,125,224,.50);
+  margin: 6px 0 0;
 }
 .dkst-sb-sep {
   height: 1px;
@@ -180,6 +219,34 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
   white-space: nowrap;
 }
 .dkst-st-pill:hover { background: rgba(255,255,255,.12); cursor: default; }
+
+/* ═══ DOT PATH WIDGET ═══ */
+.dkst-dotpath-inp {
+  font-family: 'Consolas', 'Courier New', monospace !important;
+  font-size: 12.5px !important;
+  letter-spacing: .02em;
+  transition: border-color .15s, box-shadow .15s;
+}
+.dkst-dotpath-inp.dp-valid   { border-color: #27ae60 !important; box-shadow: 0 0 0 2px rgba(39,174,96,.14) !important; }
+.dkst-dotpath-inp.dp-invalid { border-color: #c0392b !important; box-shadow: 0 0 0 2px rgba(192,57,43,.12) !important; }
+.dkst-dotpath-preview {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px;
+  min-height: 0; margin-top: 7px; padding: 4px 8px; border-radius: 5px;
+  background: #f7f4ff; border: 1px solid #e8e0f8;
+}
+.dkst-dotpath-preview:empty { display: none; }
+.dkst-dps { display: inline-block; border-radius: 3px; padding: 2px 7px; font-size: 11px; font-family: Consolas, monospace; font-weight: 600; }
+.dkst-dps-app { background: #ede8ff; color: #4a3880; border: 1px solid #c8b8f0; }
+.dkst-dps-mod { background: #eaf5ea; color: #1a6a20; border: 1px solid #b0d4b0; }
+.dkst-dps-fn  { background: #fff7e0; color: #7a4a10; border: 1px solid #d8c060; }
+.dkst-dotpath-dot { color: #9880c8; font-weight: 800; font-size: 14px; margin: 0 1px; line-height: 1; align-self: center; }
+.dkst-dotpath-err { color: #c0392b; font-size: 11px; font-family: monospace; }
+.dkst-dp-autofill {
+  padding: 5px 11px; font-size: 11.5px; white-space: nowrap; flex-shrink: 0;
+  background: #f0ebff; color: #5c4da8; border: 1px solid #c8b8f0; border-radius: 5px;
+  cursor: pointer; font-weight: 600; transition: background .12s;
+}
+.dkst-dp-autofill:hover { background: #e0d8ff; }
 
 /* ═══ PANEL HEADER ═══ */
 .dkst-phdr {
@@ -270,6 +337,336 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 .dkst-inp::placeholder { color: #b0a8d0; }
 .dkst-ta { resize: vertical; min-height: 76px; }
 .dkst-sel option { background: #fff; color: #1e1a2e; }
+
+/* ═══ HTML EDITOR WIDGET ═══ */
+.dkst-html-editor {
+  border: 1px solid #d0c8e8; border-radius: 7px; overflow: hidden;
+  background: #fff; margin-top: 2px;
+}
+.dkst-html-mode-tabs {
+  display: flex; align-items: flex-end; padding: 6px 10px 0;
+  background: #f3f0fb; border-bottom: 1px solid #d0c8e8; gap: 2px;
+}
+.dkst-html-mode-tab {
+  padding: 5px 16px; font-size: 12px; cursor: pointer; color: #7060a8;
+  border: 1px solid transparent; border-bottom: none;
+  border-radius: 5px 5px 0 0; font-weight: 500; transition: all .1s;
+}
+.dkst-html-mode-tab.active {
+  background: #fff; border-color: #d0c8e8; color: #1e1a2e; font-weight: 700;
+  margin-bottom: -1px; padding-bottom: 6px;
+}
+.dkst-html-tb {
+  display: flex; gap: 3px; align-items: center; flex-wrap: wrap;
+  padding: 6px 10px; background: #faf8ff; border-bottom: 1px solid #e8e0f8;
+}
+.dkst-html-tb-btn {
+  padding: 3px 9px; font-size: 11.5px; border: 1px solid #d0c8e8;
+  border-radius: 4px; background: #fff; cursor: pointer; color: #4a4070;
+  font-family: inherit; line-height: 1.5; transition: all .1s;
+}
+.dkst-html-tb-btn:hover { background: #ede8ff; border-color: #9b7de0; color: #1e1a2e; }
+.dkst-html-tb-sep { width: 1px; height: 18px; background: #d8d0f0; margin: 0 3px; flex-shrink: 0; }
+.dkst-html-inp {
+  border: none !important; border-radius: 0 !important; resize: vertical;
+  font-family: 'Consolas', 'Courier New', monospace !important;
+  font-size: 12.5px !important; line-height: 1.75 !important;
+  min-height: 200px; width: 100%; box-shadow: none !important;
+  color: #1e1a2e; padding: 14px 16px !important; outline: none !important;
+  background: #fff;
+}
+.dkst-html-inp:focus { box-shadow: none !important; outline: none !important; }
+.dkst-html-preview-area {
+  background: #fff; min-height: 180px;
+  border-top: 1px solid #e8e0f8; position: relative;
+}
+.dkst-html-preview-area iframe {
+  width: 100%; border: none; min-height: 180px; display: block; background: #fff;
+}
+.dkst-html-jinja-note {
+  font-size: 11px; color: #7a70a8; padding: 6px 12px;
+  background: #f7f4ff; border-bottom: 1px solid #ede8f8;
+  display: flex; gap: 14px; align-items: center;
+}
+.dkst-jinja-badge { padding: 1px 6px; border-radius: 3px; font-family: monospace; font-size: 11px; }
+.dkst-jinja-var  { background: #d4edda; color: #155724; border: 1px solid #b8ddc8; }
+.dkst-jinja-tag  { background: #fff3cd; color: #856404; border: 1px solid #e8d88c; }
+
+/* ═══ QUERY EDITOR ═══ */
+.dkqe-root { display: flex; flex-direction: column; height: 100%; gap: 0; }
+.dkqe-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 18px; background: #fff; border-bottom: 1px solid #e8e0f8;
+  flex-shrink: 0;
+}
+.dkqe-site-sel {
+  font-size: 12px; padding: 5px 28px 5px 10px; border-radius: 5px;
+  border: 1px solid #d0c8e8; background: #fff; color: #1e1a2e;
+  min-width: 160px; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239b7de0'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+}
+.dkqe-run-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: #6c3fc5; color: #fff; border: none; border-radius: 5px;
+  font-size: 12.5px; font-weight: 600; padding: 6px 14px; cursor: pointer;
+  transition: background .15s;
+}
+.dkqe-run-btn:hover { background: #5c32a8; }
+.dkqe-run-btn:disabled { background: #b0a0d8; cursor: not-allowed; }
+.dkqe-limit-sel {
+  font-size: 12px; padding: 5px 8px; border-radius: 5px;
+  border: 1px solid #d0c8e8; background: #fff; color: #5c4da8;
+}
+.dkqe-tb-sep { width: 1px; height: 20px; background: #e0d8f0; margin: 0 2px; flex-shrink: 0; }
+.dkqe-snippet-btn {
+  font-size: 11.5px; padding: 4px 9px; border-radius: 4px; cursor: pointer;
+  border: 1px solid #d0c8e8; background: #f7f4ff; color: #5c4da8;
+  transition: background .12s;
+}
+.dkqe-snippet-btn:hover { background: #ede8ff; border-color: #9b7de0; }
+.dkqe-editor-area {
+  display: flex; flex: 1; min-height: 0; overflow: hidden;
+}
+.dkqe-left { display: flex; flex-direction: column; width: 220px; min-width: 180px; flex-shrink: 0; background: #faf8ff; border-right: 1px solid #e8e0f8; overflow-y: auto; }
+.dkqe-left-hdr { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: #9080b8; padding: 10px 12px 4px; }
+.dkqe-tbl-item { font-size: 12px; padding: 5px 12px; cursor: pointer; color: #3a2e5e; display: flex; align-items: center; gap: 6px; border-radius: 0; transition: background .1s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dkqe-tbl-item:hover { background: #ede8ff; color: #5c4da8; }
+.dkqe-tbl-item.active { background: #e0d8f8; color: #5c4da8; font-weight: 600; }
+.dkqe-tbl-item svg { flex-shrink: 0; opacity: .6; }
+.dkqe-center { display: flex; flex-direction: column; flex: 1; min-width: 0; overflow: hidden; }
+.dkqe-editor-wrap {
+  flex-shrink: 0; border-bottom: 1px solid #e8e0f8; position: relative;
+  background: #1e1a2e; min-height: 80px;
+}
+.dkqe-resize-handle {
+  height: 5px; background: #2a2440; cursor: row-resize; flex-shrink: 0;
+  border-top: 1px solid #3a2e5e; border-bottom: 1px solid #3a2e5e;
+  transition: background .15s;
+}
+.dkqe-resize-handle:hover { background: #7a5cc0; }
+.dkqe-editor {
+  width: 100%; box-sizing: border-box; resize: none;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+  font-size: 13px !important; line-height: 1.65 !important;
+  color: #e8e0ff; background: #1e1a2e;
+  border: none; outline: none; padding: 14px 16px;
+  tab-size: 4;
+}
+.dkqe-editor::selection { background: #4a3880; }
+.dkqe-editor:focus { outline: none; box-shadow: none !important; }
+.dkqe-editor-footer {
+  display: flex; align-items: center; gap: 12px; padding: 4px 12px;
+  background: #2a2440; border-top: 1px solid #3a2e5e;
+  font-size: 11px; color: #7a6aa8; flex-shrink: 0;
+}
+.dkqe-results-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; background: #fff; }
+.dkqe-results-hdr {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  background: #f7f4ff; border-bottom: 1px solid #e8e0f8; flex-shrink: 0; flex-wrap: wrap;
+}
+.dkqe-results-title { font-size: 12px; font-weight: 700; color: #3a2e5e; }
+.dkqe-results-meta { font-size: 11px; color: #9080b8; }
+.dkqe-export-btn {
+  margin-left: auto; font-size: 11px; padding: 3px 10px; border-radius: 4px;
+  border: 1px solid #d0c8e8; background: #fff; color: #5c4da8; cursor: pointer;
+}
+.dkqe-export-btn:hover { background: #ede8ff; }
+.dkqe-results-scroll { flex: 1; overflow: auto; }
+.dkqe-res-tbl { border-collapse: collapse; width: 100%; min-width: max-content; font-size: 12.5px; }
+.dkqe-res-tbl thead { position: sticky; top: 0; z-index: 2; }
+.dkqe-res-tbl th {
+  background: #2a2440; color: #c8b8f0; font-weight: 600; font-size: 11.5px;
+  padding: 7px 12px; text-align: left; white-space: nowrap;
+  border-right: 1px solid #3a2e5e; letter-spacing: .04em;
+}
+.dkqe-res-tbl th:last-child { border-right: none; }
+.dkqe-res-tbl td {
+  padding: 6px 12px; border-bottom: 1px solid #f0ecf8;
+  color: #1e1a2e; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: 'Consolas', monospace; font-size: 12px;
+}
+.dkqe-res-tbl tr:nth-child(even) td { background: #faf8ff; }
+.dkqe-res-tbl tr:hover td { background: #f0eaff; }
+.dkqe-res-tbl td.null-val { color: #b0a0c8; font-style: italic; }
+.dkqe-res-tbl td.num-val  { color: #1a6ea8; text-align: right; }
+.dkqe-res-tbl td.bool-val { color: #1a7a3a; font-weight: 600; }
+.dkqe-res-tbl td.date-val { color: #7a5cc0; }
+.dkqe-res-tbl td.json-val { color: #c47a00; max-width: 280px; }
+.dkqe-error { padding: 20px; color: #c0392b; font-family: monospace; font-size: 13px; background: #fff5f5; border-left: 4px solid #c0392b; margin: 16px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+.dkqe-empty { text-align: center; padding: 60px 20px; color: #b0a8c8; font-size: 14px; }
+.dkqe-spinner { display: flex; align-items: center; justify-content: center; padding: 60px; gap: 12px; color: #9080b8; font-size: 14px; }
+.dkqe-affected { padding: 20px; color: #1a7a3a; font-size: 13px; font-weight: 600; background: #f0faf4; border-left: 4px solid #27ae60; margin: 16px; border-radius: 4px; }
+.dkqe-history-item { padding: 6px 12px; font-size: 11.5px; font-family: monospace; cursor: pointer; border-bottom: 1px solid #f0ecf8; color: #3a2e5e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dkqe-history-item:hover { background: #f0eaff; }
+.dkqe-col-num { background: #3a2e5e !important; color: #7a6aa8 !important; width: 40px; text-align: right !important; user-select: none; font-size: 11px; }
+.dkqe-td-expand { cursor: pointer; }
+.dkqe-tab-bar { display: flex; gap: 0; border-bottom: 1px solid #e8e0f8; background: #f7f4ff; flex-shrink: 0; }
+.dkqe-tab { font-size: 12px; padding: 7px 16px; cursor: pointer; color: #7a70a8; border-bottom: 2px solid transparent; font-weight: 500; }
+.dkqe-tab.active { color: #5c4da8; border-bottom-color: #7a5cc0; font-weight: 700; background: #fff; }
+
+/* ── SQL Autocomplete ── */
+.dkqe-ac-drop {
+  position: fixed; z-index: 99999;
+  background: #1e1a2e; border: 1px solid #4a3880;
+  border-radius: 7px; box-shadow: 0 10px 36px rgba(0,0,0,.55);
+  min-width: 230px; max-width: 420px; max-height: 270px;
+  overflow-y: auto; font-family: 'Consolas','Monaco',monospace; font-size: 12.5px;
+  padding: 4px 0; scrollbar-width: thin; scrollbar-color: #4a3880 #1e1a2e;
+}
+.dkqe-ac-drop::-webkit-scrollbar { width: 5px; }
+.dkqe-ac-drop::-webkit-scrollbar-track { background: #1e1a2e; }
+.dkqe-ac-drop::-webkit-scrollbar-thumb { background: #4a3880; border-radius: 3px; }
+.dkqe-ac-section {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .10em;
+  color: #4a3870; padding: 6px 10px 2px; border-top: 1px solid #2a2040; margin-top: 2px;
+}
+.dkqe-ac-section:first-child { border-top: none; margin-top: 0; }
+.dkqe-ac-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 10px; cursor: pointer; color: #c8b8f0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dkqe-ac-item:hover, .dkqe-ac-item.sel { background: #30265a; color: #e8e0ff; }
+.dkqe-ac-ico {
+  font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px;
+  flex-shrink: 0; letter-spacing: .02em; font-family: 'Segoe UI',sans-serif;
+  min-width: 20px; text-align: center;
+}
+.dkqe-ac-keyword  .dkqe-ac-ico { background: #5c3da0; color: #ddd0ff; }
+.dkqe-ac-function .dkqe-ac-ico { background: #1a5870; color: #a0d8f0; }
+.dkqe-ac-table    .dkqe-ac-ico { background: #4a2060; color: #d0a0f8; }
+.dkqe-ac-column   .dkqe-ac-ico { background: #1a5a30; color: #90e0a8; }
+.dkqe-ac-lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.dkqe-ac-detail { font-size: 10px; color: #5a4870; margin-left: auto; padding-left: 8px; flex-shrink: 0; }
+.dkqe-ac-hint {
+  font-size: 10px; color: #3a2e60; padding: 3px 8px 4px;
+  border-top: 1px solid #2a2040; text-align: right; letter-spacing: .02em;
+}
+
+/* ── Snippet categories ── */
+.dkqe-sn-group-hdr {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .10em;
+  color: #9b7de0; padding: 6px 12px 2px; border-top: 1px solid #e8e0f8;
+  background: #f7f4ff; cursor: default; user-select: none;
+}
+.dkqe-sn-group-hdr:first-child { border-top: none; }
+
+/* ═══ WEB & PAGE BUILDER ═══ */
+.dkpb-root { display:flex;flex-direction:column;height:100%;overflow:hidden;padding:0 }
+.dkpb-toolbar { display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #e8e0f8;flex-shrink:0 }
+.dkpb-area { display:flex;flex:1;min-height:0;overflow:hidden }
+.dkpb-left { width:220px;min-width:170px;flex-shrink:0;background:#faf8ff;border-right:1px solid #e8e0f8;display:flex;flex-direction:column;overflow:hidden }
+.dkpb-left-hdr { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:#9080b8;padding:8px 12px 4px;flex-shrink:0 }
+.dkpb-search { display:block;margin:4px 8px;width:calc(100% - 16px);box-sizing:border-box;font-size:11.5px;padding:4px 8px;border:1px solid #d0c8e8;border-radius:4px;background:#fff;color:#1e1a2e;outline:none }
+.dkpb-search:focus { border-color:#9b7de0 }
+.dkpb-tree { flex:1;overflow-y:auto }
+/* file tree nodes */
+.dkpb-node { display:flex;align-items:center;gap:5px;padding:4px 8px;cursor:pointer;font-size:12px;color:#3a2e5e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none }
+.dkpb-node:hover { background:#ede8ff }
+.dkpb-node.sel { background:#e0d8f8;color:#5c4da8;font-weight:600 }
+.dkpb-node.dir-nd { font-weight:600;color:#5c4da8;font-size:11.5px }
+.dkpb-node .xb { font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;flex-shrink:0;min-width:20px;text-align:center;font-family:'Segoe UI',sans-serif }
+.xb-html { background:#7a5cc020;color:#7a5cc0 }
+.xb-py   { background:#1a6a3a20;color:#1a6a3a }
+.xb-md   { background:#1a5a7020;color:#1a5a70 }
+.xb-css  { background:#c47a0020;color:#c47a00 }
+.xb-js   { background:#8a6a0020;color:#8a6a00 }
+.xb-json { background:#6a3a0020;color:#6a3a00 }
+.dkpb-nd-lbl { flex:1;overflow:hidden;text-overflow:ellipsis }
+.dkpb-nd-comp { font-size:9px;color:#c8a0e8;flex-shrink:0;padding-left:2px }
+/* page list */
+.dkpb-page-item { display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;font-size:12px;color:#3a2e5e;border-bottom:1px solid #f0ecf8 }
+.dkpb-page-item:hover { background:#ede8ff }
+.dkpb-page-item.sel { background:#e0d8f8;font-weight:600 }
+.dkpb-page-item .pg-title { flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.dkpb-page-item .pg-type { font-size:9px;color:#9080b8;padding:1px 4px;border-radius:3px;background:#ede8ff;flex-shrink:0 }
+.dkpb-dot-pub { width:7px;height:7px;border-radius:50%;background:#27ae60;flex-shrink:0 }
+.dkpb-dot-drft { width:7px;height:7px;border-radius:50%;background:#b0a8c8;flex-shrink:0 }
+/* center / editor */
+.dkpb-center { display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden }
+.dkpb-tab-bar { display:flex;border-bottom:1px solid #e8e0f8;background:#f7f4ff;flex-shrink:0 }
+.dkpb-tab { font-size:12px;padding:6px 14px;cursor:pointer;color:#7a70a8;border-bottom:2px solid transparent;font-weight:500;white-space:nowrap }
+.dkpb-tab.active { color:#5c4da8;border-bottom-color:#7a5cc0;font-weight:700;background:#fff }
+.dkpb-breadcrumb { font-size:11px;color:#5c4da8;padding:4px 12px;background:#f0ecf8;border-bottom:1px solid #e8e0f8;flex-shrink:0;font-family:monospace;display:flex;align-items:center;gap:6px }
+.dkpb-dirty-dot { width:7px;height:7px;border-radius:50%;background:#e8a020;display:inline-block }
+.dkpb-ed-wrap { flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:#fff }
+.dkpb-editor { width:100%;box-sizing:border-box;resize:none;flex:1;font-family:'Consolas','Monaco',monospace!important;font-size:13px!important;line-height:1.65!important;color:#1e1a2e;background:#fff;border:none;outline:none;padding:12px 16px;tab-size:4 }
+.dkpb-editor:focus { outline:none;box-shadow:none!important }
+.dkpb-ed-monaco { flex:1;min-height:0;width:100%;height:100%;overflow:hidden;border:none }
+.dkpb-comp-tabs { display:flex;background:#f7f4ff;border-bottom:1px solid #e8e0f8;flex-shrink:0 }
+.dkpb-comp-tab { font-size:11px;padding:4px 12px;cursor:pointer;color:#7a70a8;border-right:1px solid #e8e0f8;font-family:monospace;font-weight:500 }
+.dkpb-comp-tab.active { color:#5c4da8;background:#fff;font-weight:700 }
+/* split pane */
+.dkpb-split-h { display:flex;flex:1;min-height:0;overflow:hidden }
+.dkpb-split-pane { flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden }
+.dkpb-split-handle { width:5px;background:#e0d8f0;cursor:col-resize;flex-shrink:0;border-left:1px solid #d0c8e8;transition:background .15s }
+.dkpb-split-handle:hover { background:#9b7de0 }
+/* preview */
+.dkpb-preview-area { flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fff }
+.dkpb-preview-bar { display:flex;align-items:center;gap:8px;padding:5px 10px;background:#f7f4ff;border-bottom:1px solid #e8e0f8;font-size:11px;color:#7a70a8;flex-shrink:0 }
+.dkpb-preview-frame { flex:1;width:100%;border:none }
+/* right props panel */
+.dkpb-right { width:240px;flex-shrink:0;background:#faf8ff;border-left:1px solid #e8e0f8;display:flex;flex-direction:column;overflow:hidden }
+.dkpb-right-hdr { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:#9080b8;padding:8px 12px 4px;border-bottom:1px solid #e8e0f8;flex-shrink:0 }
+.dkpb-right-body { flex:1;overflow-y:auto;padding:10px 12px }
+.dkpb-field { margin-bottom:9px }
+.dkpb-lbl { font-size:10.5px;font-weight:600;color:#5a4870;margin-bottom:3px;display:block }
+.dkpb-inp { width:100%;box-sizing:border-box;padding:5px 8px;font-size:12px;border:1px solid #d0c8e8;border-radius:4px;background:#fff;color:#1e1a2e;outline:none }
+.dkpb-inp:focus { border-color:#9b7de0 }
+.dkpb-inp-ta { resize:vertical;min-height:50px }
+.dkpb-inp-sel { width:100%;box-sizing:border-box;padding:5px 8px;font-size:12px;border:1px solid #d0c8e8;border-radius:4px;background:#fff;color:#1e1a2e;outline:none }
+.dkpb-toggle { display:flex;align-items:center;gap:7px;font-size:12px;color:#3a2e5e;cursor:pointer;user-select:none }
+.dkpb-toggle input { accent-color:#6c3fc5 }
+.dkpb-divider { height:1px;background:#e8e0f8;margin:8px 0 }
+.dkpb-btn-full { width:100%;padding:6px;font-size:12px;border-radius:5px;cursor:pointer;border:none;font-weight:600;margin-bottom:5px;transition:background .12s }
+.dkpb-btn-p { background:#6c3fc5;color:#fff }
+.dkpb-btn-p:hover { background:#5c32a8 }
+.dkpb-btn-p:disabled { background:#b0a0d8;cursor:not-allowed }
+.dkpb-btn-s { background:#ede8ff;color:#5c4da8;border:1px solid #d0c8e8 }
+.dkpb-btn-s:hover { background:#e0d8f8 }
+.dkpb-btn-d { background:#fff5f5;color:#c0392b;border:1px solid #f0c0c0 }
+.dkpb-btn-d:hover { background:#ffe0e0 }
+/* toolbar buttons */
+.dkpb-tsep { width:1px;height:20px;background:#e0d8f0;flex-shrink:0 }
+.dkpb-btn { font-size:11.5px;padding:4px 10px;border-radius:4px;cursor:pointer;border:1px solid #d0c8e8;background:#fff;color:#5c4da8;transition:background .12s;white-space:nowrap }
+.dkpb-btn:hover { background:#ede8ff;border-color:#9b7de0 }
+.dkpb-btn:disabled { opacity:.5;cursor:not-allowed }
+.dkpb-btn-accent { background:#6c3fc5;color:#fff;border-color:#6c3fc5;font-weight:600 }
+.dkpb-btn-accent:hover { background:#5c32a8 }
+.dkpb-btn-accent:disabled { background:#b0a0d8;cursor:not-allowed }
+/* block builder */
+.dkpb-blk-lib { width:190px;flex-shrink:0;background:#fff;border-right:1px solid #e8e0f8;display:flex;flex-direction:column;overflow:hidden }
+.dkpb-blk-lib-hdr { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;color:#9080b8;padding:8px 10px 4px;border-bottom:1px solid #e8e0f8;flex-shrink:0 }
+.dkpb-blk-lib-item { display:flex;align-items:center;gap:6px;padding:7px 10px;cursor:pointer;font-size:12px;color:#3a2e5e;border-bottom:1px solid #f0ecf8 }
+.dkpb-blk-lib-item:hover { background:#ede8ff }
+.dkpb-blk-ico { font-size:14px }
+.dkpb-canvas { flex:1;overflow-y:auto;padding:10px;background:#f3f0fa;display:flex;flex-direction:column;gap:8px }
+.dkpb-canvas-empty { text-align:center;padding:40px 20px;color:#b0a8c8;font-size:13px;border:2px dashed #d0c8e8;border-radius:8px;flex:1 }
+.dkpb-block { background:#fff;border:1px solid #d0c8e8;border-radius:6px;overflow:hidden;transition:box-shadow .15s }
+.dkpb-block:hover { box-shadow:0 2px 12px rgba(108,63,197,.12) }
+.dkpb-block.drag-over { border-color:#9b7de0;box-shadow:0 0 0 2px #9b7de040 }
+.dkpb-block-hdr { display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f0ecf8;cursor:grab;border-bottom:1px solid #e0d8f0 }
+.dkpb-block-hdr:active { cursor:grabbing }
+.dkpb-block-ttl { flex:1;font-size:12px;font-weight:600;color:#3a2e5e }
+.dkpb-block-del { font-size:12px;color:#b0a0c0;cursor:pointer;padding:1px 6px;border-radius:3px;border:none;background:none }
+.dkpb-block-del:hover { background:#ffe0e0;color:#c0392b }
+.dkpb-block-body { padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px }
+.dkpb-bf { display:flex;flex-direction:column;gap:2px }
+.dkpb-bf.full { grid-column:1/-1 }
+.dkpb-bf label { font-size:10px;color:#5a4870;font-weight:600 }
+.dkpb-bf input,.dkpb-bf textarea,.dkpb-bf select { padding:4px 6px;font-size:11px;border:1px solid #d0c8e8;border-radius:3px;outline:none;background:#faf8ff;color:#1e1a2e }
+.dkpb-bf input:focus,.dkpb-bf textarea:focus { border-color:#9b7de0 }
+.dkpb-empty { text-align:center;padding:50px 20px;color:#b0a8c8;font-size:13px }
+/* mode tabs at top of panel */
+.dkpb-mode-bar { display:flex;gap:0;background:#f7f4ff;border-bottom:2px solid #e0d8f0;flex-shrink:0 }
+.dkpb-mode-tab { font-size:12px;font-weight:600;padding:8px 18px;cursor:pointer;color:#7a70a8;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap }
+.dkpb-mode-tab.active { color:#5c4da8;border-bottom-color:#6c3fc5;background:#fff }
+/* desk page file tabs */
+.dkpb-file-tabs { display:flex;gap:0;background:#f7f4ff;border-bottom:1px solid #e8e0f8;flex-shrink:0;overflow-x:auto }
+.dkpb-file-tab { font-size:11px;padding:5px 12px;cursor:pointer;color:#7a70a8;border-right:1px solid #e8e0f8;font-family:monospace;white-space:nowrap;font-weight:500 }
+.dkpb-file-tab.active { color:#5c4da8;background:#fff;font-weight:700 }
+.dkpb-file-tab .dirty { width:6px;height:6px;border-radius:50%;background:#e8a020;display:inline-block;margin-left:4px }
 
 /* ═══ FIELD TABLE ═══ */
 .dkst-tbl-wrap { overflow-x: auto; }
@@ -491,10 +888,33 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			args:{ doctype:"DocType", fields:["name"], filters:[["module","=",mod]], limit_page_length:500 }
 		}).then(r => { _dts[mod]=(r.message||[]).map(d=>d.name); return _dts[mod]; });
 	}
+	let _dtsByApp={};
+	function loadDtsByApp(app) {
+		if (_dtsByApp[app]) return Promise.resolve(_dtsByApp[app]);
+		return loadMods(app).then(mods => {
+			return Promise.all(mods.map(m => loadDts(m)));
+		}).then(results => {
+			const all = [].concat(...results).sort();
+			_dtsByApp[app] = all;
+			return all;
+		});
+	}
 	function fillSel(el, items, ph) {
 		$(el).empty();
 		if (ph) $(`<option value="">— ${ph} —</option>`).appendTo(el);
 		items.forEach(v => $(`<option value="${v}">${v}</option>`).appendTo(el));
+	}
+	function wireAD($scope, aId, dId) {
+		loadApps().then(() => fillSel($scope.find(`#${aId}`), _apps, "select app"));
+		$scope.find(`#${aId}`).on("change", function() {
+			const app = this.value;
+			const $d = $scope.find(`#${dId}`);
+			if (!$d.is("select")) return;
+			$d.prop("disabled", true).html('<option value="">— select doctype —</option>');
+			if (!app) return;
+			$d.html('<option value="">— loading doctypes —</option>');
+			loadDtsByApp(app).then(ds => { fillSel($d, ds, "select doctype"); $d.prop("disabled", false); });
+		});
 	}
 	function wireAMD($scope, aId, mId, dId) {
 		loadApps().then(() => fillSel($scope.find(`#${aId}`), _apps, "select app"));
@@ -502,16 +922,28 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			const app=this.value;
 			const $m=$scope.find(`#${mId}`);
 			$m.prop("disabled",!app).html('<option value="">— select module —</option>');
-			if (dId) $scope.find(`#${dId}`).prop("disabled",true).html('<option value="">— select doctype —</option>');
-			if (!app) return;
+			if (!app) {
+				if (dId) $scope.find(`#${dId}`).prop("disabled",true).html('<option value="">— select doctype —</option>');
+				return;
+			}
 			loadMods(app).then(ms => { fillSel($m,ms,"select module"); $m.prop("disabled",false); });
+			// If doctype field is a <select>, populate all app doctypes immediately
+			if (dId) {
+				const $d = $scope.find(`#${dId}`);
+				if ($d.is("select")) {
+					$d.prop("disabled",true).html('<option value="">— loading doctypes —</option>');
+					loadDtsByApp(app).then(ds => { fillSel($d,ds,"select doctype"); $d.prop("disabled",false); });
+				}
+			}
 		});
 		if (mId && dId) {
 			$scope.find(`#${mId}`).on("change", function() {
 				const mod=this.value;
 				const $d=$scope.find(`#${dId}`);
+				if (!$d.is("select")) return;
 				$d.prop("disabled",!mod).html('<option value="">— select doctype —</option>');
 				if (!mod) return;
+				// Narrow to this module's doctypes
 				loadDts(mod).then(ds => { fillSel($d,ds,"select doctype"); $d.prop("disabled",false); });
 			});
 		}
@@ -529,6 +961,10 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 	$(`<div class="dkst-sb-logo">
 		<div class="dkst-sb-logo-title">${icoLogo(20)}&nbsp;DevKit Studio</div>
 		<div class="dkst-sb-logo-sub">Frappe / ERPNext Developer Assistant</div>
+	</div>`).appendTo($sb);
+	const $sbSearchWrap = $(`<div class="dkst-sb-search-wrap">
+		<svg class="dkst-sb-search-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+		<input class="dkst-sb-search" id="dkst-sb-search" placeholder="Search tools…" autocomplete="off" spellcheck="false">
 	</div>`).appendTo($sb);
 	const $sbBody = $(`<div class="dkst-sb-body"></div>`).appendTo($sb);
 	$(`<div class="dkst-sb-bottom">
@@ -550,65 +986,94 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 	   SIDEBAR NAV
 	   ══════════════════════════════════════════════ */
 	const NAV = [
-		{ sec:"Scaffold" },
-		{ id:"app",       lbl:"New App",           ico:icoBox()      },
-		{ id:"doctype",   lbl:"DocType",            ico:icoFile()     },
-		{ id:"child",     lbl:"Child Table",        ico:icoGrid()     },
-		{ id:"single",    lbl:"Single / Settings",  ico:icoSettings() },
-		{ id:"report",    lbl:"Report",             ico:icoChart()    },
-		{ id:"print_fmt", lbl:"Print Format",       ico:icoPrint()    },
+		{ sec:"⌨  Code Editor" },
+		{ id:"code_editor",      lbl:"Open Code Editor",     ico:icoCode()     },
+		{ id:"query_editor",     lbl:"SQL Query Editor",     ico:icoDatabase() },
 		{ sep:true },
-		{ sec:"Customize" },
-		{ id:"custom_field",  lbl:"Custom Field",   ico:icoSliders()  },
-		{ id:"property",      lbl:"Property Setter",ico:icoEdit()     },
-		{ id:"client_script", lbl:"Client Script",  ico:icoCode()     },
+		{ sec:"◈  Scaffold" },
+		{ id:"app",              lbl:"New App",              ico:icoBox()      },
+		{ id:"module",           lbl:"New Module",           ico:icoFolder()   },
+		{ id:"doctype",          lbl:"DocType",              ico:icoFile()     },
+		{ id:"child",            lbl:"Child Table",          ico:icoGrid()     },
+		{ id:"single",           lbl:"Single / Settings",    ico:icoSettings() },
+		{ id:"report",           lbl:"Report",               ico:icoChart()    },
+		{ id:"print_fmt",        lbl:"Print Format",         ico:icoPrint()    },
 		{ sep:true },
-		{ sec:"Dev Tools" },
-		{ id:"hook",     lbl:"Add Hook",            ico:icoLink()     },
-		{ id:"override", lbl:"Override File",       ico:icoCode()     },
-		{ id:"patch",    lbl:"Patch",               ico:icoBolt()     },
-		{ id:"tasks",    lbl:"Tasks / Scheduler",   ico:icoClock()    },
-		{ id:"perms",    lbl:"Permissions",         ico:icoShield()   },
+		{ sec:"✦  Customize" },
+		{ id:"custom_field",     lbl:"Custom Field",         ico:icoSliders()  },
+		{ id:"property",         lbl:"Property Setter",      ico:icoEdit()     },
+		{ id:"client_script",    lbl:"Client Script",        ico:icoCode()     },
 		{ sep:true },
-		{ sec:"Utilities" },
-		{ id:"migrate",  lbl:"Migrate & Cache",     ico:icoRefresh()  },
-		{ id:"export",   lbl:"Export Fixtures",     ico:icoExport()   },
-		{ id:"log",      lbl:"Scaffold Log",        ico:icoList()     },
+		{ sec:"⚙  Dev Tools" },
+		{ id:"hook",             lbl:"Add Hook",             ico:icoLink()     },
+		{ id:"override",         lbl:"Override File",        ico:icoCode()     },
+		{ id:"patch",            lbl:"Patch",                ico:icoBolt()     },
+		{ id:"tasks",            lbl:"Tasks / Scheduler",    ico:icoClock()    },
+		{ id:"perms",            lbl:"Permissions",          ico:icoShield()   },
 		{ sep:true },
-		{ sec:"Advanced" },
-		{ id:"module",       lbl:"New Module",          ico:icoFolder()   },
-		{ id:"workspace",    lbl:"Workspace",           ico:icoLayout()   },
-		{ id:"dashboard_chart", lbl:"Dashboard Chart",  ico:icoChart()    },
-		{ id:"number_card",  lbl:"Number Card",         ico:icoHash()     },
-		{ id:"notification", lbl:"Notification",        ico:icoBell()     },
-		{ id:"server_script",lbl:"Server Script",       ico:icoTerminal() },
-		{ id:"role_perm",    lbl:"Role Permissions",    ico:icoShield()   },
+		{ sec:"◉  UI & Widgets" },
+		{ id:"workspace",        lbl:"Workspace",            ico:icoLayout()   },
+		{ id:"dashboard_chart",  lbl:"Dashboard Chart",      ico:icoChart()    },
+		{ id:"number_card",      lbl:"Number Card",          ico:icoHash()     },
+		{ id:"notification",     lbl:"Notification",         ico:icoBell()     },
+		{ id:"server_script",    lbl:"Server Script",        ico:icoTerminal() },
+		{ id:"role_perm",        lbl:"Role Permissions",     ico:icoShield()   },
 		{ sep:true },
-		{ sec:"Inspector" },
-		{ id:"dt_inspector", lbl:"DocType Inspector",   ico:icoSearch()   },
-		{ id:"health_check", lbl:"App Health Check",    ico:icoHeart()    },
-		{ id:"fixture_diff",  lbl:"Fixture Diff",        ico:icoDiff()     },
+		{ sec:"◎  Fixtures & Migrate" },
+		{ id:"migrate",          lbl:"Migrate & Cache",      ico:icoRefresh()  },
+		{ id:"export",           lbl:"Export Fixtures",      ico:icoExport()   },
 		{ sep:true },
-		{ sec:"App Manager" },
-		{ id:"app_manager",   lbl:"App Manager",         ico:icoPackage()  },
+		{ sec:"⊙  Inspector & Logs" },
+		{ id:"dt_inspector",     lbl:"DocType Inspector",    ico:icoSearch()   },
+		{ id:"health_check",     lbl:"App Health Check",     ico:icoHeart()    },
+		{ id:"fixture_diff",     lbl:"Fixture Diff",         ico:icoDiff()     },
+		{ id:"log",              lbl:"Scaffold Log",         ico:icoList()     },
 		{ sep:true },
-		{ sec:"Code Editor" },
-		{ id:"code_editor",   lbl:"Open Code Editor",    ico:icoCode()     },
+		{ sec:"⬡  App & Site Manager" },
+		{ id:"app_manager",      lbl:"App Manager",          ico:icoPackage()  },
+		{ id:"site_overview",    lbl:"Site Overview",        ico:icoGlobe()    },
+		{ id:"site_create",      lbl:"Create Site",          ico:icoPlus()     },
+		{ id:"site_backup",      lbl:"Backup & Restore",     ico:icoSave()     },
+		{ id:"site_config",      lbl:"Site Config",          ico:icoSliders()  },
+		{ id:"site_ops",         lbl:"Site Operations",      ico:icoTools()    },
 		{ sep:true },
-		{ sec:"Site Manager" },
-		{ id:"site_overview", lbl:"Site Overview",       ico:icoGlobe()    },
-		{ id:"site_create",   lbl:"Create Site",         ico:icoPlus()     },
-		{ id:"site_backup",   lbl:"Backup & Restore",    ico:icoSave()     },
-		{ id:"site_config",   lbl:"Site Config",         ico:icoSliders()  },
-		{ id:"site_apps",     lbl:"Install / Remove Apps",ico:icoPackage() },
-		{ id:"site_ops",      lbl:"Operations",          ico:icoTools()    },
+		{ sec:"🌐  Web & Page Builder" },
+		{ id:"www_editor",       lbl:"WWW File Manager",     ico:icoGlobe()    },
+		{ id:"desk_page_mgr",    lbl:"Desk Page Editor",     ico:icoMonitor()  },
 	];
 
 	NAV.forEach(n => {
-		if (n.sec) { $(`<div class="dkst-sb-section">${n.sec}</div>`).appendTo($sbBody); return; }
-		if (n.sep) { $(`<div class="dkst-sb-sep"></div>`).appendTo($sbBody); return; }
-		$(`<button class="dkst-sb-item" data-id="${n.id}">${n.ico}<span>${n.lbl}</span></button>`)
+		if (n.sec) { $(`<div class="dkst-sb-section" data-sec="${n.sec}">${n.sec}</div>`).appendTo($sbBody); return; }
+		if (n.sep) { $(`<div class="dkst-sb-sep dkst-sb-sep-auto"></div>`).appendTo($sbBody); return; }
+		$(`<button class="dkst-sb-item" data-id="${n.id}" data-lbl="${n.lbl.toLowerCase()}">${n.ico}<span>${n.lbl}</span></button>`)
 			.appendTo($sbBody).on("click", () => activatePanel(n.id));
+	});
+
+	// ── Sidebar search filtering ──
+	$('#dkst-sb-search').on('input', function() {
+		const q = this.value.trim().toLowerCase();
+		if (!q) {
+			// Show everything
+			$sbBody.find('.dkst-sb-item, .dkst-sb-section, .dkst-sb-sep-auto').show();
+			return;
+		}
+		// Hide all items first
+		$sbBody.find('.dkst-sb-item').each(function() {
+			const match = $(this).data('lbl').includes(q);
+			$(this).toggle(match);
+		});
+		// Show/hide sections: show if any item in their group matches
+		$sbBody.find('.dkst-sb-section').each(function() {
+			let hasVisible = false;
+			let $el = $(this).next();
+			while ($el.length && !$el.hasClass('dkst-sb-section')) {
+				if ($el.hasClass('dkst-sb-item') && $el.is(':visible')) { hasVisible = true; break; }
+				$el = $el.next();
+			}
+			$(this).toggle(hasVisible);
+		});
+		// Hide separators during search
+		$sbBody.find('.dkst-sb-sep-auto').hide();
 	});
 
 	function activatePanel(id) {
@@ -666,6 +1131,187 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 	function DtSel(id, lbl="DocType") { return `<div class="dkst-fld"><label class="dkst-lbl">${lbl}</label>
 		<select class="dkst-sel" id="${id}" disabled><option value="">— select doctype —</option></select></div>`; }
 	function CHK(id,lbl,def=0) { return `<label class="dkst-chk"><input type="checkbox" id="${id}" ${def?"checked":""}><span>${lbl}</span></label>`; }
+
+	// ── Dot Path Widget ─────────────────────────────────────────────
+	// Renders a monospace input with live segment preview + ⚡ Auto-fill button.
+	// opts: { label, required, full, appSel, dtSel, evSel, pattern }
+	// pattern tokens: {app} {dt_snake} {dt_pascal} {ev}
+	function DotPathHtml(id, placeholder, opts={}) {
+		const lbl  = opts.label    || 'Path';
+		const req  = opts.required ? ' dkst-req' : '';
+		const full = opts.full !== false ? ' dkst-full' : '';
+		const autoBtn = opts.appSel ? `<button class="dkst-dp-autofill"
+			data-dp-target="${id}"
+			data-dp-app="${opts.appSel||''}"
+			data-dp-dt="${opts.dtSel||''}"
+			data-dp-ev="${opts.evSel||''}"
+			data-dp-pat="${(opts.pattern||'').replace(/"/g,'&quot;')}"
+			title="Auto-generate path from selected App / DocType">⚡ Auto-fill</button>` : '';
+		return `<div class="dkst-fld${full}">
+			<label class="dkst-lbl${req}">${lbl}</label>
+			<div style="display:flex;gap:7px;align-items:center">
+				<input class="dkst-inp dkst-dotpath-inp" id="${id}"
+					placeholder="${placeholder}"
+					autocomplete="off" spellcheck="false" style="flex:1">
+				${autoBtn}
+			</div>
+			<div class="dkst-dotpath-preview" data-dp-for="${id}"></div>
+		</div>`;
+	}
+
+	// live preview updater — called on input event
+	function _dpUpdate($inp) {
+		const val = $inp.val().trim();
+		const id  = $inp.attr('id');
+		const $pr = $(`.dkst-dotpath-preview[data-dp-for="${id}"]`);
+		$pr.empty();
+		$inp.removeClass('dp-valid dp-invalid');
+		if (!val) return;
+		const segs = val.split('.');
+		const valid = segs.length > 1 && segs.every(s => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s));
+		$inp.toggleClass('dp-valid', valid).toggleClass('dp-invalid', !valid);
+		segs.forEach((s, i) => {
+			if (i > 0) $pr.append('<span class="dkst-dotpath-dot">.</span>');
+			const cls = i === 0 ? 'app' : i === segs.length - 1 ? 'fn' : 'mod';
+			const ok  = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s);
+			$pr.append(ok
+				? `<span class="dkst-dps dkst-dps-${cls}">${s}</span>`
+				: `<span class="dkst-dotpath-err">✕ ${s||'?'}</span>`);
+		});
+	}
+
+	// auto-fill button handler
+	$(document).on('input', '.dkst-dotpath-inp', function() { _dpUpdate($(this)); });
+	$(document).on('click', '.dkst-dp-autofill', function(e) {
+		e.preventDefault();
+		const $b = $(this);
+		const app = $(`#${$b.data('dp-app')}`).val() || '';
+		const dt  = $(`#${$b.data('dp-dt')}`).val()  || '';
+		const ev  = $(`#${$b.data('dp-ev')}`).val()  || '';
+		if (!app) { frappe.show_alert({ message: 'Select an app first', indicator: 'orange' }, 3); return; }
+		const dtSnake  = dt ? dt.toLowerCase().replace(/[\s\-]+/g, '_') : 'my_doctype';
+		const dtPascal = dt ? dt.replace(/\s+/g, '') : 'MyDocType';
+		const path = $b.data('dp-pat')
+			.replace('{app}',      app)
+			.replace('{dt_snake}', dtSnake)
+			.replace('{dt_pascal}',dtPascal)
+			.replace('{ev}',       ev || 'validate');
+		const $inp = $(`#${$b.data('dp-target')}`);
+		$inp.val(path).trigger('input');
+		frappe.show_alert({ message: `Path auto-filled from <b>${app}</b>${dt?' + '+dt:''}`, indicator: 'green' }, 3);
+	});
+
+	// ── HTML Editor Widget ────────────────────────────────────────────
+	// Creates a professional HTML/Jinja2 editor with toolbar + live preview.
+	// Returns the jQuery textarea so .val() still works normally.
+	function insertAtCursor(el, text) {
+		const s = el.selectionStart, e = el.selectionEnd;
+		el.value = el.value.substring(0, s) + text + el.value.substring(e);
+		// Put cursor inside tag pair if applicable
+		const inner = text.indexOf('><') !== -1 ? s + text.indexOf('><') + 1 : s + text.length;
+		el.selectionStart = el.selectionEnd = inner;
+		el.focus();
+		$(el).trigger('input');
+	}
+
+	function makeHtmlEditor($parent, id, defaultVal) {
+		const $wrap = $('<div class="dkst-html-editor"></div>').appendTo($parent);
+
+		// ── Mode tabs (HTML / Preview)
+		const $modeTabs = $('<div class="dkst-html-mode-tabs"></div>').appendTo($wrap);
+		const $tabCode  = $('<div class="dkst-html-mode-tab active">✎ HTML / Jinja2</div>').appendTo($modeTabs);
+		const $tabPrev  = $('<div class="dkst-html-mode-tab">👁 Preview</div>').appendTo($modeTabs);
+
+		// ── Toolbar
+		const $tb = $('<div class="dkst-html-tb"></div>').appendTo($wrap);
+		const sep = () => $('<div class="dkst-html-tb-sep"></div>').appendTo($tb);
+		const btn = (lbl, tip, ins) =>
+			$(`<button class="dkst-html-tb-btn" title="${tip}">${lbl}</button>`)
+				.appendTo($tb)
+				.on('click', () => insertAtCursor($inp[0], ins));
+
+		btn('<b>B</b>',   'Bold',           '<b></b>');
+		btn('<i>I</i>',   'Italic',          '<i></i>');
+		btn('<u>U</u>',   'Underline',       '<u></u>');
+		sep();
+		btn('H1',  'Heading 1',  '<h1></h1>');
+		btn('H2',  'Heading 2',  '<h2></h2>');
+		btn('H3',  'Heading 3',  '<h3></h3>');
+		btn('P',   'Paragraph',  '<p></p>');
+		sep();
+		btn('Link',  'Hyperlink',      '<a href="">Link Text</a>');
+		btn('Img',   'Image',          '<img src="" alt="" style="max-width:100%">');
+		btn('HR',    'Horizontal rule','<hr>');
+		sep();
+		btn('Table', 'Insert table',
+			'<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%">\n'
+			+'  <thead><tr><th>Column 1</th><th>Column 2</th></tr></thead>\n'
+			+'  <tbody><tr><td></td><td></td></tr></tbody>\n</table>');
+		sep();
+		btn('{{ field }}', 'Jinja2 field value',   '{{ doc. }}');
+		btn('{% if %}',    'Jinja2 if block',       '{% if doc.field %}\n\n{% endif %}');
+		btn('{% for %}',   'Jinja2 for loop',       '{% for item in doc.items %}\n  {{ item.item_name }}\n{% endfor %}');
+		$(`<button class="dkst-html-tb-btn" title="Format/indent HTML (basic)" style="margin-left:auto">⇅ Format</button>`)
+			.appendTo($tb)
+			.on('click', () => {
+				// basic indent: insert newline after block tags
+				let v = $inp.val();
+				v = v.replace(/>\s*</g, '>\n<')
+					.split('\n').map(l => l.trim()).filter(l => l).join('\n');
+				$inp.val(v).trigger('input');
+			});
+
+		// ── Code area
+		const $codeArea = $('<div></div>').appendTo($wrap);
+		const $inp = $(`<textarea class="dkst-ta dkst-html-inp" id="${id}" rows="12" spellcheck="false"></textarea>`)
+			.val(defaultVal || '').appendTo($codeArea);
+
+		// ── Preview area
+		const $prevArea = $('<div class="dkst-html-preview-area" style="display:none"></div>').appendTo($wrap);
+		$prevArea.append(`<div class="dkst-html-jinja-note">
+			Preview renders HTML — Jinja2 expressions are highlighted:
+			<span class="dkst-jinja-badge dkst-jinja-var">{{ var }}</span>
+			<span class="dkst-jinja-badge dkst-jinja-tag">{% tag %}</span>
+		</div>`);
+		const $iframe = $('<iframe class="dkst-html-preview-area-frame" style="width:100%;border:none;min-height:180px;display:block;background:#fff"></iframe>').appendTo($prevArea);
+
+		function renderPreview() {
+			const raw = $inp.val();
+			const html = raw
+				.replace(/\{%\s*([\s\S]*?)\s*%\}/g, '<span style="background:#fff3cd;color:#856404;padding:2px 5px;border-radius:3px;font-size:11px;font-family:monospace">{%&thinsp;$1&thinsp;%}</span>')
+				.replace(/\{\{\s*([\s\S]*?)\s*\}\}/g, '<span style="background:#d4edda;color:#155724;padding:2px 5px;border-radius:3px;font-size:11px;font-family:monospace">{{&thinsp;$1&thinsp;}}</span>');
+			const doc = $iframe[0].contentDocument || $iframe[0].contentWindow.document;
+			doc.open();
+			doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+				body { font-family: Arial, sans-serif; padding: 16px 20px; font-size: 13.5px;
+					margin: 0; color: #1e1a2e; line-height: 1.7; }
+				table { border-collapse: collapse; width: 100%; }
+				th, td { border: 1px solid #ccc; padding: 7px 10px; text-align: left; }
+				th { background: #f5f4fb; font-weight: 600; }
+				a { color: #5c4da8; } h1,h2,h3 { color: #1e1a2e; }
+			</style></head><body>${html}</body></html>`);
+			doc.close();
+			setTimeout(() => {
+				try {
+					const h = $iframe[0].contentDocument.body.scrollHeight;
+					$iframe.height(Math.max(h + 20, 180));
+				} catch(e) {}
+			}, 80);
+		}
+
+		// Tab switching
+		$tabCode.on('click', () => {
+			$tabCode.addClass('active'); $tabPrev.removeClass('active');
+			$tb.show(); $codeArea.show(); $prevArea.hide();
+		});
+		$tabPrev.on('click', () => {
+			$tabPrev.addClass('active'); $tabCode.removeClass('active');
+			$tb.hide(); $codeArea.hide(); $prevArea.show();
+			renderPreview();
+		});
+
+		return $inp;
+	}
 
 	function gv(id)  { return ($(`#${id}`).val()||"").trim(); }
 	function gc(id)  { return $(`#${id}`).is(":checked"); }
@@ -1135,14 +1781,14 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		$c1.append(`<div class="dkst-g2">
 			${AppSel("rp_app")} ${ModSel("rp_mod")}
 			${FR("rp_nm","Report Name","text","My Report")}
-			${FR("rp_dt","Ref DocType","text","Sales Invoice")}
+			${DtSel("rp_dt","Ref DocType")}
 			${F("rp_ty","Report Type","select","","",[["Script Report","Script Report"],["Query Report","Query Report"]])}
 			${F("rp_st","Is Standard","select","","",[["Yes","Yes"],["No","No"]])}
 		</div>
 		<div class="dkst-checks" style="margin-top:12px">
 			${CHK("rp_tr","Add Total Row")} ${CHK("rp_ow","Overwrite Existing")}
 		</div>`);
-		wireAMD($c1,"rp_app","rp_mod",null);
+		wireAMD($c1,"rp_app","rp_mod","rp_dt");
 
 		const $c2=card($p,"Filters");
 		$c2.append(`<div class="dkst-tbl-wrap"><table class="dkst-tbl">
@@ -1396,13 +2042,11 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		const $dec=mkSub("de");
 		$dec.append(`<div class="dkst-g2">
 			${AppSel("de_ap")}
-			${F("de_dt","DocType","text","Sales Invoice","",[])}
+			${DtSel("de_dt","DocType")}
 			${F("de_ev","Event","select","","",[...DOC_EVENTS])}
-			<div class="dkst-fld dkst-full"><label class="dkst-lbl dkst-req">Handler Path</label>
-				<input class="dkst-inp" id="de_h" placeholder="my_app.overrides.sales_invoice.validate">
-				<span class="dkst-hint">Python dotted path to the function that will be called</span></div>
+			${DotPathHtml('de_h','my_app.overrides.sales_invoice.validate',{label:'Handler Path',required:true,appSel:'de_ap',dtSel:'de_dt',evSel:'de_ev',pattern:'{app}.overrides.{dt_snake}.{ev}'})}
 		</div>`);
-		loadApps().then(()=>fillSel($dec.find("#de_ap"),_apps,"select app"));
+		wireAD($dec,"de_ap","de_dt");
 		const $det=term($dec.closest(".dkst-spanel"));
 		btns($dec.closest(".dkst-spanel"),[{ lbl:"Add Doc Event", cls:"dkst-btn-p", fn:()=>api("frappe_devkit.api.hook_builder.add_doc_event",{app_name:gv("de_ap"),doctype:gv("de_dt"),event:gv("de_ev"),handler_path:gv("de_h")},$det)}]);
 
@@ -1411,9 +2055,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		$scc.append(`<div class="dkst-g2">
 			${AppSel("sc_ap")}
 			${F("sc_fr","Frequency","select","","",[["daily","daily"],["hourly","hourly"],["weekly","weekly"],["monthly","monthly"],["all","all (every tick)"],["daily_long","daily_long"],["hourly_long","hourly_long"],["weekly_long","weekly_long"],["monthly_long","monthly_long"]])}
-			<div class="dkst-fld dkst-full"><label class="dkst-lbl dkst-req">Handler Path</label>
-				<input class="dkst-inp" id="sc_h" placeholder="my_app.tasks.daily_cleanup">
-				<span class="dkst-hint">Python dotted path — function takes no arguments</span></div>
+			${DotPathHtml('sc_h','my_app.tasks.daily_cleanup',{label:'Handler Path',required:true,appSel:'sc_ap',pattern:'{app}.tasks.daily_cleanup'})}
 		</div>`);
 		loadApps().then(()=>fillSel($scc.find("#sc_ap"),_apps,"select app"));
 		const $sct=term($scc.closest(".dkst-spanel"));
@@ -1423,12 +2065,12 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		const $ffc=mkSub("ff");
 		$ffc.append(`<div class="dkst-g2">
 			${AppSel("ff_ap")}
-			${F("ff_dt","DocType","text","Custom Field","")}
+			${DtSel("ff_dt","DocType")}
 			<div class="dkst-fld dkst-full"><label class="dkst-lbl dkst-req">Filters (JSON array)</label>
 				<textarea class="dkst-ta" id="ff_fi" rows="4" style="font-family:'Consolas',monospace;font-size:12.5px">[["dt","in",["Sales Order","Sales Invoice"]],["fieldname","=","my_field"]]</textarea>
 				<span class="dkst-hint">Format: [["fieldname","operator","value"],…]</span></div>
 		</div>`);
-		loadApps().then(()=>fillSel($ffc.find("#ff_ap"),_apps,"select app"));
+		wireAD($ffc,"ff_ap","ff_dt");
 		const $fft=term($ffc.closest(".dkst-spanel"));
 		btns($ffc.closest(".dkst-spanel"),[{ lbl:"Add Fixture Filter", cls:"dkst-btn-p", fn:()=>api("frappe_devkit.api.hook_builder.add_fixture_filter",{app_name:gv("ff_ap"),dt:gv("ff_dt"),filters:gv("ff_fi")},$fft)}]);
 
@@ -1436,12 +2078,11 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		const $coc=mkSub("co");
 		$coc.append(`<div class="dkst-g2">
 			${AppSel("co_ap")}
-			${F("co_dt","DocType","text","Sales Invoice","")}
-			<div class="dkst-fld dkst-full"><label class="dkst-lbl dkst-req">Class Path</label>
-				<input class="dkst-inp" id="co_cl" placeholder="my_app.overrides.sales_invoice.CustomSalesInvoice">
-				<span class="dkst-hint">Must extend the original class — <span class="dkst-code">from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice</span></span></div>
-		</div>`);
-		loadApps().then(()=>fillSel($coc.find("#co_ap"),_apps,"select app"));
+			${DtSel("co_dt","DocType")}
+			${DotPathHtml('co_cl','my_app.overrides.sales_invoice.CustomSalesInvoice',{label:'Class Path',required:true,appSel:'co_ap',dtSel:'co_dt',pattern:'{app}.overrides.{dt_snake}.Custom{dt_pascal}'})}
+		</div>
+		<div class="dkst-hint" style="margin-top:6px">Class must extend the original — e.g. <span class="dkst-code">from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice</span></div>`);
+		wireAD($coc,"co_ap","co_dt");
 		const $cot=term($coc.closest(".dkst-spanel"));
 		btns($coc.closest(".dkst-spanel"),[{ lbl:"Add Class Override", cls:"dkst-btn-p", fn:()=>api("frappe_devkit.api.hook_builder.add_override_doctype_class",{app_name:gv("co_ap"),doctype:gv("co_dt"),class_path:gv("co_cl")},$cot)}]);
 
@@ -1449,12 +2090,11 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		const $pqc=mkSub("pq");
 		$pqc.append(`<div class="dkst-g2">
 			${AppSel("pq_ap")}
-			${F("pq_dt","DocType","text","Sales Invoice","")}
-			<div class="dkst-fld dkst-full"><label class="dkst-lbl dkst-req">Handler Path</label>
-				<input class="dkst-inp" id="pq_h" placeholder="my_app.permissions.get_permission_query_conditions">
-				<span class="dkst-hint">Function must return a SQL WHERE condition string — empty string = no restriction</span></div>
-		</div>`);
-		loadApps().then(()=>fillSel($pqc.find("#pq_ap"),_apps,"select app"));
+			${DtSel("pq_dt","DocType")}
+			${DotPathHtml('pq_h','my_app.permissions.get_permission_query_conditions',{label:'Handler Path',required:true,appSel:'pq_ap',dtSel:'pq_dt',pattern:'{app}.permissions.get_permission_query_for_{dt_snake}'})}
+		</div>
+		<div class="dkst-hint" style="margin-top:6px">Function must return a SQL WHERE condition string — return empty string for no restriction</div>`);
+		wireAD($pqc,"pq_ap","pq_dt");
 		const $pqt=term($pqc.closest(".dkst-spanel"));
 		btns($pqc.closest(".dkst-spanel"),[{ lbl:"Add Permission Query", cls:"dkst-btn-p", fn:()=>api("frappe_devkit.api.hook_builder.add_permission_query",{app_name:gv("pq_ap"),doctype:gv("pq_dt"),handler_path:gv("pq_h")},$pqt)}]);
 
@@ -1467,12 +2107,8 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			<div class="dkst-div"></div>
 			${secLbl("Override whitelisted method")}
 			<div class="dkst-g2">
-				<div class="dkst-fld"><label class="dkst-lbl dkst-req">Original Method</label>
-					<input class="dkst-inp" id="wm_orig" placeholder="frappe.desk.doctype.event.event.get_events">
-					<span class="dkst-hint">Full dotted path of the original Frappe/ERPNext method</span></div>
-				<div class="dkst-fld"><label class="dkst-lbl dkst-req">Override Method</label>
-					<input class="dkst-inp" id="wm_new" placeholder="my_app.utils.get_events">
-					<span class="dkst-hint">Your replacement function</span></div>
+				${DotPathHtml('wm_orig','frappe.desk.doctype.event.event.get_events',{label:'Original Method (Frappe/ERPNext)',required:true,full:false})}
+				${DotPathHtml('wm_new','my_app.utils.get_events',{label:'Your Override Method',required:true,full:false,appSel:'wm_ap',pattern:'{app}.utils.get_events'})}
 			</div>`);
 		const $wmt=term($wmc.closest(".dkst-spanel"));
 		btns($wmc.closest(".dkst-spanel"),[{ lbl:"Add Whitelist Override", cls:"dkst-btn-p", fn:()=>{
@@ -1501,9 +2137,9 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		const $c=card($p,"Override File Details");
 		$c.append(`<div class="dkst-g2">
 			${AppSel("ov_ap")}
-			${F("ov_dt","DocType Name","text","Sales Invoice","")}
+			${DtSel("ov_dt","DocType Name")}
 		</div>`);
-		loadApps().then(()=>fillSel($c.find("#ov_ap"),_apps,"select app"));
+		wireAD($c,"ov_ap","ov_dt");
 		$c.append(`<div class="dkst-div"></div>`);
 		$c.append(secLbl("Events to include as function stubs"));
 		$c.append(`<div class="dkst-checks">${EVTS.map(e=>CHK("ov_"+e,e,["validate","before_save","on_submit","on_cancel"].includes(e)?1:0)).join("")}</div>`);
@@ -1522,17 +2158,46 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 	/* ── Patch ── */
 	PANELS.patch = function($p) {
 		$p.append(phdr("Patch Builder","Scaffold a one-time migration patch registered in patches.txt.",icoBolt(20)));
-		$p.append(info("Patches run exactly once during <span class='dkst-code'>bench migrate</span>. Once executed they are never run again. Make them idempotent."));
+		$p.append(`<div class="dkst-info-box" style="margin:10px 0 4px;font-size:11.5px;line-height:1.7;background:#f7f4ff;border:1px solid #e0d8f8;border-radius:6px;padding:12px 14px">
+			<b style="color:#5c4da8">📋 How Patches Work</b><br>
+			<ol style="margin:6px 0 0 16px;padding:0;color:#3a2e5e">
+				<li>Fill in <b>App</b>, <b>Patch Module</b> (e.g. <code>v1_0.add_status_field</code>), and optionally an <b>Execute Body</b>.</li>
+				<li>Click <b>Generate Patch</b> — creates <code>patches/v1_0/add_status_field.py</code> and registers it in <code>patches.txt</code>.</li>
+				<li>Edit the generated file if needed, then run <code>bench migrate</code> — the patch executes exactly once and is never run again.</li>
+			</ol>
+			<div style="margin-top:8px;color:#7a70a8">
+				<b>Rules:</b>
+				&nbsp;✔ Always write <b>idempotent</b> logic (safe to re-run if migration is re-attempted) &nbsp;
+				✔ Call <code>frappe.db.commit()</code> at the end (already included) &nbsp;
+				✔ Use version prefixes: <code>v1_0</code>, <code>v14_0</code>, etc.
+			</div>
+		</div>`);
 		const $c=card($p,"Patch Details");
 		$c.append(`<div class="dkst-g2">
 			${AppSel("pa_ap")}
-			${FR("pa_mo","Patch Module (dot path)","text","v1_0.set_default_fabric_type")}
+			${DotPathHtml("pa_mo","v1_0.set_default_fabric_type",{label:"Patch Module (dot path)",required:true,full:false})}
+			<div class="dkst-fld dkst-full" style="font-size:11px;color:#7a70a8;padding-top:2px">
+				Sub-path within <code>patches/</code> — e.g. <code>v1_0.add_default_status</code> → creates <code>patches/v1_0/add_default_status.py</code>
+			</div>
 			<div class="dkst-fld dkst-full"><label class="dkst-lbl">Description</label>
 				<input class="dkst-inp" id="pa_de" placeholder="What this patch does — appears as docstring in the generated file"></div>
 		</div>`);
 		loadApps().then(()=>fillSel($c.find("#pa_ap"),_apps,"select app"));
 		$("#pa_bd_wrap").remove();
-		$c.append('<div class="dkst-div"></div><div id="pa_bd_wrap" class="dkst-fld"><label class="dkst-lbl">Execute Body (optional Python)</label><textarea class="dkst-ta" id="pa_bd" rows="6" style="font-family:Consolas,monospace;font-size:12px"></textarea></div>');
+		$c.append(`<div class="dkst-div"></div><div id="pa_bd_wrap" class="dkst-fld">
+			<label class="dkst-lbl">Execute Body <span style="font-weight:400;color:#999">(optional Python)</span></label>
+			<div style="font-size:11px;color:#7a70a8;margin-bottom:6px;line-height:1.6">
+				Write the body of the <code>execute()</code> function — <b>no indentation needed</b>, it will be auto-indented.<br>
+				<span style="color:#888">• Use <code>frappe.db.sql()</code>, <code>frappe.get_all()</code>, <code>frappe.db.set_value()</code>, <code>frappe.reload_doc()</code> etc.</span><br>
+				<span style="color:#888">• Always make logic <b>idempotent</b> (safe to re-run) — check before modifying.</span>
+			</div>
+			<textarea class="dkst-ta" id="pa_bd" rows="8" style="font-family:Consolas,monospace;font-size:12px" placeholder="# Example:
+if not frappe.db.has_column('Sales Order', 'custom_field'):
+    frappe.reload_doc('selling', 'doctype', 'sales_order')
+
+for name in frappe.get_all('Sales Order', pluck='name'):
+    frappe.db.set_value('Sales Order', name, 'status', 'Draft', update_modified=False)"></textarea>
+		</div>`);
 		const $t=term($p);
 		btns($p,[{ lbl:"Generate Patch", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("pa_ap")||!gv("pa_mo")){frappe.throw("App and Patch Module required");return;}
@@ -1725,7 +2390,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			${AppSel("dc_ap")} ${ModSel("dc_mo")}
 			${FR("dc_nm","Chart Name","text","Monthly Sales")}
 			${F("dc_ty","Chart Type","select","","",[["Count","Count"],["Sum","Sum"],["Average","Average"],["Group By","Group By"]])}
-			${FR("dc_dt","DocType","text","Sales Invoice")}
+			${DtSel("dc_dt","DocType")}
 			${F("dc_bo","Based On (date field)","text","posting_date")}
 			${F("dc_vl","Value Field (for Sum/Avg)","text","grand_total")}
 			${F("dc_ti","Time Interval","select","","",[["Daily","Daily"],["Weekly","Weekly"],["Monthly","Monthly"],["Quarterly","Quarterly"],["Yearly","Yearly"]])}
@@ -1733,7 +2398,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			<div class="dkst-fld"><label class="dkst-lbl">Color</label>
 				<input type="color" id="dc_cl" value="#7c5cbf" style="width:60px;height:36px;border:1px solid #d0c8e8;border-radius:5px;cursor:pointer;"></div>
 		</div>`);
-		wireAMD($c,"dc_ap","dc_mo",null);
+		wireAMD($c,"dc_ap","dc_mo","dc_dt");
 		const $t=term($p);
 		btns($p,[{ lbl:"Add Dashboard Chart", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("dc_ap")||!gv("dc_nm")||!gv("dc_dt")){frappe.throw("App, Name and DocType required");return;}
@@ -1753,7 +2418,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		$c.append(`<div class="dkst-g2">
 			${AppSel("nc_ap")} ${ModSel("nc_mo")}
 			${FR("nc_nm","Card Name","text","Total Open Orders")}
-			${FR("nc_dt","DocType","text","Sales Order")}
+			${DtSel("nc_dt","DocType")}
 			${F("nc_fn","Function","select","","",[["Count","Count"],["Sum","Sum"],["Average","Average"],["Minimum","Minimum"],["Maximum","Maximum"]])}
 			${F("nc_af","Aggregate Field (Sum/Avg)","text","grand_total")}
 			<div class="dkst-fld"><label class="dkst-lbl">Color</label>
@@ -1761,7 +2426,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			<div class="dkst-fld"><label class="dkst-lbl">Filters JSON</label>
 				<textarea class="dkst-ta" id="nc_fi" rows="3" style="font-family:monospace;font-size:12px">[["status","=","Open"]]</textarea></div>
 		</div>`);
-		wireAMD($c,"nc_ap","nc_mo",null);
+		wireAMD($c,"nc_ap","nc_mo","nc_dt");
 		const $t=term($p);
 		btns($p,[{ lbl:"Add Number Card", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("nc_ap")||!gv("nc_nm")||!gv("nc_dt")){frappe.throw("App, Name and DocType required");return;}
@@ -1781,23 +2446,17 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			${AppSel("nt_ap")}
 			${FR("nt_nm","Notification Name","text","New Sales Order Alert")}
 			${F("nt_ch","Channel","select","","",[["Email","Email"],["System Notification","System Notification"],["Slack","Slack"],["SMS","SMS"]])}
-			${F("nt_dt","DocType","text","Sales Order")}
+			${DtSel("nt_dt","DocType")}
 			${F("nt_ev","Event","select","","",[["New","New"],["Save","Save"],["Submit","Submit"],["Cancel","Cancel"],["Days After","Days After"],["Days Before","Days Before"],["Value Change","Value Change"],["Custom","Custom"]])}
 			${F("nt_cd","Condition (Python)","text","doc.grand_total > 100000")}
 		</div>`);
-		loadApps().then(()=>fillSel($c1.find("#nt_ap"),_apps,"select app"));
+		wireAD($c1,"nt_ap","nt_dt");
 
 		const $c2=card($p,"Email Content");
 		$c2.append(`<div class="dkst-fld" style="margin-bottom:12px"><label class="dkst-lbl">Subject</label>
-			<input class="dkst-inp" id="nt_su" placeholder="[{{ doc.doctype }}] {{ doc.name }} has been submitted"></div>
-		<div class="dkst-fld"><label class="dkst-lbl">Message (HTML / Jinja2)</label>
-		<textarea class="dkst-ta" id="nt_ms" rows="8" style="font-family:monospace;font-size:12.5px"><h3>{{ doc.name }}</h3>
-<p>Document has been {{ doc.docstatus == 1 and 'submitted' or 'saved' }}.</p>
-<table border="1" cellpadding="5">
-  <tr><td>Customer</td><td>{{ doc.customer }}</td></tr>
-  <tr><td>Amount</td><td>{{ doc.grand_total }}</td></tr>
-</table>
-<p><a href="{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}">View in ERPNext</a></p></textarea></div>`);
+			<input class="dkst-inp" id="nt_su" placeholder="[{{ doc.doctype }}] {{ doc.name }} has been submitted"></div>`);
+		$c2.append(`<div class="dkst-fld"><label class="dkst-lbl">Message (HTML / Jinja2)</label></div>`);
+		makeHtmlEditor($c2,'nt_ms',`<h3>{{ doc.name }}</h3>\n<p>Document has been {{ doc.docstatus == 1 and 'submitted' or 'saved' }}.</p>\n<table border="1" cellpadding="5">\n  <tr><td>Customer</td><td>{{ doc.customer }}</td></tr>\n  <tr><td>Amount</td><td>{{ doc.grand_total }}</td></tr>\n</table>\n<p><a href="{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}">View in ERPNext</a></p>`);
 
 		const $t=term($p);
 		btns($p,[{ lbl:"Add Notification", cls:"dkst-btn-p", fn:()=>{
@@ -1818,7 +2477,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			${AppSel("ss_ap")}
 			${FR("ss_nm","Script Name","text","My Server Script")}
 			${F("ss_ty","Script Type","select","","",[["DocType Event","DocType Event"],["Scheduler Event","Scheduler Event"],["API","API"],["Permission Query","Permission Query"]])}
-			${F("ss_dt","DocType (for DocType Event)","text","Sales Invoice")}
+			${DtSel("ss_dt","DocType (for DocType Event)")}
 			${F("ss_ev","Event","select","","",[["before_insert","before_insert"],["validate","validate"],["on_submit","on_submit"],["on_cancel","on_cancel"],["after_insert","after_insert"],["on_trash","on_trash"]])}
 		</div>
 		<div class="dkst-fld" style="margin-top:12px">
@@ -1831,7 +2490,7 @@ if doc.status == "Open":
 
 frappe.msgprint(f"Processed {doc.name}")</textarea>
 		</div>`);
-		loadApps().then(()=>fillSel($c.find("#ss_ap"),_apps,"select app"));
+		wireAD($c,"ss_ap","ss_dt");
 
 		// Auto-update script template when type changes
 		$c.find("#ss_ty").on("change",function(){
@@ -1861,10 +2520,9 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		const $c1=card($p,"Load DocType Permissions");
 		$c1.append(`<div class="dkst-g2">
 			${AppSel("rp2_ap")}
-			<div class="dkst-fld"><label class="dkst-lbl dkst-req">DocType</label>
-				<input class="dkst-inp" id="rp2_dt" placeholder="Sales Invoice"></div>
+			${DtSel("rp2_dt","DocType")}
 		</div>`);
-		loadApps().then(()=>fillSel($c1.find("#rp2_ap"),_apps,"select app"));
+		wireAD($c1,"rp2_ap","rp2_dt");
 
 		const $matrix = $(`<div class="dkst-card" style="display:none"><div class="dkst-card-title">Permission Matrix</div>
 			<div class="dkst-tbl-wrap"><table class="dkst-tbl" id="perm-tbl">
@@ -1935,26 +2593,30 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		$p.append(phdr("DocType Inspector","Inspect full meta-information — fields, permissions, hooks, DB columns.",icoSearch(20)));
 		const $c=card($p,"Inspect");
 		$c.append(`<div class="dkst-g2">
+			${AppSel("ins_ap")}
 			${DtSel("ins_dt","DocType")}
-			${ModSel("ins_mo","Filter Module")}
+			${ModSel("ins_mo","Narrow by Module")}
 		</div>`);
 
-		// Wire: load all doctypes without app filter
+		// Wire app → doctypes immediately; module narrows further
+		wireAD($c,"ins_ap","ins_dt");
 		const $modSel=$c.find("#ins_mo");
 		const $dtSel =$c.find("#ins_dt");
-		loadApps().then(()=>{
-			const allMods=Object.values(_mods).flat();
-			if(allMods.length) { fillSel($modSel,allMods,"all modules"); $modSel.prop("disabled",false); }
-			else frappe.call({method:"frappe.client.get_list",args:{doctype:"Module Def",fields:["module_name"],limit_page_length:300},
-				callback:r=>{
-					const mods=(r.message||[]).map(m=>m.module_name);
-					fillSel($modSel,mods,"all modules"); $modSel.prop("disabled",false);
-				}});
+		$c.find("#ins_ap").on("change", function() {
+			const app = this.value;
+			$modSel.prop("disabled",!app).html('<option value="">— all modules —</option>');
+			if (!app) return;
+			loadMods(app).then(ms => { fillSel($modSel, ms, "all modules"); $modSel.prop("disabled",false); });
 		});
 		$modSel.on("change",function(){
 			const mod=this.value;
-			$dtSel.prop("disabled",!mod).html('<option value="">— select doctype —</option>');
-			if(!mod) return;
+			if(!mod) {
+				// reset to all app doctypes
+				const app=$c.find("#ins_ap").val();
+				if(app) loadDtsByApp(app).then(ds=>{fillSel($dtSel,ds,"select doctype");$dtSel.prop("disabled",false);});
+				return;
+			}
+			$dtSel.prop("disabled",true).html('<option value="">— select doctype —</option>');
 			loadDts(mod).then(ds=>{fillSel($dtSel,ds,"select doctype");$dtSel.prop("disabled",false);});
 		});
 
@@ -2087,10 +2749,10 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		const $c=card($p,"Select App & DocType");
 		$c.append(`<div class="dkst-g2">
 			${AppSel("fd_ap")}
-			${F("fd_dt","DocType (fixture file name)","text","Custom Field","dkst-req")}
+			${DtSel("fd_dt","DocType (fixture file name)")}
 		</div>
 		<div class="dkst-hint" style="margin-top:6px">e.g. "Custom Field" looks for <span class="dkst-code">fixtures/custom_field.json</span></div>`);
-		loadApps().then(()=>fillSel($c.find("#fd_ap"),_apps,"select app"));
+		wireAD($c,"fd_ap","fd_dt");
 
 		const $res=$(`<div id="fd-result" style="display:none"></div>`).appendTo($p);
 
@@ -2241,78 +2903,116 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 						$appSel.append(`<option value="${a.app}">${a.app} (${a.version})</option>`);
 					});
 
-					// Render table
+					// Render table — each installed site shown as its own pill
 					_bench_apps.forEach(a => {
-						const txtPill  = a.in_sites_txt
-							? `<span class="dkst-pill dkst-pill-g">✓ apps.txt</span>`
-							: `<span class="dkst-pill dkst-pill-r">✗ apps.txt</span>`;
-						const jsonPill = a.in_apps_json
-							? `<span class="dkst-pill dkst-pill-g">✓ apps.json</span>`
-							: `<span class="dkst-pill dkst-pill-r">✗ apps.json</span>`;
-						const installPill = a.install_count > 0
-							? `<span class="dkst-pill dkst-pill-b" title="${a.installed_on.join(', ')}">${a.install_count} site${a.install_count>1?'s':''}</span>`
-							: `<span class="dkst-pill" style="background:#f4f0fc;color:#9080b8">not installed</span>`;
+						const txtOk  = a.in_sites_txt;
+						const jsonOk = a.in_apps_json;
+						const regCell = `<div style="display:flex;flex-direction:column;gap:3px">
+							<span class="dkst-pill ${txtOk?'dkst-pill-g':'dkst-pill-r'}" style="font-size:10px">${txtOk?'✓':'✗'} sites/apps.txt</span>
+							<span class="dkst-pill ${jsonOk?'dkst-pill-g':'dkst-pill-r'}" style="font-size:10px">${jsonOk?'✓':'✗'} apps.json</span>
+						</div>`;
+						const sites = a.installed_on || [];
+						const installCell = sites.length
+							? `<div style="display:flex;flex-direction:column;gap:3px">${
+								sites.map(s => `<span class="dkst-pill dkst-pill-b" style="font-size:11px;font-family:monospace">${s}</span>`).join('')
+							  }</div>`
+							: `<span style="color:#b0a8c8;font-size:12px;font-style:italic">not installed</span>`;
 						const isCore   = ["frappe","erpnext","hrms"].includes(a.app);
-						const needsFix = !a.in_sites_txt || !a.in_apps_json;
+						const needsFix = !txtOk || !jsonOk;
 						const fixBtn   = (!isCore && needsFix)
 							? `<button class="dkst-btn dkst-btn-s" style="padding:3px 10px;font-size:11px"
 								onclick="frappe.call({method:'frappe_devkit.api.app_builder.register_existing_app',args:{app_name:'${a.app}'},callback:r=>frappe.show_alert({message:r.message?.message,indicator:'green'})})">⚡ Fix</button>`
-							: '';
+							: (isCore ? `<span style="font-size:11px;color:#b0a8c8">core</span>` : '');
 						$arows.append(`<tr>
-							<td>
-								<div style="font-weight:700;color:#5c4da8;font-size:13px">${a.app}</div>
+							<td style="min-width:110px">
+								<div style="font-weight:700;color:#5c4da8;font-size:13px;font-family:monospace">${a.app}</div>
 								<div style="font-size:11px;color:#9080b8;margin-top:2px">${a.publisher||''}</div>
 							</td>
-							<td>
-								<div style="color:#1e1a2e;font-weight:500">${a.title||a.app}</div>
-								<div style="font-size:11px;color:#9080b8;margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${a.description||''}">${a.description||''}</div>
+							<td style="min-width:140px">
+								<div style="color:#1e1a2e;font-weight:600">${a.title||a.app}</div>
+								<div style="font-size:11px;color:#9080b8;margin-top:3px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(a.description||'').replace(/"/g,'&quot;')}">${a.description||''}</div>
 							</td>
-							<td><span class="dkst-pill dkst-pill-p">${a.version}</span></td>
-							<td>${installPill}</td>
-							<td style="white-space:nowrap">${txtPill}&nbsp;${jsonPill}</td>
-							<td>${fixBtn}</td>
+							<td style="white-space:nowrap"><span class="dkst-pill dkst-pill-p" style="font-family:monospace">${a.version}</span></td>
+							<td style="min-width:130px">${installCell}</td>
+							<td style="min-width:140px">${regCell}</td>
+							<td style="white-space:nowrap">${fixBtn}</td>
 						</tr>`);
 					});
 					setStatus("Ready");
 				}
 			});
 
-			// Load sites
+			// Load sites — use list_sites (proven, returns full installed list)
 			const $sitesDiv = $("#am-sites-list");
-			$sitesDiv.html(`<div class="dkst-empty">Loading...</div>`);
-			frappe.call({ method: "frappe_devkit.api.app_builder.get_bench_sites",
+			$sitesDiv.html(`<div class="dkst-empty">Loading sites…</div>`);
+			frappe.call({ method: "frappe_devkit.api.site_manager.list_sites",
 				callback: r => {
 					_bench_sites = r.message?.sites || [];
 					$sitesDiv.empty();
 
-					// Populate site selector
+					// Populate site selector in the install/uninstall card
 					const $siteSel = $ac.find("#am-sel-site");
 					$siteSel.html('<option value="">— select site —</option>');
 					_bench_sites.forEach(s => {
-						$siteSel.append(`<option value="${s.site}">${s.site} (${s.app_count} apps)</option>`);
+						const cnt = (s.installed || []).length;
+						$siteSel.append(`<option value="${s.site}">${s.site} (${cnt} app${cnt!==1?'s':''})</option>`);
 					});
 
 					if (!_bench_sites.length) {
-						$sitesDiv.html(`<div class="dkst-empty">No sites found</div>`);
+						$sitesDiv.html(`<div class="dkst-empty">No sites found in this bench.</div>`);
 						return;
 					}
 
 					// Render sites as cards
 					const $grid = $(`<div class="dkst-g2"></div>`).appendTo($sitesDiv);
 					_bench_sites.forEach(s => {
-						const $c2 = $(`<div class="dkst-card" style="border-left:3px solid #5c4da8;padding:14px 18px"></div>`).appendTo($grid);
-						$c2.append(`<div style="font-weight:700;color:#1e1a2e;font-size:14px;margin-bottom:8px">${s.site}</div>`);
-						$c2.append(`<div style="font-size:11px;color:#9080b8;margin-bottom:8px">${s.app_count} apps installed</div>`);
-						$c2.append(`<div style="display:flex;flex-wrap:wrap;gap:5px">
-							${s.installed.map(a => `<span class="dkst-pill dkst-pill-p">${a}</span>`).join("")}
+						const appList = Array.isArray(s.installed) ? s.installed : [];
+						const active  = !s.maintenance;
+						const accentColor = active ? '#27ae60' : '#c0392b';
+						const $c2 = $(`<div class="dkst-card" style="border-left:4px solid ${accentColor};padding:16px 18px"></div>`).appendTo($grid);
+
+						// Header row: site name + status + app count
+						$c2.append(`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+							<div style="font-weight:700;color:#1e1a2e;font-size:14px;font-family:monospace;flex:1">${s.site}</div>
+							${active
+								? '<span class="dkst-pill dkst-pill-g" style="font-size:10px">● Active</span>'
+								: '<span class="dkst-pill dkst-pill-r" style="font-size:10px">⚠ Maintenance</span>'}
+							<span class="dkst-pill dkst-pill-p" style="font-size:10px">${appList.length} app${appList.length!==1?'s':''}</span>
 						</div>`);
+
+						// Installed apps label + pills
+						$c2.append(`<div style="font-size:10px;color:#9080b8;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px">Installed Apps</div>`);
+						if (appList.length) {
+							const pills = appList.map(a =>
+								`<span class="dkst-pill dkst-pill-p" style="font-family:monospace;font-size:11.5px;font-weight:600">${a}</span>`
+							).join('');
+							$c2.append(`<div style="display:flex;flex-wrap:wrap;gap:6px">${pills}</div>`);
+						} else {
+							$c2.append(`<div style="font-size:12px;color:#b0a8c8;font-style:italic">No apps installed on this site.</div>`);
+						}
+
+						// DB info row
+						if (s.db_name || s.db_type) {
+							$c2.append(`<div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0ecf8;font-size:11px;color:#9080b8;display:flex;gap:14px">
+								${s.db_name ? `<span>DB: <code style="color:#5c4da8">${s.db_name}</code></span>` : ''}
+								${s.db_type ? `<span>Engine: <code style="color:#5c4da8">${s.db_type}</code></span>` : ''}
+							</div>`);
+						}
 					});
 				}
 			});
 		}
 
+		// Populate site select on demand via siteSelRow-like approach
+		const $siteSel = $ac.find("#am-sel-site");
+		$('<button class="dkst-btn dkst-btn-s" style="margin-top:8px;font-size:12px">↻ Load Sites</button>')
+			.insertAfter($siteSel)
+			.on('click', function() { loadSiteSelect($siteSel, 'select site', true); });
+
 		$p.on("click","#am-refresh-apps,#am-refresh-sites", loadAppsAndSites);
-		loadAppsAndSites();
+		// Show placeholder — do NOT auto-load
+		$("#am-app-rows").html('<tr><td colspan="6" class="dkst-empty" style="padding:20px">Click <b>↻ Refresh</b> to list bench apps.</td></tr>');
+		$("#am-sites-list").html('<div class="dkst-empty" style="padding:20px">Click <b>↻ Refresh</b> to list bench sites.</div>');
 	};
 
 
@@ -2333,17 +3033,41 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 	   ═══════════════════════════════════════════════════ */
 
 	// ── Site helpers ──────────────────────────────────
-	function loadSiteSelect($sel, ph) {
-		$sel.html('<option value="">— loading... —</option>').prop('disabled', true);
+	// Cache of sites for lazy loading
+	let _sites_cache = null;
+	function loadSiteSelect($sel, ph, forceRefresh) {
+		if (_sites_cache && !forceRefresh) {
+			$sel.empty().prop('disabled', false);
+			if (ph) $sel.append(`<option value="">— ${ph} —</option>`);
+			_sites_cache.forEach(s => $sel.append(`<option value="${s.site}">${s.site}</option>`));
+			return;
+		}
+		$sel.html('<option value="">— loading sites… —</option>').prop('disabled', true);
 		frappe.call({ method: 'frappe_devkit.api.site_manager.list_sites',
 			callback: r => {
+				_sites_cache = r.message?.sites || [];
 				$sel.empty().prop('disabled', false);
 				if (ph) $sel.append(`<option value="">— ${ph} —</option>`);
-				(r.message?.sites || []).forEach(s =>
-					$sel.append(`<option value="${s.site}">${s.site} (${s.app_count} apps)</option>`)
-				);
-			}
+				if (!_sites_cache.length) {
+					$sel.append('<option value="" disabled>No sites found</option>');
+					return;
+				}
+				_sites_cache.forEach(s => $sel.append(`<option value="${s.site}">${s.site} (${s.app_count} apps)</option>`));
+			},
+			error: () => { $sel.html('<option value="">— failed to load —</option>').prop('disabled', false); }
 		});
+	}
+	// Attach a refresh button next to any site select
+	function siteSelRow($parent, selId, ph) {
+		const $row = $(`<div style="display:flex;gap:8px;align-items:center"></div>`).appendTo($parent);
+		const $sel = $(`<select class="dkst-sel" id="${selId}" style="flex:1"><option value="">— select site —</option></select>`).appendTo($row);
+		$(`<button class="dkst-btn dkst-btn-s" style="padding:5px 10px;font-size:12px;flex-shrink:0" title="Load / Refresh site list">↻</button>`)
+			.appendTo($row)
+			.on('click', function() {
+				loadSiteSelect($sel, ph, true);
+			});
+		loadSiteSelect($sel, ph);
+		return $sel;
 	}
 	function smCard($p, title) {
 		const $c = $('<div class="dkst-card"></div>').appendTo($p);
@@ -2365,75 +3089,121 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		});
 		return $r;
 	}
-	function smApi(method, args, $t) {
-		$t.text('▶  Running…').removeClass('ok err');
+	// Bench command hints per API method
+	const _benchCmds = {
+		'frappe_devkit.api.site_manager.migrate_site':       (a) => `bench --site ${a.site||'<site>'} migrate${a.skip_failing?' --skip-failing-patches':''}`,
+		'frappe_devkit.api.site_manager.clear_site_cache':   (a) => `bench --site ${a.site||'<site>'} clear-cache`,
+		'frappe_devkit.api.site_manager.clear_website_cache':(a) => `bench --site ${a.site||'<site>'} clear-website-cache`,
+		'frappe_devkit.api.site_manager.backup_site':        (a) => `bench --site ${a.site||'<site>'} backup${a.with_files?' --with-files':''}${a.compress?' --compress':''}`,
+		'frappe_devkit.api.site_manager.restore_site':       (a) => `bench --site ${a.site||'<site>'} restore ${a.backup_file||'<db-file>'}${a.with_private_files?' --with-private-files '+a.with_private_files:''}${a.with_public_files?' --with-public-files '+a.with_public_files:''}${a.admin_password?' --admin-password <pwd>':''}${parseInt(a.force)?' --force':''}`,
+		'frappe_devkit.api.site_manager.create_site':        (a) => `bench new-site ${a.site||'<site>'} --admin-password <pwd> --db-type ${a.db_type||'mariadb'}`,
+		'frappe_devkit.api.site_manager.drop_site':          (a) => `bench drop-site ${a.site||'<site>'}${a.force?' --force':''}`,
+		'frappe_devkit.api.site_manager.set_admin_password': (a) => `bench --site ${a.site||'<site>'} set-admin-password <new-password>`,
+		'frappe_devkit.api.site_manager.set_maintenance_mode':(a)=> `bench --site ${a.site||'<site>'} set-maintenance-mode ${a.enable?'on':'off'}`,
+		'frappe_devkit.api.site_manager.scheduler_action':   (a) => `bench --site ${a.site||'<site>'} scheduler ${a.action||'status'}`,
+		'frappe_devkit.api.site_manager.use_site':           (a) => `bench use ${a.site||'<site>'}`,
+		'frappe_devkit.api.site_manager.get_site_config':    (a) => `cat sites/${a.site||'<site>'}/site_config.json`,
+		'frappe_devkit.api.site_manager.set_site_config':    (a) => `bench --site ${a.site||'<site>'} set-config ${a.key||'<key>'} "${a.value||''}"`,
+		'frappe_devkit.api.site_manager.remove_site_config': (a) => `# removes key '${a.key||'<key>'}' from sites/${a.site||'<site>'}/site_config.json`,
+		'frappe_devkit.api.site_manager.execute_script':     (a) => `bench --site ${a.site||'<site>'} execute frappe.utils.execute_script`,
+		'frappe_devkit.api.app_builder.install_app_on_site': (a) => `bench --site ${a.site||'<site>'} install-app ${a.app_name||'<app>'}`,
+		'frappe_devkit.api.app_builder.uninstall_app_from_site':(a)=>`bench --site ${a.site||'<site>'} uninstall-app ${a.app_name||'<app>'}`,
+		'frappe_devkit.api.app_builder.register_existing_app':(a) => `echo '${a.app_name||'<app>'}' >> apps.txt && bench update --no-pull`,
+	};
+
+	function smApi(method, args, $t, benchCmd) {
+		const cmd = benchCmd || (_benchCmds[method] ? _benchCmds[method](args) : null);
+		let initial = '▶  Running…';
+		if (cmd) initial = `$ ${cmd}\n\n▶  Running…`;
+		$t.text(initial).removeClass('ok err');
 		frappe.call({ method, args,
 			callback: r => {
 				const m = r.message;
 				if (m?.status === 'success') {
 					$t.addClass('ok');
-					let out = `✓  ${m.message}`;
-					if (m.stdout?.trim()) out += `\n\nOutput:\n${m.stdout.trim()}`;
-					if (m.stderr?.trim()) out += `\n\nStderr:\n${m.stderr.trim()}`;
-					if (m.info)   out += `\n\n${JSON.stringify(m.info, null, 2)}`;
-					if (m.config) out += `\n\n${JSON.stringify(m.config, null, 2)}`;
+					let out = cmd ? `$ ${cmd}\n\n` : '';
+					out += `✓  ${m.message}`;
+					if (m.stdout?.trim()) out += `\n\n── Output ──\n${m.stdout.trim()}`;
+					if (m.stderr?.trim()) out += `\n\n── Stderr ──\n${m.stderr.trim()}`;
+					if (m.info)   out += `\n\n── Info ──\n${JSON.stringify(m.info, null, 2)}`;
+					if (m.config) out += `\n\n── Config ──\n${JSON.stringify(m.config, null, 2)}`;
 					if (m.backups?.length) {
-						out += '\n\nBackups:\n';
-						m.backups.slice(0,10).forEach(b => out += `  ${b.name}  (${b.size}  ${b.date})\n`);
+						out += '\n\n── Backups ──\n';
+						m.backups.slice(0,20).forEach(b => out += `  ${b.type.padEnd(10)} ${b.size.padEnd(10)} ${b.date}  ${b.name}\n`);
 					}
 					$t.text(out);
 					frappe.show_alert({ message: m.message, indicator: 'green' });
 				} else {
 					$t.addClass('err');
-					let out = `✗  ${m?.message || 'Error'}`;
-					if (m?.stdout?.trim()) out += `\n\nOutput:\n${m.stdout.trim()}`;
-					if (m?.stderr?.trim()) out += `\n\nStderr:\n${m.stderr.trim()}`;
+					let out = cmd ? `$ ${cmd}\n\n` : '';
+					out += `✗  ${m?.message || 'Operation failed'}`;
+					if (m?.stdout?.trim()) out += `\n\n── Output ──\n${m.stdout.trim()}`;
+					if (m?.stderr?.trim()) out += `\n\n── Stderr ──\n${m.stderr.trim()}`;
 					$t.text(out);
+					frappe.show_alert({ message: m?.message || 'Operation failed', indicator: 'red' });
 				}
 			},
-			error: e => $t.addClass('err').text(`✗  ${e.responseJSON?.exception || JSON.stringify(e)}`)
+			error: e => {
+				$t.addClass('err');
+				const msg = e.responseJSON?.exception || e.responseJSON?.message || 'Network or server error';
+				$t.text((cmd?`$ ${cmd}\n\n`:'')+`✗  ${msg}`);
+			}
 		});
 	}
 	function smGv(id) { return ($(`#${id}`).val() || '').trim(); }
-	function smSite(formSel) {
-		const s = $(formSel).val();
-		if (!s) { frappe.throw('Select a site first'); }
-		return s;
+	function smReq(id, label) {
+		const v = smGv(id);
+		if (!v) { frappe.throw(`${label} is required`); return null; }
+		return v;
 	}
 
 	// ── Site Overview ──────────────────────────────────
 	PANELS.site_overview = function($p) {
-		$p.append(phdr('Site Overview', 'All bench sites — apps, status, config, disk.', icoGlobe(20)));
-		const $tb = $('<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center"></div>').appendTo($p);
-		$('<button class="dkst-btn dkst-btn-s" id="sov-ref">↻ Refresh</button>').appendTo($tb);
-		$('<span style="flex:1"></span>').appendTo($tb);
-		$('<span style="font-size:12px;color:#9080b8" id="sov-cnt"></span>').appendTo($tb);
-		const $grid = $('<div id="sov-grid"></div>').appendTo($p);
+		$p.append(phdr('Site Overview', 'All bench sites — installed apps, status, database.', icoGlobe(20)));
+		$p.append(info('Lists all sites in this bench. Click <b>Load Sites</b> to fetch current state. Use <span class="dkst-code">bench --site &lt;site&gt; …</span> commands for per-site operations.'));
+		const $tb = $(`<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+			<button class="dkst-btn dkst-btn-p" id="sov-load">Load Sites</button>
+			<button class="dkst-btn dkst-btn-s" id="sov-ref" style="display:none">↻ Refresh</button>
+			<span style="flex:1"></span>
+			<span style="font-size:12px;color:#9080b8" id="sov-cnt"></span>
+		</div>`).appendTo($p);
+		const $grid = $('<div id="sov-grid"><div class="dkst-empty" style="padding:40px 0">Click <b>Load Sites</b> to list all sites in this bench.</div></div>').appendTo($p);
 
 		function loadOverview() {
+			$('#sov-cnt').text('');
 			$grid.html('<div class="dkst-empty">Loading…</div>');
+			_sites_cache = null; // force refresh
 			frappe.call({ method: 'frappe_devkit.api.site_manager.list_sites',
 				callback: r => {
 					const sites = r.message?.sites || [];
+					_sites_cache = sites;
 					$grid.empty();
-					$('#sov-cnt').text(`${sites.length} site(s)`);
+					$('#sov-cnt').text(`${sites.length} site${sites.length!==1?'s':''}`);
+					$('#sov-ref').show(); $('#sov-load').text('↻ Reload');
 					if (!sites.length) { $grid.html('<div class="dkst-empty">No sites found in this bench.</div>'); return; }
 					sites.forEach(s => {
-						const col = s.maintenance ? '#c0392b' : '#5c4da8';
-						const $c = $(`<div class="dkst-card" style="border-left:3px solid ${col};margin-bottom:14px"></div>`).appendTo($grid);
+						const active = !s.maintenance;
+						const col = active ? '#1a7a3a' : '#c0392b';
+						const $c = $(`<div class="dkst-card" style="border-left:4px solid ${col};margin-bottom:14px"></div>`).appendTo($grid);
 						$c.append(`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-							<div style="font-size:15px;font-weight:700;color:#1e1a2e;flex:1">${s.site}</div>
-							${s.maintenance ? '<span class="dkst-pill dkst-pill-r">⚠ Maintenance</span>' : '<span class="dkst-pill dkst-pill-g">● Active</span>'}
+							<div style="font-size:15px;font-weight:700;color:#1e1a2e;flex:1;font-family:monospace">${s.site}</div>
+							${active ? '<span class="dkst-pill dkst-pill-g">● Active</span>' : '<span class="dkst-pill dkst-pill-r">⚠ Maintenance</span>'}
 						</div>`);
-						const pills = s.installed.map(a => `<span class="dkst-pill dkst-pill-p" style="font-size:11px">${a}</span>`).join(' ');
-						$c.append(`<div style="margin-bottom:6px"><span style="font-size:11px;color:#9080b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Apps (${s.app_count})</span><div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:5px">${pills || '<span style="color:#b0a8c8;font-size:12px">none</span>'}</div></div>`);
-						if (s.db_name) $c.append(`<div style="font-size:12px;color:#7a70a8">DB: <span class="dkst-code">${s.db_name}</span></div>`);
+						const pills = (s.installed||[]).map(a => `<span class="dkst-pill dkst-pill-p" style="font-size:11px">${a}</span>`).join(' ');
+						$c.append(`<div style="margin-bottom:8px">
+							<span style="font-size:11px;color:#9080b8;font-weight:700;text-transform:uppercase;letter-spacing:.07em">Apps (${s.app_count})</span>
+							<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px">${pills||'<span style="color:#b0a8c8;font-size:12px">none</span>'}</div>
+						</div>`);
+						const meta = [];
+						if (s.db_name) meta.push(`DB: <span class="dkst-code">${s.db_name}</span>`);
+						if (s.db_type) meta.push(`Engine: <span class="dkst-code">${s.db_type}</span>`);
+						if (meta.length) $c.append(`<div style="font-size:12px;color:#7a70a8;display:flex;gap:16px">${meta.join('')}</div>`);
 					});
-				}
+				},
+				error: () => $grid.html('<div class="dkst-empty" style="color:#c0392b">Failed to load sites. Check server logs.</div>')
 			});
 		}
-		$p.on('click', '#sov-ref', loadOverview);
-		loadOverview();
+		$p.on('click', '#sov-load,#sov-ref', loadOverview);
 	};
 
 	// ── Create Site ──────────────────────────────────
@@ -2458,16 +3228,25 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		</div>`);
 
 		const $c2 = smCard($p, 'Apps to Install');
-		$c2.append('<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Apps to install during site creation (frappe is always included).</div>');
-		const $appWrap = $('<div class="dkst-checks" id="sc-apps"></div>').appendTo($c2);
-		frappe.call({ method: 'frappe_devkit.api.app_builder.get_bench_apps',
-			callback: r => {
-				$appWrap.empty();
-				(r.message?.apps || []).filter(a => a.app !== 'frappe').forEach(a =>
-					$appWrap.append(`<label class="dkst-chk"><input type="checkbox" class="sc-app-chk" value="${a.app}"><span>${a.app} <span style="color:#9080b8;font-size:11px">v${a.version}</span></span></label>`)
-				);
-			}
-		});
+		$c2.append('<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Select apps to install during site creation. <b>frappe</b> is always included.</div>');
+		const $appWrap = $('<div class="dkst-checks" id="sc-apps"><span style="color:#9080b8;font-size:12px">Click Load to see available apps.</span></div>').appendTo($c2);
+		$('<button class="dkst-btn dkst-btn-s" style="margin-top:10px;font-size:12px">↻ Load Available Apps</button>')
+			.appendTo($c2)
+			.on('click', function() {
+				$(this).prop('disabled',true).text('Loading…');
+				const $btn = $(this);
+				frappe.call({ method: 'frappe_devkit.api.app_builder.get_bench_apps',
+					callback: r => {
+						$appWrap.empty();
+						const apps = (r.message?.apps || []).filter(a => a.app !== 'frappe');
+						if (!apps.length) { $appWrap.html('<span style="color:#9080b8;font-size:12px">No additional apps found.</span>'); }
+						apps.forEach(a =>
+							$appWrap.append(`<label class="dkst-chk"><input type="checkbox" class="sc-app-chk" value="${a.app}"><span>${a.app} <span style="color:#9080b8;font-size:11px">v${a.version}</span></span></label>`)
+						);
+						$btn.text('↻ Reload').prop('disabled',false);
+					}
+				});
+			});
 
 		const $t = smTerm($p);
 		smBtns($p, [{ lbl: 'Create Site', cls: 'dkst-btn-p', fn: () => {
@@ -2488,23 +3267,96 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 
 	// ── Backup & Restore ──────────────────────────────────
 	PANELS.site_backup = function($p) {
-		$p.append(phdr('Backup & Restore', 'Take, list and restore site backups.', icoSave(20)));
+		$p.append(phdr('Backup & Restore', 'Take, schedule and restore site backups via bench commands.', icoSave(20)));
+		$p.append(info('Backups stored in <span class="dkst-code">sites/&lt;site&gt;/private/backups/</span>. Click a backup row to auto-fill the Restore form.'));
 
-		// Take backup
+		// shared backup list cache per site (key = site name, value = array of backup objects)
+		const _bkCache = {};
+
+		function _downloadBackup(site, filename) {
+			const url = `/api/method/frappe_devkit.api.site_manager.download_backup_file?site=${encodeURIComponent(site)}&filename=${encodeURIComponent(filename)}`;
+			const a = document.createElement('a');
+			a.href = url; a.download = filename; a.style.display = 'none';
+			document.body.appendChild(a); a.click();
+			setTimeout(() => document.body.removeChild(a), 200);
+		}
+
+		// helper: load backup list into $target container, call onSelect(backup) when a db row is clicked
+		function loadBkList(site, $target, onSelect) {
+			$target.html('<div style="color:#9080b8;font-size:12px;padding:8px 0">Loading…</div>');
+			frappe.call({ method: 'frappe_devkit.api.site_manager.list_backups', args: { site },
+				callback: r => {
+					const bks = r.message?.backups || [];
+					_bkCache[site] = bks;
+					$target.empty();
+					if (!bks.length) {
+						$target.html('<div style="color:#9080b8;font-size:12px;padding:8px 0">No backups found. Take a backup first.</div>');
+						return;
+					}
+					// Group by date prefix (first 15 chars of filename to group db+files together)
+					const groups = {};
+					bks.forEach(b => {
+						const key = b.name.substring(0, 15);
+						if (!groups[key]) groups[key] = { date: b.date, db: null, priv: null, pub: null };
+						if (b.type === 'database') groups[key].db = b;
+						else if (b.name.includes('private')) groups[key].priv = b;
+						else if (b.name.includes('files') && !b.name.includes('private')) groups[key].pub = b;
+					});
+					const $tbl = $(`<table class="dkst-tbl">
+						<thead><tr>
+							<th style="width:110px">Date</th>
+							<th>DB Backup</th>
+							<th>DB Size</th>
+							<th style="width:80px">Files?</th>
+							<th style="width:90px">Use</th>
+							<th style="width:145px">Download</th>
+						</tr></thead>
+						<tbody></tbody>
+					</table>`).appendTo($target);
+					Object.values(groups).sort((a,b)=>b.date.localeCompare(a.date)).forEach(g => {
+						const hasFiles = !!(g.priv || g.pub);
+						const $tr = $(`<tr>
+							<td style="white-space:nowrap;color:#7a70a8;font-size:11px">${g.date}</td>
+							<td style="font-family:monospace;font-size:11px;color:#5c4da8;word-break:break-all">${g.db ? g.db.name : '<span style="color:#c0392b">missing</span>'}</td>
+							<td style="white-space:nowrap">${g.db ? g.db.size : '—'}</td>
+							<td style="text-align:center">${hasFiles ? '<span class="dkst-pill dkst-pill-g" style="font-size:10px">yes</span>' : '<span style="color:#ccc;font-size:11px">—</span>'}</td>
+							<td></td>
+							<td style="white-space:nowrap"></td>
+						</tr>`).appendTo($tbl.find('tbody'));
+						if (g.db && onSelect) {
+							const $btn = $('<button class="dkst-btn dkst-btn-s" style="font-size:11px;padding:3px 10px">Select ↓</button>').appendTo($tr.find('td:nth-child(5)'));
+							$btn.on('click', () => onSelect(g));
+						}
+						const $dlTd = $tr.find('td:last');
+						if (g.db)   $('<button class="dkst-btn dkst-btn-s" style="font-size:11px;padding:2px 7px;margin-right:2px" title="Download database backup">⬇ DB</button>').appendTo($dlTd).on('click', () => _downloadBackup(site, g.db.name));
+						if (g.pub)  $('<button class="dkst-btn dkst-btn-s" style="font-size:11px;padding:2px 7px;margin-right:2px" title="Download public files">⬇ Pub</button>').appendTo($dlTd).on('click', () => _downloadBackup(site, g.pub.name));
+						if (g.priv) $('<button class="dkst-btn dkst-btn-s" style="font-size:11px;padding:2px 7px" title="Download private files">⬇ Priv</button>').appendTo($dlTd).on('click', () => _downloadBackup(site, g.priv.name));
+					});
+				}
+			});
+		}
+
+		// ── Take Backup ──────────────────────────────────
 		const $bc = smCard($p, 'Take Backup');
-		$bc.append(`<div class="dkst-g2">
-			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label>
-				<select class="dkst-sel" id="bk-site"></select></div>
-			<div class="dkst-fld"><label class="dkst-lbl">Options</label>
-				<div class="dkst-checks" style="margin-top:6px">
-					<label class="dkst-chk"><input type="checkbox" id="bk-files"><span>Include files</span></label>
-					<label class="dkst-chk"><input type="checkbox" id="bk-comp" checked><span>Compress</span></label>
-				</div></div>
+		$bc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			Equivalent: <span class="dkst-code">bench --site &lt;site&gt; backup</span>
+			<span style="color:#9080b8"> &nbsp;·&nbsp; Output saved to <span class="dkst-code">sites/&lt;site&gt;/private/backups/</span></span>
 		</div>`);
-		loadSiteSelect($bc.find('#bk-site'), 'select site');
+		const $bkSiteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($bc);
+		const $bkSite = siteSelRow($bkSiteRow, 'bk-site', 'select site');
+		$bc.append(`<div class="dkst-g2" style="margin-top:12px">
+			<div class="dkst-fld"><label class="dkst-lbl">Backup Name (optional)</label>
+				<input class="dkst-inp" id="bk-name" placeholder="Auto-generated if blank">
+				<span class="dkst-hint">Prefix for backup file names</span></div>
+		</div>
+		<div class="dkst-checks" style="margin-top:10px">
+			<label class="dkst-chk"><input type="checkbox" id="bk-files"><span>Include uploaded files <span style="color:#9080b8;font-size:11px">(--with-files · slower)</span></span></label>
+			<label class="dkst-chk"><input type="checkbox" id="bk-comp" checked><span>Compress output <span style="color:#9080b8;font-size:11px">(--compress · .gz)</span></span></label>
+			<label class="dkst-chk"><input type="checkbox" id="bk-verbose"><span>Verbose output</span></label>
+		</div>`);
 		const $t1 = smTerm($p);
-		smBtns($bc, [{ lbl: 'Take Backup', cls: 'dkst-btn-p', fn: () => {
-			const site = $bc.find('#bk-site').val();
+		smBtns($bc, [{ lbl: 'Take Backup Now', cls: 'dkst-btn-p', fn: () => {
+			const site = $bkSite.val();
 			if (!site) { frappe.throw('Select a site'); return; }
 			smApi('frappe_devkit.api.site_manager.backup_site', {
 				site, with_files: $('#bk-files').is(':checked') ? 1 : 0,
@@ -2512,81 +3364,250 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			}, $t1);
 		}}]);
 
-		// List backups
-		const $lc = smCard($p, 'List Backups');
-		$lc.append(`<div class="dkst-g2"><div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label>
-			<select class="dkst-sel" id="bl-site"></select></div></div>
-		<div id="bl-res" style="margin-top:12px"></div>`);
-		loadSiteSelect($lc.find('#bl-site'), 'select site');
-		smBtns($lc, [{ lbl: 'List Backups', cls: 'dkst-btn-s', fn: () => {
-			const site = $lc.find('#bl-site').val();
-			if (!site) { frappe.throw('Select a site'); return; }
-			frappe.call({ method: 'frappe_devkit.api.site_manager.list_backups', args: { site },
-				callback: r => {
-					const bks = r.message?.backups || [];
-					const $d = $('#bl-res').empty();
-					if (!bks.length) { $d.html('<div style="color:#9080b8;font-size:12px">No backups found.</div>'); return; }
-					const $tbl = $('<table class="dkst-tbl"><thead><tr><th>File</th><th>Size</th><th>Date</th><th>Type</th></tr></thead><tbody></tbody></table>').appendTo($d);
-					bks.forEach(b => $tbl.find('tbody').append(`<tr>
-						<td style="font-family:monospace;font-size:12px;color:#5c4da8">${b.name}</td>
-						<td>${b.size}</td><td>${b.date}</td>
-						<td><span class="dkst-pill dkst-pill-${b.type==='database'?'p':'b'}">${b.type}</span></td>
-					</tr>`));
-				}
+		// ── Browse & List Backups ──────────────────────────────────
+		const $lc = smCard($p, 'Browse Backups');
+		$lc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">
+			Lists all backups for the selected site. Click <b>Select ↓</b> to auto-fill the Restore form below.
+		</div>`);
+		const $blSiteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($lc);
+		const $blSite = siteSelRow($blSiteRow, 'bl-site', 'select site');
+		const $blRes = $('<div id="bl-res" style="margin-top:12px"></div>').appendTo($lc);
+
+		// when site changes, auto-load
+		$blSite.on('change', function() {
+			const site = this.value;
+			$blRes.empty();
+			if (!site) return;
+			loadBkList(site, $blRes, g => {
+				// scroll to restore card and fill fields
+				$rsSite.val(site).trigger('change');
+				$('#rs-file').val(g.db ? g.db.path : '');
+				$('#rs-priv').val(g.priv ? g.priv.path : '');
+				$('#rs-pub').val(g.pub ? g.pub.path : '');
+				$p.closest('.dkst-panel-area').animate({ scrollTop: $rc.offset().top }, 400);
+				frappe.show_alert({ message: 'Backup selected — review the Restore form below.', indicator: 'green' }, 4);
+			});
+		});
+		smBtns($lc, [{ lbl: '↻ Refresh List', cls: 'dkst-btn-s', fn: () => {
+			const site = $blSite.val();
+			if (!site) { frappe.throw('Select a site first'); return; }
+			loadBkList(site, $blRes, g => {
+				$rsSite.val(site).trigger('change');
+				$('#rs-file').val(g.db ? g.db.path : '');
+				$('#rs-priv').val(g.priv ? g.priv.path : '');
+				$('#rs-pub').val(g.pub ? g.pub.path : '');
+				$p.closest('.dkst-panel-area').animate({ scrollTop: $rc.offset().top }, 400);
+				frappe.show_alert({ message: 'Backup selected — review the Restore form below.', indicator: 'green' }, 4);
 			});
 		}}]);
 
-		// Restore
-		const $rc = smCard($p, 'Restore from Backup');
-		$rc.append(`<div class="dkst-g2">
-			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label>
-				<select class="dkst-sel" id="rs-site"></select></div>
-			<div class="dkst-fld"><label class="dkst-lbl dkst-req">DB Backup File (full path)</label>
-				<input class="dkst-inp" id="rs-file" placeholder="/path/to/backup-database.sql.gz"></div>
-			<div class="dkst-fld"><label class="dkst-lbl">Private Files Backup</label>
-				<input class="dkst-inp" id="rs-priv" placeholder="/path/to/private-files.tar"></div>
-			<div class="dkst-fld"><label class="dkst-lbl">Public Files Backup</label>
-				<input class="dkst-inp" id="rs-pub" placeholder="/path/to/public-files.tar"></div>
-			<div class="dkst-fld"><label class="dkst-lbl">Reset Admin Password</label>
-				<input class="dkst-inp" type="password" id="rs-apwd" placeholder="optional"></div>
-		</div>
-		<div style="background:#fde8e6;border:1px solid #e8a8a0;border-radius:5px;padding:10px 14px;font-size:12px;color:#7a2020;margin-top:10px">
-			⚠ Restore overwrites all existing data in the site database.
+		// ── Upload Backup ──────────────────────────────────
+		const $uc = smCard($p, 'Upload Backup Files');
+		$uc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			Upload backup files from your computer directly to
+			<span class="dkst-code">sites/&lt;site&gt;/private/backups/</span>.
+			Supported: <code>.sql.gz</code> / <code>.sql</code> (database) and <code>.tar</code> (files).
 		</div>`);
-		loadSiteSelect($rc.find('#rs-site'), 'select site');
+		const $ucSiteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($uc);
+		const $ucSite = siteSelRow($ucSiteRow, 'uc-site', 'select site');
+
+		function _makeUploadRow(lbl, accept, fileType, hint) {
+			const $row = $(`<div class="dkst-fld" style="margin-top:12px">
+				<label class="dkst-lbl">${lbl}</label>
+				<div style="display:flex;gap:8px;align-items:center">
+					<input type="file" class="dkst-inp" style="flex:1;padding:4px 8px;font-size:12px" accept="${accept}">
+					<button class="dkst-btn dkst-btn-s" style="flex-shrink:0;white-space:nowrap">\u2b06 Upload</button>
+				</div>
+				<div class="uc-status" style="font-size:11px;margin-top:4px;min-height:16px;color:#7a70a8">${hint}</div>
+			</div>`);
+			$row.find('.dkst-btn').on('click', function() {
+				const site = $ucSite.val();
+				if (!site) { frappe.show_alert({ message:'Select a site first', indicator:'orange' }); return; }
+				const fileInput = $row.find('input[type=file]')[0];
+				if (!fileInput.files.length) { frappe.show_alert({ message:'Select a file first', indicator:'orange' }); return; }
+				const $status = $row.find('.uc-status');
+				const $btn = $(this);
+				$status.text('Uploading\u2026').css('color','#5c4da8');
+				$btn.prop('disabled', true);
+				const fd = new FormData();
+				fd.append('file', fileInput.files[0]);
+				fd.append('site', site);
+				fd.append('file_type', fileType);
+				$.ajax({
+					url: '/api/method/frappe_devkit.api.site_manager.upload_backup_file',
+					type: 'POST',
+					data: fd,
+					processData: false,
+					contentType: false,
+					headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token },
+					success: r => {
+						$btn.prop('disabled', false);
+						if (r.message?.uploaded) {
+							$status.text(`\u2713 Uploaded: ${r.message.filename} (${r.message.size})`).css('color','#27ae60');
+							fileInput.value = '';
+						} else {
+							$status.text('Upload failed').css('color','#c0392b');
+						}
+					},
+					error: xhr => {
+						$btn.prop('disabled', false);
+						const msg = xhr.responseJSON?.exc_type || xhr.responseJSON?._server_messages || 'Upload failed';
+						$status.text(`\u2717 ${String(msg).substring(0,120)}`).css('color','#c0392b');
+					}
+				});
+			});
+			return $row;
+		}
+		$uc.append(_makeUploadRow('Database Backup (.sql.gz / .sql)', '.sql.gz,.sql', 'database', 'Upload a .sql.gz compressed database backup'));
+		$uc.append(_makeUploadRow('Public Files Backup (-files.tar)', '.tar', 'public_files', 'Upload a *-files.tar archive'));
+		$uc.append(_makeUploadRow('Private Files Backup (-private-files.tar)', '.tar', 'private_files', 'Upload a *-private-files.tar archive'));
+
+		// ── Restore from Backup ──────────────────────────────────
+		const $rc = smCard($p, 'Restore from Backup');
+		$rc.append(`<div style="background:#fde8e6;border:1px solid #e8a8a0;border-radius:6px;padding:12px 16px;margin-bottom:16px">
+			<div style="font-size:13px;font-weight:700;color:#c0392b;margin-bottom:4px">⚠ Danger — Data will be overwritten</div>
+			<div style="font-size:12px;color:#7a2020;line-height:1.7">
+				Equivalent: <code>bench --site &lt;site&gt; restore &lt;db-file&gt;</code><br>
+				This <b>overwrites the entire database</b>. All current data will be lost. Cannot be undone.<br>
+				Use <b>Browse Backups ↑</b> to click-select files, or enter paths manually below.
+			</div>
+		</div>`);
+		const $rsSiteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Target Site</label></div>').appendTo($rc);
+		const $rsSite = siteSelRow($rsSiteRow, 'rs-site', 'select site');
+
+		// File path rows with "Browse" button (opens Frappe dialog listing server backup files)
+		function fileRow(id, lbl, ph, hint, required) {
+			const $row = $(`<div class="dkst-fld" style="margin-top:12px">
+				<label class="dkst-lbl${required?' dkst-req':''}">${lbl}</label>
+				<div style="display:flex;gap:8px;align-items:center">
+					<input class="dkst-inp" id="${id}" placeholder="${ph}" style="flex:1;font-family:monospace;font-size:12px">
+					<button class="dkst-btn dkst-btn-s" data-browse="${id}" style="padding:5px 10px;font-size:12px;flex-shrink:0;white-space:nowrap" title="Browse server backup files">📂 Browse</button>
+				</div>
+				<span class="dkst-hint">${hint}</span>
+			</div>`);
+			return $row;
+		}
+
+		const $dbRow   = fileRow('rs-file','DB Backup File','sites/&lt;site&gt;/private/backups/&lt;date&gt;-database.sql.gz','Full server path to the <b>.sql.gz</b> database backup',true);
+		const $privRow = fileRow('rs-priv','Private Files Backup (optional)','sites/&lt;site&gt;/private/backups/&lt;date&gt;-private-files.tar','Path to <b>-private-files.tar</b> — leave blank to skip',false);
+		const $pubRow  = fileRow('rs-pub', 'Public Files Backup (optional)','sites/&lt;site&gt;/private/backups/&lt;date&gt;-files.tar','Path to <b>-files.tar</b> — leave blank to skip',false);
+		$rc.append($dbRow).append($privRow).append($pubRow);
+
+		$rc.append(`<div class="dkst-g2" style="margin-top:12px">
+			<div class="dkst-fld"><label class="dkst-lbl">Reset Admin Password</label>
+				<input class="dkst-inp" type="password" id="rs-apwd" placeholder="Leave blank to keep current">
+				<span class="dkst-hint">Set a new admin password after restore completes</span></div>
+			<div class="dkst-fld"><label class="dkst-lbl">DB Root Password</label>
+				<input class="dkst-inp" type="password" id="rs-rpwd" placeholder="Required by some MariaDB setups">
+				<span class="dkst-hint">Leave blank if bench manages DB credentials</span></div>
+		</div>
+		<div class="dkst-checks" style="margin-top:12px">
+			<label class="dkst-chk"><input type="checkbox" id="rs-force"><span>Force restore — skip errors <span style="color:#9080b8;font-size:11px">(--force)</span></span></label>
+			<label class="dkst-chk" style="color:#c0392b;font-weight:600"><input type="checkbox" id="rs-ok"><span>I understand all current data will be replaced</span></label>
+		</div>`);
+
 		const $t2 = smTerm($p);
-		smBtns($p, [{ lbl: 'Restore Site', cls: 'dkst-btn-r', fn: () => {
-			const site = $rc.find('#rs-site').val();
-			const file = smGv('rs-file');
-			if (!site || !file) { frappe.throw('Site and DB backup file required'); return; }
-			if (!confirm(`Restore '${site}' from backup? This overwrites ALL current data.`)) return;
-			smApi('frappe_devkit.api.site_manager.restore_site', {
-				site, backup_file: file,
-				with_private_files: smGv('rs-priv'),
-				with_public_files: smGv('rs-pub'),
-				admin_password: $rc.find('#rs-apwd').val().trim(),
-			}, $t2);
+		smBtns($rc, [{ lbl: 'Restore Site', cls: 'dkst-btn-r', fn: () => {
+			if (!$('#rs-ok').is(':checked')) { frappe.throw('Check the confirmation box to proceed'); return; }
+			const site = $rsSite.val();
+			const file = $('#rs-file').val().trim();
+			if (!site) { frappe.throw('Select a target site'); return; }
+			if (!file) { frappe.throw('DB backup file path is required — use Browse Backups above to select'); return; }
+			frappe.confirm(`<b>Restore site <code>${site}</code>?</b><br><br>
+				DB file: <code style="font-size:11px;word-break:break-all">${file}</code><br><br>
+				All current data will be <b>permanently replaced</b>. This cannot be undone.`, () => {
+				smApi('frappe_devkit.api.site_manager.restore_site', {
+					site, backup_file: file,
+					with_private_files: $('#rs-priv').val().trim() || '',
+					with_public_files:  $('#rs-pub').val().trim()  || '',
+					admin_password:     $('#rs-apwd').val().trim() || '',
+					force: $('#rs-force').is(':checked') ? 1 : 0,
+				}, $t2);
+			});
 		}}]);
+
+		// ── Browse dialog: lists server backup files for a site ──
+		$rc.on('click', '[data-browse]', function() {
+			const targetId = $(this).data('browse');
+			const site = $rsSite.val();
+			if (!site) { frappe.throw('Select a site first to browse its backups'); return; }
+
+			// determine filter type from target field
+			const isDb   = targetId === 'rs-file';
+			const isPriv = targetId === 'rs-priv';
+			const isPub  = targetId === 'rs-pub';
+
+			const doLoad = (bks) => {
+				const filtered = bks.filter(b => {
+					if (isDb)   return b.type === 'database';
+					if (isPriv) return b.name.includes('private');
+					if (isPub)  return b.name.includes('files') && !b.name.includes('private') && b.type !== 'database';
+					return true;
+				});
+
+				const d = new frappe.ui.Dialog({
+					title: `Browse Backup Files — ${site}`,
+					size: 'large',
+				});
+				const $body = d.$wrapper.find('.modal-body');
+				if (!filtered.length) {
+					$body.html('<div style="padding:20px;color:#9080b8;text-align:center">No matching backup files found for this site.</div>');
+				} else {
+					const $tbl = $(`<table style="width:100%;border-collapse:collapse;font-size:12.5px">
+						<thead><tr style="background:#f3f0fb">
+							<th style="text-align:left;padding:8px 10px;border-bottom:1px solid #e0d8f8">File Name</th>
+							<th style="text-align:right;padding:8px 10px;border-bottom:1px solid #e0d8f8;white-space:nowrap">Size</th>
+							<th style="text-align:right;padding:8px 10px;border-bottom:1px solid #e0d8f8;white-space:nowrap">Date</th>
+							<th style="padding:8px 10px;border-bottom:1px solid #e0d8f8"></th>
+						</tr></thead><tbody></tbody>
+					</table>`).appendTo($body);
+					filtered.forEach(b => {
+						const $tr = $(`<tr style="border-bottom:1px solid #f0ecf8;cursor:pointer" class="bk-file-row">
+							<td style="padding:8px 10px;font-family:monospace;font-size:11px;color:#5c4da8;word-break:break-all">${b.name}</td>
+							<td style="padding:8px 10px;text-align:right;white-space:nowrap;color:#7a70a8">${b.size}</td>
+							<td style="padding:8px 10px;text-align:right;white-space:nowrap;color:#7a70a8">${b.date}</td>
+							<td style="padding:8px 10px"><button class="dkst-btn dkst-btn-p" style="font-size:11px;padding:3px 12px">Use</button></td>
+						</tr>`).appendTo($tbl.find('tbody'));
+						$tr.find('button, td').on('click', () => {
+							$(`#${targetId}`).val(b.path);
+							d.hide();
+						});
+					});
+				}
+				d.show();
+			};
+
+			if (_bkCache[site]) {
+				doLoad(_bkCache[site]);
+			} else {
+				frappe.call({ method: 'frappe_devkit.api.site_manager.list_backups', args: { site },
+					callback: r => { _bkCache[site] = r.message?.backups || []; doLoad(_bkCache[site]); }
+				});
+			}
+		});
 	};
 
 	// ── Site Config ──────────────────────────────────
 	PANELS.site_config = function($p) {
-		$p.append(phdr('Site Config', 'Read, set and remove site_config.json keys.', icoSliders(20)));
+		$p.append(phdr('Site Config', 'Read, set and remove keys in site_config.json.', icoSliders(20)));
+		$p.append(info('Config file location: <span class="dkst-code">sites/&lt;site&gt;/site_config.json</span>. Changes take effect immediately without restart.'));
 
-		// Read config
+		// Read config — auto-loads when site is selected
 		const $rc = smCard($p, 'Read Config');
-		$rc.append(`<div class="dkst-g2"><div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label>
-			<select class="dkst-sel" id="cfg-site"></select></div></div>
-		<div id="cfg-table" style="margin-top:12px"></div>`);
-		loadSiteSelect($rc.find('#cfg-site'), 'select site');
-		$rc.find('#cfg-site').on('change', function() {
-			const site = this.value; if (!site) return;
+		const $cfgSiteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($rc);
+		const $cfgSite = siteSelRow($cfgSiteRow, 'cfg-site', 'select site');
+		const $cfgTable = $('<div id="cfg-table" style="margin-top:14px"></div>').appendTo($rc);
+		$cfgSite.on('change', function() {
+			const site = this.value; if (!site) { $cfgTable.empty(); return; }
+			$cfgTable.html('<div style="color:#9080b8;font-size:12px">Loading…</div>');
 			frappe.call({ method: 'frappe_devkit.api.site_manager.get_site_config', args: { site },
 				callback: r => {
 					const cfg = r.message?.config || {};
-					const $d = $('#cfg-table').empty();
-					const $tbl = $('<table class="dkst-tbl"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody></tbody></table>').appendTo($d);
-					Object.entries(cfg).forEach(([k, v]) => $tbl.find('tbody').append(`<tr>
+					$cfgTable.empty();
+					const entries = Object.entries(cfg);
+					if (!entries.length) { $cfgTable.html('<div style="color:#9080b8;font-size:12px">No config keys found.</div>'); return; }
+					const $tbl = $('<table class="dkst-tbl"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody></tbody></table>').appendTo($cfgTable);
+					entries.forEach(([k, v]) => $tbl.find('tbody').append(`<tr>
 						<td style="font-family:monospace;color:#5c4da8;font-weight:600">${k}</td>
 						<td style="font-family:monospace;font-size:12px;color:#1e1a2e">${JSON.stringify(v)}</td>
 					</tr>`));
@@ -2594,54 +3615,66 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			});
 		});
 
-		// Set config
-		const $sc = smCard($p, 'Set / Update Config Key');
-		$sc.append(`<div class="dkst-g2">
-			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label>
-				<select class="dkst-sel" id="set-site"></select></div>
+		// Set/Remove config
+		const $sc = smCard($p, 'Set / Remove Config Key');
+		$sc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			Equivalent: <span class="dkst-code">bench --site &lt;site&gt; set-config &lt;key&gt; &lt;value&gt;</span>
+		</div>`);
+		const $setSiteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($sc);
+		const $setSite = siteSelRow($setSiteRow, 'set-site', 'select site');
+		$sc.append(`<div class="dkst-g2" style="margin-top:12px">
 			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Key</label>
-				<input class="dkst-inp" id="set-key" placeholder="e.g. max_file_size"></div>
-			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Value</label>
-				<input class="dkst-inp" id="set-val" placeholder="value"></div>
+				<input class="dkst-inp" id="set-key" placeholder="e.g. max_file_size, developer_mode">
+				<span class="dkst-hint">Config key name (snake_case)</span></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Value</label>
+				<input class="dkst-inp" id="set-val" placeholder="e.g. 10485760, 1, true">
+				<span class="dkst-hint">Leave blank when removing</span></div>
 			<div class="dkst-fld"><label class="dkst-lbl">Value Type</label>
 				<select class="dkst-sel" id="set-type">
 					<option value="string">String</option>
 					<option value="int">Integer</option>
-					<option value="bool">Boolean (0/1)</option>
-					<option value="json">JSON</option>
+					<option value="bool">Boolean (0 / 1)</option>
+					<option value="json">JSON object</option>
 				</select></div>
 		</div>`);
-		loadSiteSelect($sc.find('#set-site'), 'select site');
 		const $t3 = smTerm($p);
 		smBtns($sc, [
-			{ lbl: 'Set Config', cls: 'dkst-btn-p', fn: () => {
-				const site = $sc.find('#set-site').val();
+			{ lbl: 'Set Config Key', cls: 'dkst-btn-p', fn: () => {
+				const site = $setSite.val();
 				const key = smGv('set-key'); const val = smGv('set-val');
-				if (!site||!key||!val) { frappe.throw('Site, Key and Value required'); return; }
+				if (!site) { frappe.throw('Select a site'); return; }
+				if (!key)  { frappe.throw('Key is required'); return; }
+				if (!val)  { frappe.throw('Value is required — use Remove to delete a key'); return; }
 				smApi('frappe_devkit.api.site_manager.set_site_config', {
-					site, key, value: val, value_type: $sc.find('#set-type').val()
+					site, key, value: val, value_type: $('#set-type').val()
 				}, $t3);
 			}},
 			{ lbl: 'Remove Key', cls: 'dkst-btn-r', fn: () => {
-				const site = $sc.find('#set-site').val();
+				const site = $setSite.val();
 				const key = smGv('set-key');
-				if (!site||!key) { frappe.throw('Site and Key required'); return; }
-				if (!confirm(`Remove key '${key}' from '${site}'?`)) return;
-				smApi('frappe_devkit.api.site_manager.remove_site_config', { site, key }, $t3);
+				if (!site) { frappe.throw('Select a site'); return; }
+				if (!key)  { frappe.throw('Key is required'); return; }
+				frappe.confirm(`Remove key <b>${key}</b> from <b>${site}</b>?`, () => {
+					smApi('frappe_devkit.api.site_manager.remove_site_config', { site, key }, $t3);
+				});
 			}},
 		]);
 
-		// Common config
-		const $cc = smCard($p, 'Common Site Config (shared by all sites)');
-		const $ccd = $('<div style="color:#9080b8;font-size:12px">Click to load…</div>').appendTo($cc);
+		// Common site config (sites/common_site_config.json)
+		const $cc = smCard($p, 'Common Site Config');
+		$cc.append('<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Shared by all sites — <span class="dkst-code">sites/common_site_config.json</span></div>');
+		const $ccd = $('<div style="color:#9080b8;font-size:12px">Click <b>Load</b> to view.</div>').appendTo($cc);
 		smBtns($cc, [{ lbl: 'Load Common Config', cls: 'dkst-btn-s', fn: () => {
+			$ccd.html('<div style="color:#9080b8;font-size:12px">Loading…</div>');
 			frappe.call({ method: 'frappe_devkit.api.site_manager.get_common_config',
 				callback: r => {
 					const cfg = r.message?.config || {};
 					$ccd.empty();
+					const entries = Object.entries(cfg);
+					if (!entries.length) { $ccd.html('<div style="color:#9080b8;font-size:12px">No common config keys.</div>'); return; }
 					const $tbl = $('<table class="dkst-tbl"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody></tbody></table>').appendTo($ccd);
-					Object.entries(cfg).forEach(([k,v]) => $tbl.find('tbody').append(`<tr>
-						<td style="font-family:monospace;color:#5c4da8">${k}</td>
+					entries.forEach(([k,v]) => $tbl.find('tbody').append(`<tr>
+						<td style="font-family:monospace;color:#5c4da8;font-weight:600">${k}</td>
 						<td style="font-family:monospace;font-size:12px">${JSON.stringify(v)}</td>
 					</tr>`));
 				}
@@ -2652,32 +3685,40 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 	// ── Site Apps ──────────────────────────────────
 	PANELS.site_apps = function($p) {
 		$p.append(phdr('Install / Remove Apps', 'Install or uninstall apps on any site.', icoPackage(20)));
+		$p.append(info('Install bench apps on a site or remove them. Apps must be fetched into the bench first via <span class="dkst-code">bench get-app &lt;app&gt;</span>.'));
 		const $c = smCard($p, 'App on Site');
-		$c.append(`<div class="dkst-g2">
-			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label>
-				<select class="dkst-sel" id="sa-site"></select></div>
-			<div class="dkst-fld">
-				<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
-					<label class="dkst-lbl dkst-req" style="margin:0;">App</label>
-					<button class="dkst-ce-link" data-app-sel="sa-app" title="Open in DevKit Code Editor">⌨ Open in Editor ↗</button>
-				</div>
-				<select class="dkst-sel" id="sa-app"><option value="">— select app —</option></select></div>
-		</div>
-		<div class="dkst-checks" style="margin-top:12px">
-			<label class="dkst-chk"><input type="checkbox" id="sa-force"><span>Force reinstall</span></label>
-			<label class="dkst-chk"><input type="checkbox" id="sa-dry"><span>Dry run (uninstall only)</span></label>
+		$c.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			<span class="dkst-code">bench --site &lt;site&gt; install-app &lt;app&gt;</span>
+			<span style="color:#9080b8"> &nbsp;·&nbsp; </span>
+			<span class="dkst-code">bench --site &lt;site&gt; uninstall-app &lt;app&gt;</span>
+		</div>`);
+
+		const $siteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($c);
+		const $saSite = siteSelRow($siteRow, 'sa-site', 'select site');
+
+		$c.append(`<div class="dkst-fld" style="margin-top:12px">
+			<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
+				<label class="dkst-lbl dkst-req" style="margin:0;">App</label>
+				<button class="dkst-ce-link" data-app-sel="sa-app" title="Open in DevKit Code Editor">⌨ Open in Editor ↗</button>
+			</div>
+			<select class="dkst-sel" id="sa-app"><option value="">— loading apps… —</option></select>
+			<span class="dkst-hint">Apps currently fetched in this bench</span></div>`);
+
+		$c.append(`<div class="dkst-checks" style="margin-top:12px">
+			<label class="dkst-chk"><input type="checkbox" id="sa-force"><span>Force reinstall (<code>--force</code>)</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="sa-dry"><span>Dry run — preview uninstall only</span></label>
 		</div>
 		<div id="sa-installed" style="margin-top:14px"></div>`);
 
-		loadSiteSelect($c.find('#sa-site'), 'select site');
 		frappe.call({ method: 'frappe_devkit.api.app_builder.get_bench_apps',
 			callback: r => {
+				const $appSel = $c.find('#sa-app').empty().append('<option value="">— select app —</option>');
 				(r.message?.apps || []).forEach(a =>
-					$c.find('#sa-app').append(`<option value="${a.app}">${a.app} (${a.version})</option>`)
+					$appSel.append(`<option value="${a.app}">${a.app} (${a.version})</option>`)
 				);
 			}
 		});
-		$c.find('#sa-site').on('change', function() {
+		$saSite.on('change', function() {
 			const site = this.value;
 			const $d = $('#sa-installed').empty();
 			if (!site) return;
@@ -2696,19 +3737,21 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		const $t = smTerm($p);
 		smBtns($p, [
 			{ lbl: 'Install App', cls: 'dkst-btn-p', fn: () => {
-				const site = $c.find('#sa-site').val(); const app = $c.find('#sa-app').val();
+				const site = $saSite.val(); const app = $('#sa-app').val();
 				if (!site||!app) { frappe.throw('Site and App required'); return; }
 				smApi('frappe_devkit.api.app_builder.install_app_on_site', {
 					app_name: app, site, force: $('#sa-force').is(':checked') ? 1 : 0
 				}, $t);
 			}},
 			{ lbl: 'Uninstall App', cls: 'dkst-btn-r', fn: () => {
-				const site = $c.find('#sa-site').val(); const app = $c.find('#sa-app').val();
+				const site = $saSite.val(); const app = $('#sa-app').val();
 				if (!site||!app) { frappe.throw('Site and App required'); return; }
-				if (!confirm(`Uninstall '${app}' from '${site}'? This removes all app data.`)) return;
-				smApi('frappe_devkit.api.app_builder.uninstall_app_from_site', {
-					app_name: app, site, dry_run: $('#sa-dry').is(':checked') ? 1 : 0
-				}, $t);
+				frappe.confirm(`Uninstall <b>${app}</b> from <b>${site}</b>?<br>
+					This removes all app data and cannot be undone.`, () => {
+					smApi('frappe_devkit.api.app_builder.uninstall_app_from_site', {
+						app_name: app, site, dry_run: $('#sa-dry').is(':checked') ? 1 : 0
+					}, $t);
+				});
 			}},
 		]);
 	};
@@ -2716,12 +3759,13 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 	// ── Site Operations ──────────────────────────────────
 	PANELS.site_ops = function($p) {
 		$p.append(phdr('Operations', 'Migrate, cache, scheduler, maintenance, password, execute, drop.', icoTools(20)));
+		$p.append(info('All operations below target the selected site. Equivalent bench commands are shown in the terminal output.'));
 
 		// Global site selector
-		const $sel = smCard($p, 'Site');
-		$sel.append('<div class="dkst-g2"><div class="dkst-fld"><label class="dkst-lbl dkst-req">Select Site</label><select class="dkst-sel" id="ops-site"></select></div></div>');
-		loadSiteSelect($sel.find('#ops-site'), 'select site');
-		function gsite() { const s=$('#ops-site').val(); if(!s) frappe.throw('Select a site first'); return s; }
+		const $sel = smCard($p, 'Target Site');
+		const $siteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($sel);
+		const $opsSite = siteSelRow($siteRow, 'ops-site', 'select site');
+		function gsite() { const s = $opsSite.val(); if (!s) { frappe.throw('Select a site first'); return ''; } return s; }
 
 		// Sub tabs
 		const $tabs = $(`<div class="dkst-stabs">
@@ -2741,91 +3785,129 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		// Migrate
 		const $mig = mkSub('mig');
 		const $mc = smCard($mig, 'Migrate Site');
-		$mc.append('<div class="dkst-checks"><label class="dkst-chk"><input type="checkbox" id="mig-skip"><span>Skip failing patches</span></label></div>');
+		$mc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">
+			Equivalent: <span class="dkst-code">bench --site &lt;site&gt; migrate</span>
+			<span style="color:#9080b8"> &nbsp;·&nbsp; Runs DB patches, syncs doctypes, rebuilds assets</span>
+		</div>`);
+		$mc.append('<div class="dkst-checks"><label class="dkst-chk"><input type="checkbox" id="mig-skip"><span>Skip failing patches (<code>--skip-failing-patches</code>)</span></label></div>');
 		const $mt = smTerm($mig);
 		smBtns($mc, [{ lbl: 'Run Migrate', cls: 'dkst-btn-p', fn: () => {
-			smApi('frappe_devkit.api.site_manager.migrate_site', { site: gsite(), skip_failing: $('#mig-skip').is(':checked')?1:0 }, $mt);
+			const site = gsite(); if (!site) return;
+			smApi('frappe_devkit.api.site_manager.migrate_site', { site, skip_failing: $('#mig-skip').is(':checked')?1:0 }, $mt);
 		}}]);
 
 		// Cache
 		const $cch = mkSub('cch');
-		const $cc = smCard($cch, 'Clear Cache');
+		const $cc = smCard($cch, 'Cache & Default Site');
+		$cc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">
+			<span class="dkst-code">bench --site &lt;site&gt; clear-cache</span>
+			<span style="color:#9080b8"> &nbsp;·&nbsp; </span>
+			<span class="dkst-code">bench --site &lt;site&gt; clear-website-cache</span>
+			<span style="color:#9080b8"> &nbsp;·&nbsp; </span>
+			<span class="dkst-code">bench use &lt;site&gt;</span>
+		</div>`);
 		const $ct = smTerm($cch);
 		smBtns($cc, [
-			{ lbl: 'Clear Cache',         cls: 'dkst-btn-p', fn: () => smApi('frappe_devkit.api.site_manager.clear_site_cache',    { site: gsite() }, $ct) },
-			{ lbl: 'Clear Website Cache', cls: 'dkst-btn-s', fn: () => smApi('frappe_devkit.api.site_manager.clear_website_cache', { site: gsite() }, $ct) },
-			{ lbl: 'Set as Default Site', cls: 'dkst-btn-s', fn: () => smApi('frappe_devkit.api.site_manager.use_site',            { site: gsite() }, $ct) },
+			{ lbl: 'Clear Cache',         cls: 'dkst-btn-p', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.clear_site_cache',    { site: s }, $ct); } },
+			{ lbl: 'Clear Website Cache', cls: 'dkst-btn-s', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.clear_website_cache', { site: s }, $ct); } },
+			{ lbl: 'Set as Default Site', cls: 'dkst-btn-s', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.use_site',            { site: s }, $ct); } },
 		]);
 
 		// Scheduler
 		const $sch = mkSub('sch');
 		const $sc = smCard($sch, 'Scheduler Control');
-		$sc.append('<div style="font-size:12.5px;color:#4a4470;margin-bottom:12px;line-height:1.7"><span class="dkst-code">enable/disable</span> — permanent &nbsp;·&nbsp; <span class="dkst-code">resume/suspend</span> — until restart</div>');
+		$sc.append(`<div style="font-size:12.5px;color:#4a4470;margin-bottom:12px;line-height:1.7">
+			Equivalent: <span class="dkst-code">bench --site &lt;site&gt; scheduler &lt;action&gt;</span><br>
+			<span class="dkst-code">enable/disable</span> — permanent &nbsp;·&nbsp;
+			<span class="dkst-code">resume/suspend</span> — until restart &nbsp;·&nbsp;
+			<span class="dkst-code">run-jobs</span> — trigger immediately
+		</div>`);
 		const $st = smTerm($sch);
 		smBtns($sc, [
-			{ lbl: 'Status',   cls: 'dkst-btn-s', fn: () => smApi('frappe_devkit.api.site_manager.scheduler_action', { site: gsite(), action: 'status' },   $st) },
-			{ lbl: 'Enable',   cls: 'dkst-btn-g', fn: () => smApi('frappe_devkit.api.site_manager.scheduler_action', { site: gsite(), action: 'enable' },   $st) },
-			{ lbl: 'Disable',  cls: 'dkst-btn-s', fn: () => smApi('frappe_devkit.api.site_manager.scheduler_action', { site: gsite(), action: 'disable' },  $st) },
-			{ lbl: 'Resume',   cls: 'dkst-btn-g', fn: () => smApi('frappe_devkit.api.site_manager.scheduler_action', { site: gsite(), action: 'resume' },   $st) },
-			{ lbl: 'Suspend',  cls: 'dkst-btn-s', fn: () => smApi('frappe_devkit.api.site_manager.scheduler_action', { site: gsite(), action: 'suspend' },  $st) },
-			{ lbl: 'Run Jobs', cls: 'dkst-btn-s', fn: () => smApi('frappe_devkit.api.site_manager.scheduler_action', { site: gsite(), action: 'run-jobs' }, $st) },
+			{ lbl: 'Status',   cls: 'dkst-btn-s', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.scheduler_action', { site: s, action: 'status' },   $st); } },
+			{ lbl: 'Enable',   cls: 'dkst-btn-g', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.scheduler_action', { site: s, action: 'enable' },   $st); } },
+			{ lbl: 'Disable',  cls: 'dkst-btn-r', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.scheduler_action', { site: s, action: 'disable' },  $st); } },
+			{ lbl: 'Resume',   cls: 'dkst-btn-g', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.scheduler_action', { site: s, action: 'resume' },   $st); } },
+			{ lbl: 'Suspend',  cls: 'dkst-btn-s', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.scheduler_action', { site: s, action: 'suspend' },  $st); } },
+			{ lbl: 'Run Jobs', cls: 'dkst-btn-p', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.scheduler_action', { site: s, action: 'run-jobs' }, $st); } },
 		]);
 
 		// Maintenance
 		const $mnt = mkSub('mnt');
 		const $mn = smCard($mnt, 'Maintenance Mode');
-		$mn.append('<div style="font-size:12.5px;color:#4a4470;margin-bottom:14px;line-height:1.7">While ON, visitors see a maintenance page. Administrators can still log in.</div>');
+		$mn.append(`<div style="font-size:12.5px;color:#4a4470;margin-bottom:14px;line-height:1.7">
+			Equivalent: <span class="dkst-code">bench --site &lt;site&gt; set-maintenance-mode on|off</span><br>
+			While ON, visitors see a maintenance page. Administrators can still log in.
+		</div>`);
 		const $mnt2 = smTerm($mnt);
 		smBtns($mn, [
-			{ lbl: 'Enable Maintenance',  cls: 'dkst-btn-r', fn: () => smApi('frappe_devkit.api.site_manager.set_maintenance_mode', { site: gsite(), enable: 1 }, $mnt2) },
-			{ lbl: 'Disable Maintenance', cls: 'dkst-btn-g', fn: () => smApi('frappe_devkit.api.site_manager.set_maintenance_mode', { site: gsite(), enable: 0 }, $mnt2) },
+			{ lbl: 'Enable Maintenance',  cls: 'dkst-btn-r', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.set_maintenance_mode', { site: s, enable: 1 }, $mnt2); } },
+			{ lbl: 'Disable Maintenance', cls: 'dkst-btn-g', fn: () => { const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.set_maintenance_mode', { site: s, enable: 0 }, $mnt2); } },
 		]);
 
 		// Admin Password
 		const $pwd = mkSub('pwd');
 		const $pc = smCard($pwd, 'Reset Admin Password');
+		$pc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			Equivalent: <span class="dkst-code">bench --site &lt;site&gt; set-admin-password &lt;new-password&gt;</span>
+		</div>`);
 		$pc.append('<div class="dkst-g2"><div class="dkst-fld"><label class="dkst-lbl dkst-req">New Password</label><input class="dkst-inp" type="password" id="pwd-new" placeholder="Min 6 characters"></div><div class="dkst-fld"><label class="dkst-lbl dkst-req">Confirm</label><input class="dkst-inp" type="password" id="pwd-cf" placeholder="Repeat password"></div></div>');
 		const $pt = smTerm($pwd);
 		smBtns($pc, [{ lbl: 'Set Password', cls: 'dkst-btn-p', fn: () => {
+			const site = gsite(); if (!site) return;
 			const p1 = $('#pwd-new').val().trim(); const p2 = $('#pwd-cf').val().trim();
 			if (!p1 || p1.length < 6) { frappe.throw('Password must be at least 6 characters'); return; }
 			if (p1 !== p2) { frappe.throw('Passwords do not match'); return; }
-			smApi('frappe_devkit.api.site_manager.set_admin_password', { site: gsite(), new_password: p1 }, $pt);
+			smApi('frappe_devkit.api.site_manager.set_admin_password', { site, new_password: p1 }, $pt);
 		}}]);
 
 		// Execute
 		const $exc = mkSub('exc');
 		const $ec = smCard($exc, 'Execute Python Expression');
-		$ec.append('<div style="font-size:12.5px;color:#4a4070;margin-bottom:10px">Runs via <span class="dkst-code">bench execute</span> in the site context. Destructive operations are blocked.</div>');
-		$ec.append('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Expression</label><textarea class="dkst-ta" id="exc-sc" rows="6" style="font-family:Consolas,monospace;font-size:12.5px">frappe.db.count("Sales Invoice", {"status": "Open"})</textarea></div>');
+		$ec.append(`<div style="font-size:12.5px;color:#4a4070;margin-bottom:10px;line-height:1.7">
+			Equivalent: <span class="dkst-code">bench --site &lt;site&gt; execute &lt;expression&gt;</span><br>
+			Runs in the site context with full Frappe/ERPNext access. Destructive operations are blocked.
+		</div>`);
+		$ec.append(`<div class="dkst-fld"><label class="dkst-lbl dkst-req">Python Expression</label>
+			<textarea class="dkst-ta" id="exc-sc" rows="6" style="font-family:Consolas,monospace;font-size:12.5px">frappe.db.count("Sales Invoice", {"status": "Open"})</textarea>
+			<span class="dkst-hint">Any Python expression: frappe.db.get_value(), frappe.get_doc(), frappe.cache().get_value(), etc.</span>
+		</div>`);
 		const $et = smTerm($exc);
 		smBtns($ec, [{ lbl: 'Execute', cls: 'dkst-btn-p', fn: () => {
+			const site = gsite(); if (!site) return;
 			const sc = smGv('exc-sc'); if (!sc) { frappe.throw('Expression required'); return; }
-			smApi('frappe_devkit.api.site_manager.execute_script', { site: gsite(), script: sc }, $et);
+			smApi('frappe_devkit.api.site_manager.execute_script', { site, script: sc }, $et);
 		}}]);
 
 		// Drop Site
 		const $drp = mkSub('drp');
 		const $dc = smCard($drp);
 		$dc.append(`<div style="background:#fde8e6;border:1px solid #e8a8a0;border-radius:6px;padding:16px 18px;margin-bottom:16px">
-			<div style="font-size:14px;font-weight:700;color:#c0392b;margin-bottom:6px">⚠ Danger Zone</div>
-			<div style="font-size:12.5px;color:#7a2020;line-height:1.7">Permanently deletes the database and all site files. Cannot be undone. Make a backup first.</div>
+			<div style="font-size:14px;font-weight:700;color:#c0392b;margin-bottom:6px">⚠ Danger Zone — Irreversible</div>
+			<div style="font-size:12.5px;color:#7a2020;line-height:1.7">
+				Equivalent: <code>bench drop-site &lt;site&gt;</code><br>
+				Permanently deletes the MariaDB database and all files in <code>sites/&lt;site&gt;/</code>.
+				<b>Cannot be undone.</b> Always take a backup first.
+			</div>
 		</div>
 		<div class="dkst-g2"><div class="dkst-fld"><label class="dkst-lbl">MariaDB Root Password</label>
-			<input class="dkst-inp" type="password" id="drp-rpwd" placeholder="If required by MariaDB setup"></div></div>
+			<input class="dkst-inp" type="password" id="drp-rpwd" placeholder="If required by your MariaDB setup">
+			<span class="dkst-hint">Leave blank if bench manages DB credentials automatically</span></div></div>
 		<div class="dkst-checks" style="margin-top:12px">
-			<label class="dkst-chk"><input type="checkbox" id="drp-force"><span>Force drop (skip errors)</span></label>
-			<label class="dkst-chk" style="color:#c0392b"><input type="checkbox" id="drp-ok"><span>I understand this is irreversible</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="drp-force"><span>Force drop — skip errors (<code>--force</code>)</span></label>
+			<label class="dkst-chk" style="color:#c0392b;font-weight:600"><input type="checkbox" id="drp-ok"><span>I understand this action is permanent and irreversible</span></label>
 		</div>`);
 		const $dt = smTerm($drp);
 		smBtns($dc, [{ lbl: 'Drop Site', cls: 'dkst-btn-r', fn: () => {
-			if (!$('#drp-ok').is(':checked')) { frappe.throw('Check the confirmation box first'); return; }
-			const site = gsite();
-			if (!confirm(`PERMANENTLY DROP '${site}'? Type OK to confirm.`)) return;
-			smApi('frappe_devkit.api.site_manager.drop_site', {
-				site, force: $('#drp-force').is(':checked')?1:0,
-				root_password: $('#drp-rpwd').val().trim(),
-			}, $dt);
+			if (!$('#drp-ok').is(':checked')) { frappe.throw('Check the confirmation box to proceed'); return; }
+			const site = gsite(); if (!site) return;
+			frappe.confirm(`<b>PERMANENTLY DROP site <code>${site}</code>?</b><br><br>
+				The database and all site files will be deleted. This cannot be undone.`, () => {
+				smApi('frappe_devkit.api.site_manager.drop_site', {
+					site, force: $('#drp-force').is(':checked')?1:0,
+					root_password: $('#drp-rpwd').val().trim(),
+				}, $dt);
+			});
 		}}]);
 
 		// Sub-tab switching
@@ -2835,6 +3917,1300 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			$pp.find('.dkst-spanel').removeClass('active'); $pp.find(`[data-t="${t}"]`).addClass('active');
 		});
 	};
+
+	/* ══════════════════════════════════════════════════════════════════
+	   QUERY EDITOR
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.query_editor = function($p) {
+		// Full-height layout — override panel padding
+		$p.css({ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' });
+
+		/* ── state ── */
+		let _qeSite = '', _tables = [], _queryHistory = [], _abortCtrl = null;
+
+		/* ── SQL Snippets (grouped) ── */
+		const SNIPPET_GROUPS = [
+			{ label: '⚡ Basic', items: {
+				'SELECT *':              (t) => `SELECT * FROM \`${t||'tabDocType'}\` LIMIT 50`,
+				'SELECT fields':         (t) => `SELECT name, creation, modified, owner, modified_by\nFROM \`${t||'tabDocType'}\`\nWHERE 1=1\nORDER BY creation DESC\nLIMIT 50`,
+				'COUNT rows':            (t) => `SELECT COUNT(*) AS total FROM \`${t||'tabDocType'}\``,
+				'DESCRIBE table':        (t) => `DESCRIBE \`${t||'tabDocType'}\``,
+				'SHOW TABLES':           ()  => `SHOW TABLES`,
+				'SHOW FULL TABLES':      ()  => `SHOW FULL TABLES`,
+				'SHOW INDEXES':          (t) => `SHOW INDEXES FROM \`${t||'tabDocType'}\``,
+				'SHOW CREATE TABLE':     (t) => `SHOW CREATE TABLE \`${t||'tabDocType'}\``,
+			}},
+			{ label: '🔗 Joins & Filters', items: {
+				'INNER JOIN':            ()  => `SELECT a.name, b.fieldname, b.fieldtype\nFROM \`tabDocType\` a\nINNER JOIN \`tabDocField\` b ON b.parent = a.name\nWHERE 1=1\nLIMIT 50`,
+				'LEFT JOIN':             ()  => `SELECT a.name, b.name AS child\nFROM \`tabDocType\` a\nLEFT JOIN \`tabDocField\` b ON b.parent = a.name\nLIMIT 50`,
+				'WHERE + LIKE':          (t) => `SELECT * FROM \`${t||'tabDocType'}\`\nWHERE name LIKE '%keyword%'\nLIMIT 50`,
+				'WHERE date range':      (t) => `SELECT * FROM \`${t||'tabDocType'}\`\nWHERE creation BETWEEN '2024-01-01' AND '2024-12-31'\nORDER BY creation DESC`,
+				'WHERE IN list':         (t) => `SELECT * FROM \`${t||'tabDocType'}\`\nWHERE name IN ('val1','val2','val3')`,
+				'CASE expression':       ()  => `SELECT name,\n  CASE docstatus\n    WHEN 0 THEN 'Draft'\n    WHEN 1 THEN 'Submitted'\n    WHEN 2 THEN 'Cancelled'\n    ELSE 'Unknown'\n  END AS status_label\nFROM \`tabSales Invoice\`\nLIMIT 50`,
+			}},
+			{ label: '📊 Aggregation', items: {
+				'GROUP BY count':        (t) => `SELECT owner, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY owner\nORDER BY cnt DESC\nLIMIT 20`,
+				'SUM by field':          (t) => `SELECT owner, SUM(grand_total) AS total\nFROM \`${t||'tabSales Invoice'}\`\nGROUP BY owner\nORDER BY total DESC`,
+				'Date histogram':        (t) => `SELECT DATE(creation) AS day, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY day\nORDER BY day DESC\nLIMIT 30`,
+				'Monthly summary':       (t) => `SELECT DATE_FORMAT(creation,'%Y-%m') AS month, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY month\nORDER BY month DESC`,
+				'HAVING filter':         (t) => `SELECT owner, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY owner\nHAVING cnt > 10\nORDER BY cnt DESC`,
+				'DISTINCT values':       (t) => `SELECT DISTINCT owner FROM \`${t||'tabDocType'}\`\nORDER BY owner`,
+			}},
+			{ label: '🌿 Frappe Core', items: {
+				'DocType fields':        (t) => `SELECT fieldname, label, fieldtype, options, reqd, in_list_view\nFROM \`tabDocField\`\nWHERE parent='${t||'Sales Invoice'}'\nORDER BY idx`,
+				'Recent docs':           (t) => `SELECT name, creation, owner, docstatus, modified_by\nFROM \`tab${t||'Sales Invoice'}\`\nORDER BY creation DESC\nLIMIT 20`,
+				'Custom fields':         (t) => `SELECT name, dt, fieldname, label, fieldtype, insert_after\nFROM \`tabCustom Field\`\nWHERE dt='${t||'Sales Invoice'}'\nORDER BY idx`,
+				'Print formats':         (t) => `SELECT name, doc_type, module, disabled, standard\nFROM \`tabPrint Format\`\nWHERE doc_type='${t||'Sales Invoice'}'`,
+				'DocType list':          ()  => `SELECT name, module, issingle, istable, is_submittable, custom\nFROM \`tabDocType\`\nORDER BY name\nLIMIT 100`,
+				'Error log':             ()  => `SELECT name, creation, method, error\nFROM \`tabError Log\`\nORDER BY creation DESC\nLIMIT 30`,
+				'Activity log':          ()  => `SELECT creation, owner, subject, reference_doctype, reference_name\nFROM \`tabActivity Log\`\nORDER BY creation DESC\nLIMIT 30`,
+				'Email queue':           ()  => `SELECT name, sender, recipients, status, creation, error\nFROM \`tabEmail Queue\`\nORDER BY creation DESC\nLIMIT 30`,
+				'Scheduled jobs':        ()  => `SELECT name, method, status, scheduled_time, creation\nFROM \`tabScheduled Job Log\`\nORDER BY creation DESC\nLIMIT 30`,
+				'Users & last login':    ()  => `SELECT name, full_name, email, enabled, last_login\nFROM \`tabUser\`\nWHERE name NOT IN ('Administrator','Guest')\nORDER BY last_login DESC`,
+				'User roles':            ()  => `SELECT parent AS user, role\nFROM \`tabHas Role\`\nWHERE parenttype='User'\nORDER BY parent, role`,
+				'Workflows':             ()  => `SELECT name, document_type, is_active\nFROM \`tabWorkflow\`\nORDER BY document_type`,
+				'Version/audit log':     ()  => `SELECT name, ref_doctype, docname, creation, owner\nFROM \`tabVersion\`\nORDER BY creation DESC\nLIMIT 30`,
+				'DocType permissions':   (t) => `SELECT role, permlevel, \`read\`, \`write\`, \`create\`, \`delete\`, submit, cancel\nFROM \`tabDocPerm\`\nWHERE parent='${t||'Sales Invoice'}'`,
+			}},
+			{ label: '💼 ERPNext', items: {
+				'Open Sales Orders':     ()  => `SELECT name, customer, transaction_date, grand_total, status\nFROM \`tabSales Order\`\nWHERE status NOT IN ('Cancelled','Closed')\nORDER BY creation DESC\nLIMIT 50`,
+				'Overdue invoices':      ()  => `SELECT name, customer, due_date, outstanding_amount\nFROM \`tabSales Invoice\`\nWHERE docstatus=1 AND outstanding_amount > 0 AND due_date < CURDATE()\nORDER BY due_date\nLIMIT 50`,
+				'Pending POs':           ()  => `SELECT name, supplier, transaction_date, grand_total, status\nFROM \`tabPurchase Order\`\nWHERE status NOT IN ('Cancelled','Closed')\nORDER BY creation DESC\nLIMIT 30`,
+				'Stock summary':         ()  => `SELECT item_code, warehouse, actual_qty, valuation_rate,\n  actual_qty*valuation_rate AS stock_value\nFROM \`tabBin\`\nWHERE actual_qty != 0\nORDER BY stock_value DESC\nLIMIT 50`,
+				'Item prices':           ()  => `SELECT item_code, price_list, price_list_rate, currency\nFROM \`tabItem Price\`\nWHERE price_list='Standard Selling'\nORDER BY item_code\nLIMIT 50`,
+				'GL entries':            ()  => `SELECT posting_date, account, debit, credit, voucher_type, voucher_no\nFROM \`tabGL Entry\`\nWHERE is_cancelled=0\nORDER BY posting_date DESC\nLIMIT 50`,
+				'Customer balances':     ()  => `SELECT party, SUM(debit-credit) AS balance\nFROM \`tabGL Entry\`\nWHERE party_type='Customer' AND is_cancelled=0\nGROUP BY party\nHAVING balance != 0\nORDER BY balance DESC\nLIMIT 50`,
+				'Top customers':         ()  => `SELECT customer, SUM(grand_total) AS revenue\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\nGROUP BY customer\nORDER BY revenue DESC\nLIMIT 20`,
+			}},
+			{ label: '⚙️ Performance & Info', items: {
+				'Table sizes':           ()  => `SELECT table_name,\n  ROUND(data_length/1024/1024,2) AS data_mb,\n  ROUND(index_length/1024/1024,2) AS index_mb,\n  table_rows\nFROM information_schema.TABLES\nWHERE table_schema = DATABASE()\nORDER BY data_length DESC\nLIMIT 30`,
+				'EXPLAIN query':         (t) => `EXPLAIN SELECT * FROM \`${t||'tabDocType'}\` WHERE name = 'test'`,
+				'Show processlist':      ()  => `SHOW PROCESSLIST`,
+				'Show status':           ()  => `SHOW STATUS WHERE Variable_name IN\n('Uptime','Questions','Threads_connected','Slow_queries','Open_tables')`,
+				'Character set':         ()  => `SHOW VARIABLES LIKE '%character%'`,
+				'InnoDB status':         ()  => `SHOW VARIABLES LIKE 'innodb%'`,
+				'Max connections':       ()  => `SHOW VARIABLES LIKE '%max_connections%'`,
+			}},
+		];
+
+		/* ── toolbar ── */
+		const $toolbar = $(`<div class="dkqe-toolbar"></div>`).appendTo($p);
+
+		// Site selector
+		$toolbar.append(`<select class="dkqe-site-sel" id="qe-site" title="Target site"></select>`);
+		const $qeSiteSel = $toolbar.find('#qe-site');
+		$qeSiteSel.append('<option value="">— select site —</option>');
+
+		// Load sites
+		frappe.call({ method: 'frappe_devkit.api.site_manager.list_sites', callback: r => {
+			const sites = r.message?.sites || [];
+			sites.forEach(s => $qeSiteSel.append(`<option value="${s.site}">${s.site}</option>`));
+			// Pre-select current site
+			const cur = frappe.boot?.sitename || '';
+			if (cur) $qeSiteSel.val(cur).trigger('change');
+		}});
+
+		$toolbar.append(`<div class="dkqe-tb-sep"></div>`);
+
+		// Run button
+		const $runBtn = $(`<button class="dkqe-run-btn" id="qe-run" title="Run query (Ctrl+Enter)">${icoPlay(14)}&nbsp;Run</button>`).appendTo($toolbar);
+
+		// Limit
+		$toolbar.append(`<select class="dkqe-limit-sel" id="qe-limit" title="Max rows">
+			<option value="50">50 rows</option>
+			<option value="200">200 rows</option>
+			<option value="500" selected>500 rows</option>
+			<option value="1000">1000 rows</option>
+			<option value="5000">5000 rows</option>
+		</select>`);
+
+		// Allow write toggle
+		$toolbar.append(`<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#7a70a8;cursor:pointer;user-select:none">
+			<input type="checkbox" id="qe-allow-write" style="accent-color:#c0392b"> Allow write
+		</label>`);
+
+		$toolbar.append(`<div class="dkqe-tb-sep"></div>`);
+
+		// Snippets dropdown (grouped)
+		const $snippetBtn = $(`<div style="position:relative;display:inline-block">
+			<button class="dkqe-snippet-btn" id="qe-snippets">⚡ Snippets ▾</button>
+			<div id="qe-snippet-menu" style="display:none;position:absolute;top:100%;left:0;z-index:999;background:#fff;border:1px solid #d0c8e8;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:260px;padding:4px 0;max-height:480px;overflow-y:auto;scrollbar-width:thin"></div>
+		</div>`).appendTo($toolbar);
+		const $snMenu = $snippetBtn.find('#qe-snippet-menu');
+
+		// Build grouped snippet menu
+		SNIPPET_GROUPS.forEach(group => {
+			$(`<div class="dkqe-sn-group-hdr">${group.label}</div>`).appendTo($snMenu);
+			Object.keys(group.items).forEach(k => {
+				const fn = group.items[k];
+				$(`<div class="dkqe-history-item" style="padding:6px 14px;font-size:12px">${k}</div>`)
+					.appendTo($snMenu)
+					.on('click', () => {
+						const active = $p.find('.dkqe-tbl-item.active').data('tbl') || '';
+						const sql = fn(active);
+						$editor.val(sql);
+						_updateFooter();
+						$snMenu.hide();
+						$editor.focus();
+					});
+			});
+		});
+
+		$('#qe-snippets').on('click', (e) => { e.stopPropagation(); $snMenu.toggle(); });
+		$(document).on('click.qe', () => $snMenu.hide());
+
+		/* ── main area ── */
+		const $area = $(`<div class="dkqe-editor-area"></div>`).appendTo($p);
+
+		/* ── LEFT: table browser ── */
+		const $left = $(`<div class="dkqe-left"></div>`).appendTo($area);
+		$left.append(`<div class="dkqe-left-hdr">${icoTable(11)} Tables</div>`);
+		const $tblSearch = $(`<input style="margin:4px 8px;width:calc(100% - 16px);box-sizing:border-box;font-size:11.5px;padding:4px 8px;border:1px solid #d0c8e8;border-radius:4px;background:#fff;color:#1e1a2e;outline:none" placeholder="Filter tables…">`).appendTo($left);
+		const $tblList = $(`<div></div>`).appendTo($left);
+
+		function renderTables(filter) {
+			$tblList.empty();
+			const q = (filter||'').toLowerCase();
+			const filtered = q ? _tables.filter(t => t.toLowerCase().includes(q)) : _tables;
+			if (!filtered.length) {
+				$tblList.append(`<div style="font-size:11px;color:#b0a8c8;padding:8px 12px">${_tables.length ? 'No match' : 'Select a site to load tables'}</div>`);
+				return;
+			}
+			filtered.forEach(t => {
+				$(`<div class="dkqe-tbl-item" data-tbl="${t}">${icoDatabase(11)}<span title="${t}">${t}</span></div>`)
+					.appendTo($tblList)
+					.on('click', function() {
+						$tblList.find('.dkqe-tbl-item').removeClass('active');
+						$(this).addClass('active');
+					})
+					.on('dblclick', function() {
+						const cur = $editor.val().trim();
+						const snip = `SELECT * FROM \`${t}\` LIMIT 50`;
+						$editor.val(cur ? cur + '\n' + snip : snip);
+						_updateFooter();
+					});
+			});
+		}
+		$tblSearch.on('input', () => renderTables($tblSearch.val()));
+
+		/* ── CENTER: editor + results ── */
+		const $center = $(`<div class="dkqe-center"></div>`).appendTo($area);
+
+		// Editor wrap
+		const $edWrap = $(`<div class="dkqe-editor-wrap"></div>`).appendTo($center);
+		const $editor = $(`<textarea class="dkqe-editor" id="qe-editor" rows="8" spellcheck="false" placeholder="-- Write your SQL here (Ctrl+Enter to run)
+-- Supported: SELECT, SHOW, DESCRIBE, EXPLAIN
+-- Write queries (INSERT/UPDATE/DELETE) require 'Allow write' checkbox
+SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
+
+		const $edFooter = $(`<div class="dkqe-editor-footer">
+			<span id="qe-cursor-pos">Ln 1, Col 1</span>
+			<span class="dkqe-tb-sep"></span>
+			<span id="qe-char-count">0 chars</span>
+			<span class="dkqe-tb-sep"></span>
+			<span style="color:#5c4da8">MariaDB</span>
+		</div>`).appendTo($edWrap);
+
+		function _updateFooter() {
+			const val = $editor.val();
+			const pos = $editor[0].selectionStart;
+			const lines = val.substring(0, pos).split('\n');
+			$('#qe-cursor-pos').text(`Ln ${lines.length}, Col ${lines[lines.length-1].length+1}`);
+			$('#qe-char-count').text(`${val.length} chars`);
+		}
+		$editor.on('keyup click', _updateFooter);
+
+		/* ── SQL Autocomplete ── */
+		const SQL_KW = ['SELECT','FROM','WHERE','AND','OR','NOT','IN','IS','NULL',
+			'LIKE','BETWEEN','EXISTS','CASE','WHEN','THEN','ELSE','END','ORDER','BY',
+			'GROUP','HAVING','LIMIT','OFFSET','JOIN','LEFT','RIGHT','INNER','OUTER',
+			'FULL','CROSS','ON','AS','DISTINCT','INSERT','INTO','VALUES','UPDATE',
+			'SET','DELETE','CREATE','TABLE','DROP','ALTER','SHOW','DESCRIBE','EXPLAIN',
+			'USE','UNION','ALL','WITH','RECURSIVE','COMMIT','ROLLBACK','TRANSACTION',
+			'START','BEGIN','DECLARE','SIGNAL','SQLSTATE','HANDLER','TRIGGER','VIEW',
+			'INDEX','PRIMARY','UNIQUE','FOREIGN','KEY','REFERENCES','CONSTRAINT',
+			'DEFAULT','NOT','AUTO_INCREMENT','ENGINE','CHARSET','COLLATE','COMMENT'];
+
+		const SQL_FN = ['COUNT(*)','COUNT(','SUM(','AVG(','MAX(','MIN(',
+			'COALESCE(','IFNULL(','IF(','NULLIF(','GREATEST(','LEAST(',
+			'CONCAT(','CONCAT_WS(','GROUP_CONCAT(','FIND_IN_SET(',
+			'DATE(','NOW()','CURDATE()','CURTIME()','SYSDATE()',
+			'DATE_FORMAT(','DATE_ADD(','DATE_SUB(','DATEDIFF(','TIMESTAMPDIFF(',
+			'YEAR(','MONTH(','DAY(','HOUR(','MINUTE(','SECOND(',
+			'CAST(','CONVERT(','FORMAT(',
+			'TRIM(','LTRIM(','RTRIM(','LOWER(','UPPER(','LENGTH(','CHAR_LENGTH(',
+			'SUBSTRING(','LEFT(','RIGHT(','INSTR(','LOCATE(','REPLACE(',
+			'LPAD(','RPAD(','REPEAT(','REVERSE(',
+			'ROUND(','FLOOR(','CEIL(','ABS(','MOD(','POWER(','SQRT(',
+			'MD5(','SHA1(','UUID()',
+			'JSON_VALUE(','JSON_EXTRACT(','JSON_OBJECT(','JSON_ARRAY(',
+			'ROW_NUMBER()','RANK()','DENSE_RANK()','LAG(','LEAD(','OVER('];
+
+		const _ac = { visible: false, items: [], selIdx: -1, schema: {}, pending: {} };
+		const $acDrop = $('<div class="dkqe-ac-drop"></div>').hide().appendTo(document.body);
+
+		function _acHide() { $acDrop.hide(); _ac.visible = false; _ac.selIdx = -1; }
+
+		function _acRender(items, cx, cy) {
+			if (!items.length) { _acHide(); return; }
+			_ac.items = items; _ac.selIdx = 0; _ac.visible = true;
+			$acDrop.empty();
+			// Group items by type for visual separation
+			let lastType = null;
+			items.forEach((item, i) => {
+				if (item.type !== lastType) {
+					const sectionName = {keyword:'Keywords', function:'Functions', table:'Tables', column:'Columns'}[item.type] || item.type;
+					$(`<div class="dkqe-ac-section">${sectionName}</div>`).appendTo($acDrop);
+					lastType = item.type;
+				}
+				const ico = {keyword:'KW', function:'FN', table:'TB', column:'COL'}[item.type] || '?';
+				$(`<div class="dkqe-ac-item dkqe-ac-${item.type}${i===0?' sel':''}" data-idx="${i}">
+					<span class="dkqe-ac-ico">${ico}</span>
+					<span class="dkqe-ac-lbl">${frappe.utils.escape_html(item.label)}</span>
+					${item.detail ? `<span class="dkqe-ac-detail">${frappe.utils.escape_html(item.detail)}</span>` : ''}
+				</div>`).appendTo($acDrop);
+			});
+			$acDrop.append(`<div class="dkqe-ac-hint">↑↓ navigate · Tab/Enter confirm · Esc dismiss</div>`);
+			const wh = window.innerHeight;
+			$acDrop.css({ left: Math.min(cx, window.innerWidth - 320), top: -9999, display: 'block' });
+			const dh = $acDrop.outerHeight();
+			$acDrop.css('top', (cy + dh > wh - 8) ? Math.max(cy - dh - 20, 4) : cy);
+		}
+
+		function _acMove(d) {
+			if (!_ac.visible) return;
+			const $items = $acDrop.find('.dkqe-ac-item');
+			const n = $items.length; if (!n) return;
+			_ac.selIdx = (_ac.selIdx + d + n) % n;
+			$items.removeClass('sel').eq(_ac.selIdx).addClass('sel');
+			const $s = $items.eq(_ac.selIdx);
+			const dt = $acDrop.scrollTop(), it = ($s.position()||{}).top || 0, ih = $s.outerHeight();
+			if (it < 0) $acDrop.scrollTop(dt + it);
+			else if (it + ih > $acDrop.height()) $acDrop.scrollTop(dt + it + ih - $acDrop.height());
+		}
+
+		function _acCommit() {
+			if (!_ac.visible || _ac.selIdx < 0) return false;
+			const item = _ac.items[_ac.selIdx]; if (!item) return false;
+			const el = $editor[0], pos = el.selectionStart, text = el.value;
+			let ws = pos;
+			while (ws > 0 && /[\w`\-]/.test(text[ws-1])) ws--;
+			el.value = text.substring(0, ws) + item.insert + text.substring(pos);
+			el.selectionStart = el.selectionEnd = ws + item.insert.length;
+			_acHide(); _updateFooter(); return true;
+		}
+
+		function _fetchCols(table) {
+			if (_ac.schema[table] !== undefined || _ac.pending[table] || !_qeSite) return;
+			_ac.pending[table] = true;
+			frappe.call({
+				method: 'frappe_devkit.api.query_editor.get_columns',
+				args: { site: _qeSite, table },
+				callback: r => { delete _ac.pending[table]; _ac.schema[table] = r.message?.columns || []; },
+				error:    () => { delete _ac.pending[table]; _ac.schema[table] = []; },
+			});
+		}
+
+		function _acTrigger() {
+			const el = $editor[0], pos = el.selectionStart, text = el.value;
+			let ws = pos;
+			while (ws > 0 && /[\w`\-]/.test(text[ws-1])) ws--;
+			const word = text.substring(ws, pos).replace(/`/g, '');
+			if (word.length < 1) { _acHide(); return; }
+
+			const before = text.substring(0, ws).trim().toUpperCase().split(/[\s,();]+/).filter(Boolean);
+			const prev1  = before[before.length - 1] || '';
+			const prev2  = before[before.length - 2] || '';
+			const wUp    = word.toUpperCase();
+
+			// Tables mentioned anywhere in query (for column fetch prefetch)
+			const qUp = text.toUpperCase();
+			const mentioned = _tables.filter(t => {
+				const safe = t.toUpperCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+				return new RegExp(`\\b${safe}\\b`).test(qUp);
+			});
+			mentioned.forEach(_fetchCols);
+
+			let sugg = [];
+			const TBL_KW = ['FROM','JOIN','UPDATE','INTO','TABLE','DESCRIBE','EXPLAIN','DROP','ALTER','TRUNCATE'];
+			const COL_KW = ['SELECT','WHERE','ON','SET','HAVING','BY','RETURNING'];
+
+			if (TBL_KW.includes(prev1) || (prev1 === 'JOIN') ||
+				(['LEFT','RIGHT','INNER','OUTER','CROSS','FULL'].includes(prev2) && prev1 === 'JOIN')) {
+				sugg = _tables.filter(t => t.toUpperCase().includes(wUp)).slice(0, 16)
+					.map(t => ({ label: t, type: 'table', insert: '`' + t + '`' }));
+			} else if (COL_KW.includes(prev1) || (['ORDER','GROUP'].includes(prev2) && prev1 === 'BY')) {
+				mentioned.forEach(t => (_ac.schema[t]||[]).forEach(c => {
+					if (c.toUpperCase().includes(wUp))
+						sugg.push({ label: c, type: 'column', insert: c, detail: t });
+				}));
+				SQL_KW.filter(k => k.startsWith(wUp))
+					.forEach(k => sugg.push({ label: k, type: 'keyword', insert: k }));
+			} else {
+				SQL_KW.filter(k => k.startsWith(wUp))
+					.forEach(k => sugg.push({ label: k, type: 'keyword', insert: k }));
+				SQL_FN.filter(f => f.toUpperCase().startsWith(wUp))
+					.forEach(f => sugg.push({ label: f, type: 'function', insert: f }));
+				if (word.length >= 2) {
+					_tables.filter(t => t.toUpperCase().includes(wUp)).slice(0, 8)
+						.forEach(t => sugg.push({ label: t, type: 'table', insert: '`' + t + '`' }));
+					mentioned.forEach(t => (_ac.schema[t]||[]).filter(c => c.toUpperCase().includes(wUp))
+						.forEach(c => sugg.push({ label: c, type: 'column', insert: c, detail: t })));
+				}
+			}
+
+			sugg = sugg.slice(0, 16);
+			if (!sugg.length) { _acHide(); return; }
+
+			// Approximate caret screen position from line number
+			const linesBefore = text.substring(0, pos).split('\n');
+			const lineNum     = linesBefore.length - 1;
+			const st          = window.getComputedStyle(el);
+			const lh          = parseFloat(st.lineHeight) || 21;
+			const pt          = parseFloat(st.paddingTop)  || 14;
+			const rect        = el.getBoundingClientRect();
+			const cx          = rect.left + 60;
+			const cy          = rect.top + pt + lineNum * lh - el.scrollTop + lh + 2;
+
+			_acRender(sugg, cx, Math.min(cy, rect.bottom - 10));
+		}
+
+		// Tab key inserts 4 spaces / autocomplete navigation
+		$editor.on('keydown', function(e) {
+			if (_ac.visible) {
+				if (e.key === 'ArrowDown')  { e.preventDefault(); _acMove(1);   return; }
+				if (e.key === 'ArrowUp')    { e.preventDefault(); _acMove(-1);  return; }
+				if (e.key === 'Tab' || e.key === 'Enter') {
+					if (_acCommit()) { e.preventDefault(); return; }
+				}
+				if (e.key === 'Escape')     { e.preventDefault(); _acHide();    return; }
+			}
+			if (e.key === 'Tab' && !_ac.visible) {
+				e.preventDefault();
+				const s = this.selectionStart, end = this.selectionEnd, v = this.value;
+				this.value = v.substring(0, s) + '    ' + v.substring(end);
+				this.selectionStart = this.selectionEnd = s + 4;
+				_updateFooter();
+				return;
+			}
+			if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+				e.preventDefault();
+				$runBtn.trigger('click');
+			}
+		});
+
+		$editor.on('input', _acTrigger);
+		$editor.on('blur',  () => setTimeout(_acHide, 180));
+		$acDrop.on('mousedown', '.dkqe-ac-item', function(e) {
+			e.preventDefault();
+			_ac.selIdx = parseInt($(this).data('idx'));
+			_acCommit();
+		});
+
+		// Drag-resize handle between editor and results
+		const $resizeHandle = $(`<div class="dkqe-resize-handle" title="Drag to resize"></div>`).appendTo($center);
+		let _dragging = false, _dragY = 0, _edH = 0;
+		$resizeHandle.on('mousedown', function(e) {
+			_dragging = true; _dragY = e.clientY; _edH = $edWrap.height();
+			$('body').css('cursor','row-resize').on('mousemove.qe-resize', function(ev) {
+				if (!_dragging) return;
+				const newH = Math.max(60, Math.min(_edH + (ev.clientY - _dragY), $center.height() - 100));
+				$edWrap.height(newH);
+				$editor.height(newH - 32);
+			}).on('mouseup.qe-resize', function() {
+				_dragging = false;
+				$('body').css('cursor','').off('.qe-resize');
+			});
+		});
+
+		// Results area
+		const $resultsArea = $(`<div class="dkqe-results-area"></div>`).appendTo($center);
+		const $resHdr = $(`<div class="dkqe-results-hdr" style="display:none">
+			<span class="dkqe-results-title" id="qe-res-title">Results</span>
+			<span class="dkqe-results-meta" id="qe-res-meta"></span>
+			<button class="dkqe-export-btn" id="qe-export-csv" title="Export to CSV">${icoDownload(12)} CSV</button>
+		</div>`).appendTo($resultsArea);
+		const $resScroll = $(`<div class="dkqe-results-scroll"></div>`).appendTo($resultsArea);
+		$resScroll.append(`<div class="dkqe-empty">${icoDatabase(32)}<br><br>Run a query to see results here.<br><span style="font-size:12px">Ctrl+Enter to execute</span></div>`);
+
+		let _lastResult = null;
+
+		/* ── History panel (tab) ── */
+		const $histArea = $(`<div style="display:none;flex-direction:column;flex:1;overflow:hidden;background:#faf8ff;border-left:1px solid #e8e0f8"></div>`).appendTo($area);
+		$histArea.append(`<div class="dkqe-left-hdr" style="padding:10px 12px 6px">${icoHistory(11)} History</div>`);
+		const $histList = $(`<div style="overflow-y:auto;flex:1"></div>`).appendTo($histArea);
+
+		/* ── Tab bar (Results / History) ── */
+		const $tabBar = $(`<div class="dkqe-tab-bar"></div>`).prependTo($resultsArea);
+		const $tabRes  = $(`<div class="dkqe-tab active" data-tab="results">▤ Results</div>`).appendTo($tabBar);
+		const $tabHist = $(`<div class="dkqe-tab" data-tab="history">${icoHistory(13)} History</div>`).appendTo($tabBar);
+		$tabBar.on('click', '.dkqe-tab', function() {
+			const t = $(this).data('tab');
+			$tabBar.find('.dkqe-tab').removeClass('active'); $(this).addClass('active');
+			if (t === 'results') { $resHdr.show(); $resScroll.show(); $histArea.hide(); }
+			else { $resHdr.hide(); $resScroll.hide(); $histArea.show().css('display','flex'); }
+		});
+
+		/* ── Site change → load tables ── */
+		$qeSiteSel.on('change', function() {
+			_qeSite = this.value;
+			_tables = [];
+			// Reset autocomplete schema cache on site change
+			_ac.schema = {}; _ac.pending = {};
+			_acHide();
+			$tblList.html(`<div style="font-size:11px;color:#b0a8c8;padding:8px 12px">Loading…</div>`);
+			if (!_qeSite) { renderTables(''); return; }
+			frappe.call({
+				method: 'frappe_devkit.api.query_editor.get_tables',
+				args: { site: _qeSite },
+				callback: r => {
+					_tables = r.message?.tables || [];
+					renderTables($tblSearch.val());
+				},
+				error: () => {
+					$tblList.html(`<div style="font-size:11px;color:#c0392b;padding:8px 12px">Failed to load tables</div>`);
+				}
+			});
+		});
+
+		/* ── Run ── */
+		function _showSpinner() {
+			$resScroll.html(`<div class="dkqe-spinner"><div class="dkst-spin"></div> Executing query…</div>`);
+			$resHdr.hide();
+		}
+
+		function _renderResult(res) {
+			_lastResult = res;
+			$resScroll.empty();
+			$resHdr.show();
+
+			if (res.type === 'error') {
+				$('#qe-res-title').text('Error');
+				$('#qe-res-meta').html(`<span style="color:#c0392b">${icoStop(12)} Query failed</span>`);
+				$resScroll.append(`<div class="dkqe-error">${frappe.utils.escape_html(res.error)}</div>`);
+				$('#qe-export-csv').hide();
+				return;
+			}
+
+			if (res.type === 'write') {
+				$('#qe-res-title').text('Write OK');
+				$('#qe-res-meta').text(`${res.affected_rows} row(s) affected · ${res.elapsed_ms}ms`);
+				$resScroll.append(`<div class="dkqe-affected">${icoPlay(14)} Query executed successfully — ${res.affected_rows} row(s) affected</div>`);
+				$('#qe-export-csv').hide();
+				return;
+			}
+
+			// SELECT result
+			const { columns, rows, row_count, elapsed_ms, truncated } = res;
+			$('#qe-res-title').text(`Results`);
+			let metaHtml = `<strong>${row_count}</strong> row${row_count!==1?'s':''} · ${elapsed_ms}ms`;
+			if (truncated) metaHtml += ` <span style="color:#c47a00"> · truncated (limit reached)</span>`;
+			$('#qe-res-meta').html(metaHtml);
+			$('#qe-export-csv').show();
+
+			if (!row_count) {
+				$resScroll.append(`<div class="dkqe-empty" style="padding:30px">No rows returned.</div>`);
+				return;
+			}
+
+			const $tbl = $(`<table class="dkqe-res-tbl"><thead></thead><tbody></tbody></table>`);
+			const $thead = $tbl.find('thead');
+			const $tbody = $tbl.find('tbody');
+
+			// Header
+			let thHtml = `<tr><th class="dkqe-col-num">#</th>`;
+			columns.forEach(c => { thHtml += `<th title="${c}">${c}</th>`; });
+			thHtml += '</tr>';
+			$thead.html(thHtml);
+
+			// Body
+			rows.forEach((row, i) => {
+				let tr = `<tr><td class="dkqe-col-num">${i+1}</td>`;
+				columns.forEach(c => {
+					const cell = row[c] || { v: '', c: '' };
+					const escaped = frappe.utils.escape_html(cell.v);
+					const title = cell.v.length > 40 ? ` title="${escaped}"` : '';
+					tr += `<td class="${cell.c} dkqe-td-expand"${title}>${escaped || (cell.c==='null-val'?'<em>NULL</em>':'')}</td>`;
+				});
+				tr += '</tr>';
+				$tbody.append(tr);
+			});
+
+			$resScroll.append($tbl);
+		}
+
+		// Cell expand on click
+		$(document).on('click', '.dkqe-td-expand', function() {
+			const text = $(this).attr('title') || $(this).text();
+			if (text && text.length > 60) frappe.msgprint(`<pre style="white-space:pre-wrap;word-break:break-all;font-family:monospace;font-size:12.5px">${frappe.utils.escape_html(text)}</pre>`);
+		});
+
+		// CSV export
+		$('#qe-export-csv').on('click', () => {
+			if (!_lastResult?.columns) return;
+			const { columns, rows } = _lastResult;
+			const esc = v => '"' + v.replace(/"/g, '""') + '"';
+			let csv = columns.map(esc).join(',') + '\n';
+			rows.forEach(row => {
+				csv += columns.map(c => esc(row[c]?.v||'')).join(',') + '\n';
+			});
+			const blob = new Blob([csv], { type: 'text/csv' });
+			const url = URL.createObjectURL(blob);
+			$(`<a href="${url}" download="query_result.csv"></a>`)[0].click();
+			URL.revokeObjectURL(url);
+		});
+
+		$runBtn.on('click', function() {
+			const site = $qeSiteSel.val();
+			if (!site) { frappe.throw('Select a site first'); return; }
+			const sql = $editor.val().trim();
+			if (!sql) { frappe.throw('Query is empty'); return; }
+
+			$runBtn.prop('disabled', true).html(`<div class="dkst-spin"></div>&nbsp;Running…`);
+			_showSpinner();
+
+			const args = {
+				site,
+				sql,
+				allow_write: $('#qe-allow-write').is(':checked') ? 1 : 0,
+				limit: $('#qe-limit').val(),
+			};
+
+			// Add to history
+			_queryHistory.unshift({ sql, site, ts: new Date().toLocaleTimeString() });
+			if (_queryHistory.length > 50) _queryHistory.pop();
+			$histList.empty();
+			_queryHistory.forEach(h => {
+				$(`<div class="dkqe-history-item" title="${frappe.utils.escape_html(h.sql)}">[${h.ts}] ${frappe.utils.escape_html(h.sql.substring(0,80))}${h.sql.length>80?'…':''}</div>`)
+					.appendTo($histList).on('click', () => {
+						$editor.val(h.sql);
+						_updateFooter();
+						$tabRes.trigger('click');
+					});
+			});
+
+			frappe.call({
+				method: 'frappe_devkit.api.query_editor.execute_query',
+				args,
+				callback: r => {
+					$runBtn.prop('disabled', false).html(`${icoPlay(14)}&nbsp;Run`);
+					if (r.message) _renderResult(r.message);
+					else _renderResult({ type: 'error', error: 'No response from server' });
+				},
+				error: (r) => {
+					$runBtn.prop('disabled', false).html(`${icoPlay(14)}&nbsp;Run`);
+					const msg = r.responseJSON?.exc_type || r.responseJSON?.message || 'Server error';
+					_renderResult({ type: 'error', error: msg });
+				}
+			});
+		});
+
+		// Table double-click → describe
+		$tblList.on('dblclick', '.dkqe-tbl-item', function() {
+			const tbl = $(this).data('tbl');
+			$editor.val(`DESCRIBE \`${tbl}\``);
+			_updateFooter();
+			$runBtn.trigger('click');
+		});
+
+		renderTables('');
+	};
+
+	/* ══════════════════════════════════════════════════════════════════
+	   MONACO EDITOR — shared loader + helpers
+	   ══════════════════════════════════════════════════════════════════ */
+	const _MC_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs';
+	let _mcInstance = null, _mcQueue = [];
+
+	function _mcLoad(cb) {
+		if (_mcInstance) { cb(_mcInstance); return; }
+		_mcQueue.push(cb);
+		if (_mcQueue.length > 1) return;
+		function _boot() {
+			window.require.config({ paths: { vs: _MC_CDN } });
+			window.require(['vs/editor/editor.main'], mc => {
+				_mcRegisterCompletions(mc);
+				_mcInstance = mc;
+				_mcQueue.forEach(fn => fn(mc));
+				_mcQueue = [];
+			});
+		}
+		if (window.require && window.require.config) { _boot(); }
+		else {
+			const s = document.createElement('script');
+			s.src = _MC_CDN + '/loader.min.js';
+			s.onload = _boot;
+			document.head.appendChild(s);
+		}
+	}
+
+	function _mcRegisterCompletions(mc) {
+		mc.languages.registerCompletionItemProvider('python', {
+			triggerCharacters: ['.'],
+			provideCompletionItems(model, position) {
+				const word = model.getWordUntilPosition(position);
+				const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
+				                startColumn: word.startColumn, endColumn: word.endColumn };
+				const methods = [
+					'frappe.get_doc','frappe.new_doc','frappe.get_list','frappe.get_all',
+					'frappe.get_value','frappe.set_value','frappe.db.get_value','frappe.db.set_value',
+					'frappe.db.get_list','frappe.db.get_all','frappe.db.insert','frappe.db.delete',
+					'frappe.db.exists','frappe.db.count','frappe.db.sql','frappe.throw',
+					'frappe.msgprint','frappe.log_error','frappe.get_cached_doc',
+					'frappe.session.user','frappe.local.site','frappe.utils.now',
+					'frappe.utils.now_datetime','frappe.utils.today','frappe.utils.get_url',
+					'frappe.has_permission','frappe.only_for','frappe.whitelist',
+					'frappe.response','context.title','context.no_cache',
+				];
+				return { suggestions: methods.map(m => ({
+					label: m, kind: mc.languages.CompletionItemKind.Function,
+					insertText: m.split('.').pop(), range, detail: 'Frappe API',
+				})) };
+			}
+		});
+		mc.languages.registerCompletionItemProvider('html', {
+			triggerCharacters: ['{', '%'],
+			provideCompletionItems(model, position) {
+				const word = model.getWordUntilPosition(position);
+				const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
+				                startColumn: word.startColumn, endColumn: word.endColumn };
+				const snippets = [
+					{ label:'extends',            insert:'{% extends "templates/web.html" %}' },
+					{ label:'block title',         insert:'{% block title %}${1:Title}{% endblock %}' },
+					{ label:'block page_content',  insert:'{% block page_content %}\n${1}\n{% endblock %}' },
+					{ label:'if',                  insert:'{% if ${1:condition} %}\n${2}\n{% endif %}' },
+					{ label:'for',                 insert:'{% for ${1:item} in ${2:items} %}\n${3}\n{% endfor %}' },
+					{ label:'include',             insert:'{%' + ' include "${1:template.html}" %}' },
+					{ label:'macro',               insert:'{% macro ${1:name}(${2:args}) %}\n${3}\n{% endmacro %}' },
+					{ label:'var',                 insert:'{{ ${1:variable} }}' },
+					{ label:'trans',               insert:'{% trans %}${1:text}{% endtrans %}' },
+					{ label:'set',                 insert:'{% set ${1:var} = ${2:value} %}' },
+				];
+				return { suggestions: snippets.map(s => ({
+					label: s.label, kind: mc.languages.CompletionItemKind.Snippet,
+					insertText: s.insert,
+					insertTextRules: mc.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					range, detail: 'Jinja2/Frappe',
+				})) };
+			}
+		});
+	}
+
+	function _mcCreate($container, lang, value) {
+		return _mcInstance.editor.create($container[0], {
+			value: value || '',
+			language: lang || 'html',
+			theme: 'vs',
+			fontSize: 13,
+			lineHeight: 20,
+			fontFamily: "'Consolas','Monaco','Courier New',monospace",
+			minimap: { enabled: false },
+			scrollBeyondLastLine: false,
+			wordWrap: 'on',
+			automaticLayout: true,
+			tabSize: 4,
+			renderLineHighlight: 'line',
+			suggestOnTriggerCharacters: true,
+			quickSuggestions: { other: true, comments: false, strings: false },
+			padding: { top: 8, bottom: 8 },
+			scrollbar: { vertical: 'auto', horizontal: 'auto' },
+		});
+	}
+
+	function _mcLang(ext) {
+		return { '.html':'html', '.py':'python', '.js':'javascript', '.css':'css',
+		         '.md':'markdown', '.json':'json', '.txt':'plaintext',
+		         '.xml':'xml', '.jinja2':'html' }[ext] || 'plaintext';
+	}
+	function _mcSetLang(editor, lang) {
+		if (editor && _mcInstance) _mcInstance.editor.setModelLanguage(editor.getModel(), lang);
+	}
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   WWW FILE MANAGER
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.www_editor = function($p) {
+		$p.css({ padding:0, display:'flex', flexDirection:'column', overflow:'hidden', height:'100%' });
+
+		/* ── state ── */
+		let _app = '', _tree = [], _file = null, _dirty = false, _companion = null, _activeComp = 'main';
+
+		/* ── toolbar ── */
+		const $tb = $('<div class="dkpb-toolbar"></div>').appendTo($p);
+		const $appSel = $('<select class="dkqe-site-sel" id="www-app-sel" style="min-width:150px" title="App"></select>').appendTo($tb);
+		$appSel.append('<option value="">— select app —</option>');
+		frappe.call({ method:'frappe_devkit.api.page_builder.list_apps_with_www', callback: r => {
+			(r.message?.apps||[]).filter(a => a.has_www).forEach(a => $appSel.append(`<option value="${a.app}">${a.app}</option>`));
+		}});
+		$tb.append('<button class="dkst-ce-link" data-app-sel="www-app-sel" title="Edit this app in Code Editor">⌨ Edit in Editor</button>');
+
+		$tb.append('<div class="dkpb-tsep"></div>');
+		const $newBtn  = $('<button class="dkpb-btn">＋ New Page</button>').appendTo($tb);
+		const $saveBtn = $('<button class="dkpb-btn dkpb-btn-accent" disabled>💾 Save  <kbd style="font-size:9px;opacity:.7">Ctrl+S</kbd></button>').appendTo($tb);
+		const $delBtn  = $('<button class="dkpb-btn" style="color:#c0392b" disabled>🗑 Delete</button>').appendTo($tb);
+		$tb.append('<div class="dkpb-tsep"></div>');
+		const $prevToggle = $('<button class="dkpb-btn active" title="Toggle preview pane" style="background:#ede8ff">👁 Preview</button>').appendTo($tb);
+		let _showPreview = true;
+
+		/* ── layout ── */
+		const $area = $('<div class="dkpb-area"></div>').appendTo($p);
+
+		/* ── LEFT: file tree ── */
+		const $left = $('<div class="dkpb-left"></div>').appendTo($area);
+		$left.append('<div class="dkpb-left-hdr">📁 WWW Files</div>');
+		const $ftSearch = $('<input class="dkpb-search" placeholder="Filter files…">').appendTo($left);
+		const $ftList   = $('<div class="dkpb-tree"></div>').appendTo($left);
+
+		const _extMap = { '.html':'html','.py':'py','.md':'md','.css':'css','.js':'js','.json':'json' };
+		const _extIcon = { '.html':'📄','.py':'🐍','.md':'📝','.css':'🎨','.js':'⚡','.json':'{}' };
+		const _collapsed = new Set();
+
+		function _renderTree(filter) {
+			$ftList.empty();
+			const q = (filter||'').toLowerCase();
+			_tree.forEach(node => {
+				if (node.type === 'dir') {
+					if (q && !_tree.some(n => n.type==='file' && n.path.startsWith(node.path+'/') && n.name.toLowerCase().includes(q))) return;
+					const open = !_collapsed.has(node.path);
+					$(`<div class="dkpb-node dir-nd" data-path="${node.path}" style="padding-left:${8+node.depth*10}px">
+						<span style="font-size:11px">${open?'▾':'▸'}</span>
+						<span>📁 ${frappe.utils.escape_html(node.name)}</span>
+					</div>`).appendTo($ftList).on('click', function() {
+						if (_collapsed.has(node.path)) _collapsed.delete(node.path); else _collapsed.add(node.path);
+						_renderTree($ftSearch.val());
+					});
+				} else {
+					// Check if parent dir is collapsed
+					const parts = node.path.split('/'); parts.pop();
+					if (parts.some((_,i) => _collapsed.has(parts.slice(0,i+1).join('/')))) return;
+					if (q && !node.name.toLowerCase().includes(q)) return;
+					const xb = _extMap[node.ext] || '';
+					const ico = _extIcon[node.ext] || '📄';
+					const compDot = node.companion ? `<span class="dkpb-nd-comp" title="Has companion file">⊕</span>` : '';
+					$(`<div class="dkpb-node${_file?.path===node.path?' sel':''}" data-path="${node.path}" style="padding-left:${12+node.depth*10}px">
+						<span>${ico}</span>
+						<span class="xb xb-${xb}">${node.ext.replace('.','')||'?'}</span>
+						<span class="dkpb-nd-lbl" title="${node.path}">${frappe.utils.escape_html(node.name)}</span>
+						${compDot}
+					</div>`).appendTo($ftList).on('click', function() {
+						if (_dirty && !confirm('Unsaved changes. Leave?')) return;
+						_openFile(node);
+					});
+				}
+			});
+		}
+		$ftSearch.on('input', () => _renderTree($ftSearch.val()));
+
+		/* ── CENTER: editor + optional split preview ── */
+		const $center = $('<div class="dkpb-center" style="flex:1;min-width:0"></div>').appendTo($area);
+
+		// Breadcrumb
+		const $bc = $('<div class="dkpb-breadcrumb" style="display:none"></div>').appendTo($center);
+
+		// Companion tabs
+		const $compTabs = $('<div class="dkpb-comp-tabs" style="display:none"></div>').appendTo($center);
+
+		// Split: editor | preview
+		const $splitArea = $('<div class="dkpb-split-h" style="flex:1;min-height:0;overflow:hidden"></div>').appendTo($center);
+
+		// Editor half
+		const $edHalf = $('<div class="dkpb-split-pane dkpb-ed-wrap"></div>').appendTo($splitArea);
+		const $edMonacoWWW = $('<div class="dkpb-ed-monaco"></div>').appendTo($edHalf);
+		let _wwwEd = null;
+
+		function _wwwGetEd(cb) {
+			if (_wwwEd) { cb(_wwwEd); return; }
+			_mcLoad(mc => {
+				_wwwEd = _mcCreate($edMonacoWWW, 'html', '');
+				_wwwEd.addCommand(mc.KeyMod.CtrlCmd | mc.KeyCode.KeyS, _save);
+				_wwwEd.onDidChangeModelContent(() => {
+					_dirty = true; $saveBtn.prop('disabled', false);
+					if (_file && _activeComp === 'main') _file.content = _wwwEd.getValue();
+				});
+				cb(_wwwEd);
+			});
+		}
+
+		// Resizer
+		const $resHandle = $('<div class="dkpb-split-handle"></div>').appendTo($splitArea);
+
+		// Preview half
+		const $prevHalf = $('<div class="dkpb-split-pane" style="background:#fff;min-width:0;overflow:hidden;display:flex;flex-direction:column"></div>').appendTo($splitArea);
+		const $prevBar2 = $('<div class="dkpb-preview-bar"><span style="flex:1;font-size:10.5px">HTML Preview</span><button class="dkpb-btn" id="wwwe-refresh-prev">↺ Refresh</button></div>').appendTo($prevHalf);
+		const $prevFrame = $('<iframe class="dkpb-preview-frame" sandbox="allow-scripts"></iframe>').appendTo($prevHalf);
+
+		// Empty state
+		const $emptyMsg = $('<div class="dkpb-empty">Select an app and file to start editing</div>').appendTo($center);
+
+		// Resize split handle
+		let _dragW = false, _dragX = 0, _splitW = 0;
+		$resHandle.on('mousedown', e => {
+			_dragW = true; _dragX = e.clientX; _splitW = $edHalf.width();
+			$('body').css('cursor','col-resize').on('mousemove.wwwe', ev => {
+				if (!_dragW) return;
+				const nw = Math.max(200, Math.min(_splitW + (ev.clientX - _dragX), $splitArea.width() - 200));
+				$edHalf.width(nw);
+			}).on('mouseup.wwwe', () => { _dragW = false; $('body').css('cursor','').off('.wwwe'); });
+		});
+
+		function _togglePreview(show) {
+			_showPreview = show;
+			$prevHalf.toggle(show); $resHandle.toggle(show);
+			$prevToggle.toggleClass('active', show).css('background', show ? '#ede8ff' : '');
+		}
+		$prevToggle.on('click', () => _togglePreview(!_showPreview));
+
+		/* ── file open ── */
+		function _openFile(node, forceContent) {
+			const path = typeof node === 'string' ? node : node.path;
+			frappe.call({
+				method: 'frappe_devkit.api.page_builder.get_www_file',
+				args: { app: _app, path },
+				callback: r => {
+					const data = r.message;
+					if (!data) return;
+					_file = { path, ext: data.ext, content: data.content };
+					_dirty = false;
+					$saveBtn.prop('disabled', true);
+					$delBtn.prop('disabled', false);
+					$emptyMsg.hide();
+					$bc.show().html(`<span>${_app}</span><span style="color:#5a4870">/www/</span><strong>${path}</strong>`);
+
+					// Companion tabs
+					const compNode = _tree.find(n => n.path === path);
+					if (compNode?.companion) {
+						_companion = compNode.companion;
+						$compTabs.show().html(`
+							<span class="dkpb-comp-tab active" data-which="main">${frappe.utils.escape_html(path.split('/').pop())}</span>
+							<span class="dkpb-comp-tab" data-which="companion">${frappe.utils.escape_html(_companion.split('/').pop())}</span>
+						`);
+					} else {
+						_companion = null; $compTabs.hide();
+					}
+					_activeComp = 'main';
+					const _wwwContent = forceContent !== undefined ? forceContent : data.content;
+					_wwwGetEd(ed => { ed.setValue(_wwwContent); _mcSetLang(ed, _mcLang(data.ext)); });
+
+					// Auto-show preview for HTML
+					if (data.ext === '.html') {
+						_showPreview || _togglePreview(true);
+						_refreshPreview();
+					} else {
+						_togglePreview(false);
+					}
+
+					_renderTree($ftSearch.val());
+				}
+			});
+		}
+
+		$compTabs.on('click', '.dkpb-comp-tab', function() {
+			$compTabs.find('.dkpb-comp-tab').removeClass('active'); $(this).addClass('active');
+			_activeComp = $(this).data('which');
+			if (_activeComp === 'main') {
+				_wwwGetEd(ed => {
+					ed.setValue(_file?.content || '');
+					_mcSetLang(ed, _mcLang(_file?.ext || '.html'));
+				});
+			} else {
+				frappe.call({
+					method: 'frappe_devkit.api.page_builder.get_www_file',
+					args: { app: _app, path: _companion },
+					callback: r => {
+						const cExt = '.' + (_companion || '').split('.').pop();
+						_wwwGetEd(ed => { ed.setValue(r.message?.content || ''); _mcSetLang(ed, _mcLang(cExt)); });
+					}
+				});
+			}
+		});
+
+		/* ── preview ── */
+		function _refreshPreview() {
+			const html = _wwwEd ? _wwwEd.getValue() : (_file?.content || '');
+			if (!html.trim()) return;
+			// Wrap bare HTML content in a basic page if it's a Frappe template
+			const srcdoc = html.includes('{% extends') || html.includes('{%') || html.includes('{{')
+				? `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,sans-serif;padding:20px;color:#333}</style></head><body><div style="background:#fff3cd;padding:10px;border-radius:4px;font-size:12px;margin-bottom:16px">⚠️ Jinja2 template — raw source shown below. Use "Open in browser" for rendered output.</div><pre style="font-size:12px;white-space:pre-wrap;word-break:break-all">${frappe.utils.escape_html(html)}</pre></body></html>`
+				: `<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"><style>body{padding:20px}</style></head><body>${html}</body></html>`;
+			$prevFrame.attr('srcdoc', srcdoc);
+		}
+
+		$('#wwwe-refresh-prev').on('click', _refreshPreview);
+
+		/* ── save ── */
+		function _save() {
+			if (!_file || !_app) return;
+			const path = _activeComp === 'companion' ? _companion : _file.path;
+			const content = _wwwEd ? _wwwEd.getValue() : (_file?.content || '');
+			$saveBtn.prop('disabled', true).text('Saving…');
+			frappe.call({
+				method: 'frappe_devkit.api.page_builder.save_www_file',
+				args: { app: _app, path, content },
+				callback: r => {
+					$saveBtn.text('💾 Save');
+					if (r.message?.saved) {
+						_dirty = false; $saveBtn.prop('disabled', true);
+						if (_activeComp === 'main') _file.content = content;
+						frappe.show_alert({ message:`Saved: ${path}`, indicator:'green' }, 3);
+						if (path.endsWith('.html')) _refreshPreview();
+					}
+				},
+				error: () => { $saveBtn.prop('disabled',false).text('💾 Save'); }
+			});
+		}
+		$saveBtn.on('click', _save);
+
+		/* ── delete ── */
+		$delBtn.on('click', function() {
+			if (!_file) return;
+			const path = _activeComp === 'companion' ? _companion : _file.path;
+			frappe.confirm(`Delete <b>${frappe.utils.escape_html(path)}</b>?`, () => {
+				frappe.call({
+					method: 'frappe_devkit.api.page_builder.delete_www_file',
+					args: { app:_app, path },
+					callback: r => {
+						if (r.message?.deleted) {
+							_tree = _tree.filter(n => n.path !== path);
+							_file = null; _dirty = false;
+							$bc.hide(); $compTabs.hide(); $emptyMsg.show();
+							(_wwwEd?.setValue('')); $saveBtn.prop('disabled',true); $delBtn.prop('disabled',true);
+							_renderTree($ftSearch.val());
+							frappe.show_alert({ message:'File deleted', indicator:'red' }, 3);
+						}
+					}
+				});
+			});
+		});
+
+		/* ── new page ── */
+		$newBtn.on('click', function() {
+			if (!_app) { frappe.show_alert({ message:'Select an app first', indicator:'orange' }); return; }
+			frappe.prompt([
+				{ label:'File Name', fieldname:'route', fieldtype:'Data', reqd:1,
+				  description:'Exact name as you want it — e.g. about-us or products/my-product (no leading slash, .html added automatically if no extension given)' },
+				{ label:'Create Python handler (.py)', fieldname:'create_py', fieldtype:'Check', default:1 },
+			], values => {
+				frappe.call({
+					method: 'frappe_devkit.api.page_builder.create_www_page',
+					args: { app: _app, route: values.route, create_py: values.create_py },
+					callback: r => {
+						if (r.message?.created) {
+							frappe.show_alert({ message:`Created: ${r.message.created.join(', ')}`, indicator:'green' }, 3);
+							_loadTree(_app, r.message.path);
+						}
+					}
+				});
+			}, 'New WWW Page', 'Create');
+		});
+
+		/* ── app change ── */
+		function _loadTree(app, autoOpenPath) {
+			$ftList.html('<div class="dkpb-empty" style="font-size:11.5px">Loading…</div>');
+			frappe.call({
+				method: 'frappe_devkit.api.page_builder.list_www_tree',
+				args: { app },
+				callback: r => {
+					_tree = r.message?.tree || [];
+					_renderTree($ftSearch.val());
+					if (autoOpenPath) {
+						const node = _tree.find(n => n.path === autoOpenPath);
+						if (node) _openFile(node);
+					}
+				},
+				error: () => { $ftList.html('<div class="dkpb-empty" style="font-size:11.5px;color:#c0392b">Failed to load</div>'); }
+			});
+		}
+
+		$appSel.on('change', function() {
+			_app = this.value; _file = null; _dirty = false; _tree = [];
+			$bc.hide(); $compTabs.hide(); $emptyMsg.show();
+			(_wwwEd?.setValue('')); $saveBtn.prop('disabled',true); $delBtn.prop('disabled',true);
+			if (_app) _loadTree(_app);
+		});
+	};
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   DESK PAGE EDITOR
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.desk_page_mgr = function($p) {
+		$p.css({ padding:0, display:'flex', flexDirection:'column', overflow:'hidden', height:'100%' });
+
+		let _app = '', _pages = [], _curPage = null, _openFiles = {}, _activeFile = null, _dirty = {};
+
+		/* ── toolbar ── */
+		const $tb = $('<div class="dkpb-toolbar"></div>').appendTo($p);
+		const $appSel = $('<select class="dkqe-site-sel" id="desk-app-sel" style="min-width:150px"></select>').appendTo($tb);
+		$appSel.append('<option value="">— select app —</option>');
+		frappe.call({ method:'frappe_devkit.api.page_builder.list_apps_with_www', callback: r => {
+			(r.message?.apps||[]).forEach(a => $appSel.append(`<option value="${a.app}">${a.app}</option>`));
+		}});
+		$tb.append('<button class="dkst-ce-link" data-app-sel="desk-app-sel" title="Edit this app in Code Editor">⌨ Edit in Editor</button>');
+		$tb.append('<div class="dkpb-tsep"></div>');
+		const $saveBtn = $('<button class="dkpb-btn dkpb-btn-accent" disabled>💾 Save <kbd style="font-size:9px;opacity:.7">Ctrl+S</kbd></button>').appendTo($tb);
+		$tb.append('<div class="dkpb-tsep"></div>');
+		const $newDeskBtn  = $('<button class="dkpb-btn">＋ New Page</button>').appendTo($tb);
+		const $editDeskBtn = $('<button class="dkpb-btn" disabled>✏ Edit Page</button>').appendTo($tb);
+		const $delDeskBtn  = $('<button class="dkpb-btn" style="color:#c0392b" disabled>🗑 Delete Page</button>').appendTo($tb);
+
+		/* ── layout ── */
+		const $area = $('<div class="dkpb-area"></div>').appendTo($p);
+
+		/* ── LEFT ── */
+		const $left = $('<div class="dkpb-left"></div>').appendTo($area);
+		$left.append('<div class="dkpb-left-hdr">🖥 Desk Pages</div>');
+		const $pgSearch = $('<input class="dkpb-search" placeholder="Filter pages…">').appendTo($left);
+		const $pgList   = $('<div class="dkpb-tree"></div>').appendTo($left);
+
+		function _renderPgList(filter) {
+			$pgList.empty();
+			const q = (filter||'').toLowerCase();
+			const filtered = q ? _pages.filter(p => p.name.toLowerCase().includes(q)) : _pages;
+			if (!filtered.length) {
+				$pgList.html(`<div class="dkpb-empty" style="font-size:11.5px">${_pages.length?'No match':'Select an app'}</div>`);
+				return;
+			}
+			filtered.forEach(pg => {
+				$(`<div class="dkpb-node${_curPage?.name===pg.name?' sel':''}" data-name="${pg.name}">
+					🖥 <span class="dkpb-nd-lbl">${frappe.utils.escape_html(pg.name)}</span>
+					<span style="font-size:9px;color:#9080b8;margin-left:auto">${pg.files.length}f</span>
+				</div>`).appendTo($pgList).on('click', () => _openPage(pg));
+			});
+		}
+		$pgSearch.on('input', () => _renderPgList($pgSearch.val()));
+
+		/* ── CENTER ── */
+		const $center = $('<div class="dkpb-center"></div>').appendTo($area);
+		const $fileTabs = $('<div class="dkpb-file-tabs" style="display:none"></div>').appendTo($center);
+		const $edWrap = $('<div class="dkpb-ed-wrap" style="flex:1;min-height:0;display:none"></div>').appendTo($center);
+		const $edMonacoDesk = $('<div class="dkpb-ed-monaco"></div>').appendTo($edWrap);
+		const $emptyMsg = $('<div class="dkpb-empty">Select a desk page to edit its files</div>').appendTo($center);
+		let _deskEd = null;
+		const _deskModels = {};
+
+		function _deskGetEd(cb) {
+			if (_deskEd) { cb(_deskEd); return; }
+			_mcLoad(mc => {
+				_deskEd = _mcCreate($edMonacoDesk, 'javascript', '');
+				_deskEd.addCommand(mc.KeyMod.CtrlCmd | mc.KeyCode.KeyS, _save);
+				_deskEd.onDidChangeModelContent(() => {
+					if (!_activeFile) return;
+					_openFiles[_activeFile] = _deskEd.getValue();
+					_dirty[_activeFile] = true;
+					$saveBtn.prop('disabled', false);
+					$fileTabs.find(`[data-file="${_activeFile}"]`)
+						.html(`${_activeFile}<span class="dirty"></span>`).addClass('active');
+				});
+				cb(_deskEd);
+			});
+		}
+
+		/* ── open page ── */
+		function _openPage(pg) {
+			_curPage = pg; _openFiles = {}; _dirty = {}; _activeFile = null;
+			$delDeskBtn.prop('disabled', false);
+			$editDeskBtn.prop('disabled', false);
+			// Dispose Monaco models from previous page
+			if (_mcInstance) {
+				Object.values(_deskModels).forEach(m => { try { m.dispose(); } catch(e) {} });
+			}
+			Object.keys(_deskModels).forEach(k => delete _deskModels[k]);
+			_renderPgList($pgSearch.val());
+			$fileTabs.show().empty();
+			pg.files.forEach(fname => {
+				$(`<span class="dkpb-file-tab" data-file="${fname}">${fname}</span>`).appendTo($fileTabs)
+					.on('click', function() { _openFile(fname); });
+			});
+			const autoOpen = pg.files.find(f => f.endsWith('.js')) || pg.files[0];
+			if (autoOpen) _openFile(autoOpen);
+		}
+
+		function _openFile(fname) {
+			if (_activeFile && _dirty[_activeFile] && _deskEd) {
+				_openFiles[_activeFile] = _deskEd.getValue();
+			}
+			_activeFile = fname;
+			$fileTabs.find('.dkpb-file-tab').removeClass('active');
+			$fileTabs.find(`[data-file="${fname}"]`).addClass('active');
+			const lang = _mcLang('.' + fname.split('.').pop());
+
+			function _setContent(content) {
+				$emptyMsg.hide(); $edWrap.css('display','flex');
+				_deskGetEd(ed => {
+					if (!_deskModels[fname]) {
+						_deskModels[fname] = _mcInstance.editor.createModel(content, lang);
+					}
+					ed.setModel(_deskModels[fname]);
+					$saveBtn.prop('disabled', !_dirty[fname]);
+				});
+			}
+
+			if (_openFiles[fname] !== undefined) { _setContent(_openFiles[fname]); return; }
+
+			frappe.call({
+				method: 'frappe_devkit.api.page_builder.get_desk_page_file',
+				args: { app:_app, rel_page_path:_curPage.path, filename:fname },
+				callback: r => {
+					if (!r.message) return;
+					_openFiles[fname] = r.message.content;
+					_setContent(r.message.content);
+				}
+			});
+		}
+
+		function _save() {
+			if (!_curPage || !_activeFile) return;
+			const content = _deskEd ? _deskEd.getValue() : (_openFiles[_activeFile] || '');
+			$saveBtn.prop('disabled', true).text('Saving…');
+			frappe.call({
+				method: 'frappe_devkit.api.page_builder.save_desk_page_file',
+				args: { app:_app, rel_page_path:_curPage.path, filename:_activeFile, content },
+				callback: r => {
+					$saveBtn.text('💾 Save');
+					if (r.message?.saved) {
+						_dirty[_activeFile] = false;
+						$fileTabs.find('.dkpb-file-tab.active').html(_activeFile).addClass('active');
+						frappe.show_alert({ message:`Saved: ${_activeFile}`, indicator:'green' }, 3);
+					}
+				},
+				error: () => { $saveBtn.prop('disabled',false).text('💾 Save'); }
+			});
+		}
+		$saveBtn.on('click', _save);
+
+		/* ── new desk page ── */
+		$newDeskBtn.on('click', function() {
+			if (!_app) { frappe.show_alert({ message:'Select an app first', indicator:'orange' }); return; }
+			frappe.call({
+				method: 'frappe_devkit.api.page_builder.list_app_modules',
+				args: { app: _app },
+				callback: r => {
+				const mods = r.message?.modules || [];
+				const modOpts = mods.join('\n');
+				frappe.prompt([
+					{ label:'Module Name', fieldname:'module', fieldtype:'Select', reqd:1,
+					  options: modOpts,
+					  description:'Select the module where the page will be created' },
+					{ label:'Page Name (internal ID)', fieldname:'page_name', fieldtype:'Data', reqd:1,
+					  description:'e.g. my-custom-page  (letters, numbers, hyphens)' },
+					{ label:'Page Title', fieldname:'title', fieldtype:'Data', reqd:1,
+					  description:'Human-readable title shown in the desk sidebar' },
+				], values => {
+				frappe.call({
+					method: 'frappe_devkit.api.page_builder.create_desk_page',
+					args: { app:_app, module:values.module, page_name:values.page_name, title:values.title },
+					callback: r => {
+						if (r.message?.created) {
+							frappe.show_alert({ message:`Page '${values.page_name}' created`, indicator:'green' }, 3);
+							frappe.call({
+								method: 'frappe_devkit.api.page_builder.list_desk_pages',
+								args: { app: _app },
+								callback: r2 => {
+									_pages = r2.message?.pages || []; _renderPgList($pgSearch.val());
+									const newPg = _pages.find(p => p.name === values.page_name);
+									if (newPg) _openPage(newPg);
+								}
+							});
+						}
+					}
+				});
+					}, 'New Desk Page', 'Create');
+			}
+		});
+		});
+
+		/* ── delete page ── */
+		$delDeskBtn.on('click', function() {
+			if (!_curPage || !_app) return;
+			frappe.confirm(`Delete desk page "<b>${frappe.utils.escape_html(_curPage.name)}</b>" and all its files? This cannot be undone.`, () => {
+				frappe.call({
+					method: 'frappe_devkit.api.page_builder.delete_desk_page',
+					args: { app: _app, rel_page_path: _curPage.path },
+					callback: r => {
+						if (r.message?.deleted) {
+							frappe.show_alert({ message:`Page '${_curPage.name}' deleted`, indicator:'red' }, 3);
+							_pages = _pages.filter(p => p.name !== _curPage.name);
+							_curPage = null; _activeFile = null;
+							$fileTabs.hide(); $edWrap.hide(); $emptyMsg.show();
+							$delDeskBtn.prop('disabled', true);
+							$editDeskBtn.prop('disabled', true);
+							$saveBtn.prop('disabled', true);
+							_renderPgList($pgSearch.val());
+						}
+					}
+				});
+			});
+		});
+
+		/* ── edit (update) page metadata ── */
+		$editDeskBtn.on('click', function() {
+			if (!_curPage || !_app) return;
+			frappe.call({
+				method: 'frappe_devkit.api.page_builder.get_desk_page_meta',
+				args: { app: _app, rel_page_path: _curPage.path },
+				callback: r => {
+					if (!r.message) return;
+					const { title, roles } = r.message;
+					frappe.prompt([
+						{ label:'Page Title', fieldname:'title', fieldtype:'Data', reqd:1,
+						  default: title,
+						  description:'Human-readable title shown in the desk sidebar' },
+						{ label:'Roles (comma-separated)', fieldname:'roles', fieldtype:'Data',
+						  default: roles.join(', '),
+						  description:'e.g. System Manager, Administrator' },
+					], values => {
+						const roleList = values.roles
+							? values.roles.split(',').map(r => r.trim()).filter(Boolean)
+							: [];
+						frappe.call({
+							method: 'frappe_devkit.api.page_builder.update_desk_page_meta',
+							args: {
+								app: _app,
+								rel_page_path: _curPage.path,
+								title: values.title,
+								roles: JSON.stringify(roleList),
+							},
+							callback: r2 => {
+								if (r2.message?.updated) {
+									frappe.show_alert({ message:`Updated: ${_curPage.name}`, indicator:'green' }, 3);
+									// Refresh the .json model if it is open
+									const jsonFile = _curPage.name + '.json';
+									if (_openFiles[jsonFile] !== undefined) {
+										delete _openFiles[jsonFile];
+										if (_deskModels[jsonFile]) {
+											try { _deskModels[jsonFile].dispose(); } catch(e) {}
+											delete _deskModels[jsonFile];
+										}
+										if (_activeFile === jsonFile) _openFile(jsonFile);
+									}
+								}
+							}
+						});
+					}, 'Edit Desk Page', 'Update');
+				}
+			});
+		});
+
+		$appSel.on('change', function() {
+			_app = this.value; _pages = []; _curPage = null;
+			$fileTabs.hide(); $edWrap.hide(); $emptyMsg.show();
+			$delDeskBtn.prop('disabled', true);
+			$editDeskBtn.prop('disabled', true);
+			if (_mcInstance) {
+				Object.values(_deskModels).forEach(m => { try { m.dispose(); } catch(e) {} });
+			}
+			Object.keys(_deskModels).forEach(k => delete _deskModels[k]);
+			if (!_app) { _renderPgList(''); return; }
+			frappe.call({
+				method: 'frappe_devkit.api.page_builder.list_desk_pages',
+				args: { app: _app },
+				callback: r => { _pages = r.message?.pages||[]; _renderPgList($pgSearch.val()); },
+				error: () => { $pgList.html('<div class="dkpb-empty" style="font-size:11.5px;color:#c0392b">Failed to load</div>'); }
+			});
+		});
+	};
+
 
 	/* ── Global: Open-in-Editor link — covers every AppSel instance ── */
 	$(document).on("change", "select.dkst-sel", function() {
@@ -2887,6 +5263,13 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 	function icoPlus(s)    {return _svg(`<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>`,s);}
 	function icoSave(s)    {return _svg(`<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>`,s);}
 	function icoTools(s)   {return _svg(`<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>`,s);}
+	function icoDatabase(s){return _svg(`<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>`,s);}
+	function icoPlay(s)    {return _svg(`<polygon points="5 3 19 12 5 21 5 3"/>`,s);}
+	function icoStop(s)    {return _svg(`<rect x="3" y="3" width="18" height="18" rx="2"/>`,s);}
+	function icoDownload(s){return _svg(`<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`,s);}
+	function icoTable(s)   {return _svg(`<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>`,s);}
+	function icoHistory(s) {return _svg(`<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/>`,s);}
+	function icoMonitor(s) {return _svg(`<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>`,s);}
 };
 
 frappe.pages["devkit-studio"].on_page_show = function (wrapper) {

@@ -521,6 +521,96 @@ def git_stash(app_name, action='save', message=''):
     return {"ok": True, "output": (r.stdout + r.stderr).strip()}
 
 
+@frappe.whitelist()
+def git_stage_all(app_name):
+    r = _git(app_name, ['git', 'add', '-A'])
+    if r.returncode != 0:
+        frappe.throw(r.stderr or 'git add -A failed')
+    return {"ok": True}
+
+
+@frappe.whitelist()
+def git_unstage_all(app_name):
+    r = _git(app_name, ['git', 'restore', '--staged', '.'])
+    if r.returncode != 0:
+        frappe.throw(r.stderr or 'git restore --staged . failed')
+    return {"ok": True}
+
+
+@frappe.whitelist()
+def git_discard_all(app_name):
+    r = _git(app_name, ['git', 'checkout', '--', '.'])
+    if r.returncode != 0:
+        frappe.throw(r.stderr or 'git checkout -- . failed')
+    return {"ok": True}
+
+
+@frappe.whitelist()
+def git_fetch(app_name, remote='origin'):
+    r = _git(app_name, ['git', 'fetch', remote], timeout=60)
+    if r.returncode != 0:
+        frappe.throw(r.stderr or 'git fetch failed')
+    return {"ok": True, "output": (r.stdout + r.stderr).strip()}
+
+
+@frappe.whitelist()
+def git_merge(app_name, branch, no_ff=False):
+    cmd = ['git', 'merge']
+    if frappe.utils.cint(no_ff):
+        cmd.append('--no-ff')
+    cmd.append(branch)
+    r = _git(app_name, cmd, timeout=60)
+    if r.returncode != 0:
+        frappe.throw(r.stderr or r.stdout or 'git merge failed')
+    return {"ok": True, "output": (r.stdout + r.stderr).strip()}
+
+
+@frappe.whitelist()
+def git_diff(app_name, file_path='', staged=False):
+    cmd = ['git', 'diff']
+    if frappe.utils.cint(staged):
+        cmd.append('--cached')
+    if file_path:
+        cmd += ['--', file_path]
+    r = _git(app_name, cmd, timeout=30)
+    return {"ok": True, "output": r.stdout or '(no changes)'}
+
+
+@frappe.whitelist()
+def git_reset(app_name, mode='mixed', target='HEAD~1'):
+    allowed_modes = ('soft', 'mixed', 'hard')
+    if mode not in allowed_modes:
+        frappe.throw(f'Invalid reset mode: {mode}')
+    r = _git(app_name, ['git', 'reset', f'--{mode}', target], timeout=30)
+    if r.returncode != 0:
+        frappe.throw(r.stderr or r.stdout or 'git reset failed')
+    return {"ok": True, "output": (r.stdout + r.stderr).strip()}
+
+
+@frappe.whitelist()
+def git_tag(app_name, action='list', name='', message=''):
+    if action == 'list':
+        r = _git(app_name, ['git', 'tag', '--sort=-creatordate'])
+    elif action == 'create':
+        if not name:
+            frappe.throw('Tag name is required')
+        cmd = ['git', 'tag']
+        if message:
+            cmd += ['-a', name, '-m', message]
+        else:
+            cmd.append(name)
+        r = _git(app_name, cmd)
+    elif action == 'delete':
+        if not name:
+            frappe.throw('Tag name is required')
+        r = _git(app_name, ['git', 'tag', '-d', name])
+    else:
+        frappe.throw(f'Unknown tag action: {action}')
+    if r.returncode != 0:
+        frappe.throw(r.stderr or f'git tag {action} failed')
+    return {"ok": True, "output": (r.stdout + r.stderr).strip()}
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Claude AI Integration  (per-user API key, protected by Frappe login)
 # ─────────────────────────────────────────────────────────────────────────────

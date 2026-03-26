@@ -6,6 +6,52 @@ Covers: new-site, backup, restore, drop-site, set-admin-password,
 """
 import os, json, subprocess, tempfile, frappe
 from frappe.utils import now_datetime
+try:
+    import pymysql as _mysql_driver
+except ImportError:
+    _mysql_driver = None
+
+
+def _get_installed_apps(cfg):
+    """Query tabInstalled Application from the site's DB. Falls back to apps.txt."""
+    db_name = cfg.get("db_name")
+    db_pass = cfg.get("db_password")
+    db_host = cfg.get("db_host", "localhost")
+    db_port = int(cfg.get("db_port", 3306))
+
+    # Primary: query via pymysql
+    if _mysql_driver and db_name and db_pass:
+        try:
+            conn = _mysql_driver.connect(
+                host=db_host, port=db_port,
+                user=db_name, password=db_pass, db=db_name,
+                connect_timeout=3
+            )
+            with conn.cursor() as cur:
+                cur.execute("SELECT app_name FROM `tabInstalled Application` ORDER BY idx")
+                rows = cur.fetchall()
+            conn.close()
+            return [r[0] for r in rows]
+        except Exception:
+            pass
+
+    # Fallback: subprocess mysql with db credentials
+    if db_name and db_pass:
+        try:
+            r = subprocess.run(
+                ["mysql", "-u", db_name, f"-p{db_pass}",
+                 "-h", db_host, f"-P{db_port}",
+                 db_name, "-se",
+                 "SELECT app_name FROM `tabInstalled Application` ORDER BY idx"],
+                capture_output=True, text=True, timeout=5
+            )
+            if r.returncode == 0:
+                return [l.strip() for l in r.stdout.splitlines() if l.strip()]
+        except Exception:
+            pass
+
+    # Last resort: apps.txt
+    return []
 
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
@@ -65,11 +111,10 @@ def list_sites():
         except Exception:
             cfg = {}
 
-        installed = _read_txt(os.path.join(site_path, "apps.txt"))
+        installed = _get_installed_apps(cfg)
 
-        # Check maintenance mode
-        maint_file = os.path.join(site_path, "maintenance.php")
-        maintenance = os.path.exists(maint_file)
+        # Check maintenance mode — Frappe uses maintenance_mode in site_config
+        maintenance = bool(cfg.get("maintenance_mode", 0))
 
         # Backup list
         backup_path = os.path.join(site_path, "private", "backups")
@@ -84,6 +129,7 @@ def list_sites():
             "site"        : name,
             "db_name"     : cfg.get("db_name", ""),
             "db_host"     : cfg.get("db_host", "localhost"),
+            "db_type"     : cfg.get("db_type", "mariadb"),
             "installed"   : installed,
             "app_count"   : len(installed),
             "maintenance" : maintenance,
@@ -298,17 +344,17 @@ def get_site_config(site):
 @frappe.whitelist()
 def set_site_config(site, key, value, value_type="string"):
     """bench --site <site> set-config <key> <value>"""
-    cmd = ["bench", "--site", site, "set-config", key]
+    cmd = ["bench", "--site", site, "set-config"]
 
     # Convert value based on type
     if value_type == "int":
-        cmd += ["-t", "int", str(value)]
+        cmd += ["-p", key, str(int(value))]
     elif value_type == "bool":
-        cmd += ["-t", "int", "1" if value in ("1", "true", True) else "0"]
+        cmd += ["-p", key, "1" if value in ("1", "true", True) else "0"]
     elif value_type == "json":
-        cmd += ["-t", "json", value]
+        cmd += ["-p", key, value]
     else:
-        cmd += [value]
+        cmd += [key, str(value)]
 
     r = _run(cmd)
     return _result(f"Set config '{key}' on '{site}'", r)
@@ -316,12 +362,18 @@ def set_site_config(site, key, value, value_type="string"):
 
 @frappe.whitelist()
 def remove_site_config(site, key):
-    """bench --site <site> conf-remove <key>"""
-    r = _run(["bench", "--site", site, "conf-remove", key])
-    # Fallback for older bench
-    if r["returncode"] != 0:
-        r = _run(["bench", "--site", site, "set-config", "--delete", key])
-    return _result(f"Remove config '{key}' from '{site}'", r)
+    """Remove a key from site_config.json by editing the file directly."""
+    cfg_path = os.path.join(_sites(), site, "site_config.json")
+    if not os.path.exists(cfg_path):
+        frappe.throw(f"site_config.json not found for site '{site}'")
+    with open(cfg_path, "r") as f:
+        cfg = json.load(f)
+    if key not in cfg:
+        return _ok(f"Key '{key}' not found in config for '{site}' (nothing to remove)")
+    del cfg[key]
+    with open(cfg_path, "w") as f:
+        json.dump(cfg, f, indent=1)
+    return _ok(f"Removed config key '{key}' from '{site}'")
 
 
 # ─── maintenance mode ─────────────────────────────────────────────────────────
@@ -472,6 +524,61 @@ def get_common_config():
             cfg = {}
     safe = {k: v for k, v in cfg.items() if k not in ("db_password",)}
     return _ok("Common site config", config=safe)
+
+
+# ─── backup download / upload ─────────────────────────────────────────────────
+@frappe.whitelist()
+def download_backup_file(site, filename):
+    """Stream a backup file to the browser as a download."""
+    import re as _re
+    if not _re.match(r'^[\w\-\.]+$', filename):
+        frappe.throw("Invalid filename")
+    backup_dir = os.path.join(_sites(), site, "private", "backups")
+    full = os.path.join(backup_dir, filename)
+    real_full = os.path.realpath(full)
+    real_dir  = os.path.realpath(backup_dir)
+    if not real_full.startswith(real_dir + os.sep):
+        frappe.throw("Invalid path")
+    if not os.path.isfile(full):
+        frappe.throw(f"Backup file '{filename}' not found")
+    with open(full, "rb") as f:
+        content = f.read()
+    frappe.response["type"]         = "download"
+    frappe.response["filename"]     = filename
+    frappe.response["filecontent"]  = content
+    frappe.response["content_type"] = "application/octet-stream"
+
+
+@frappe.whitelist()
+def upload_backup_file(site, file_type="database"):
+    """Receive an uploaded backup file and save it to the site's backup directory."""
+    import re as _re
+    backup_dir = os.path.join(_sites(), site, "private", "backups")
+    os.makedirs(backup_dir, exist_ok=True)
+
+    uploaded = frappe.request.files.get("file")
+    if not uploaded:
+        frappe.throw("No file received")
+
+    filename = uploaded.filename
+    if not _re.match(r'^[\w\-\.]+$', filename):
+        frappe.throw("Invalid filename")
+
+    valid_exts = {
+        "database":      (".sql.gz", ".sql"),
+        "public_files":  (".tar",),
+        "private_files": (".tar",),
+    }
+    exts = valid_exts.get(file_type, (".sql.gz", ".sql", ".tar"))
+    if not any(filename.endswith(e) for e in exts):
+        frappe.throw(f"Invalid file extension for type '{file_type}'")
+
+    dest    = os.path.join(backup_dir, filename)
+    content = uploaded.read()
+    with open(dest, "wb") as f:
+        f.write(content)
+
+    return {"uploaded": True, "filename": filename, "size": _human_size(len(content))}
 
 
 # ─── utils ────────────────────────────────────────────────────────────────────

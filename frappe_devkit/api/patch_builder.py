@@ -29,6 +29,12 @@ def scaffold_patch(app_name, patch_module, description="", execute_body=""):
     patch_path  = os.path.join(patch_dir, f"{patch_file}.py")
     patches_txt = os.path.join(app_pkg, "patches.txt")
 
+    body_lines = execute_body.strip().splitlines() if execute_body and execute_body.strip() else []
+    if body_lines:
+        indented_body = "\n".join("    " + line for line in body_lines)
+    else:
+        indented_body = "    # TODO: Add patch logic here"
+
     patch_content = f"""import frappe
 
 
@@ -39,7 +45,7 @@ def execute():
 
     Runs once during bench migrate. Must be idempotent.
     \"\"\"
-    # TODO: Add patch logic here
+{indented_body}
 
     frappe.db.commit()
 """
