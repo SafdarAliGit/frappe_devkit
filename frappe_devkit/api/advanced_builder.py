@@ -203,10 +203,10 @@ def _build_shortcut(s):
 def scaffold_dashboard_chart(
     app_name, module_name, chart_name,
     chart_type="Count", doctype="", based_on="",
-    value_based_on="", group_by_type="Count",
+    value_based_on="", group_by_based_on="", group_by_type="Count",
     filters_json="[]", time_interval="Quarterly",
     timespan="Last Year", color="#7c5cbf",
-    is_public=1
+    visual_type="Bar", is_public=1
 ):
     """
     Scaffold a Dashboard Chart fixture JSON.
@@ -228,6 +228,7 @@ def scaffold_dashboard_chart(
         "document_type"    : doctype,
         "based_on"         : based_on,
         "value_based_on"   : value_based_on,
+        "group_by_based_on": group_by_based_on,
         "group_by_type"    : group_by_type,
         "filters_json"     : filters_json,
         "time_interval"    : time_interval,
@@ -235,7 +236,7 @@ def scaffold_dashboard_chart(
         "color"            : color,
         "is_public"        : int(is_public),
         "module"           : module_name,
-        "type"             : "Bar",
+        "type"             : visual_type or "Bar",
         "use_report_chart" : 0,
     }
 
@@ -247,6 +248,51 @@ def scaffold_dashboard_chart(
         "status"  : "success",
         "message" : f"Dashboard Chart '{chart_name}' added to fixtures",
         "path"    : fixture_path
+    }
+
+
+# ─────────────────────────────────────────────────────────────────
+# DASHBOARD CHART — BATCH
+# ─────────────────────────────────────────────────────────────────
+@frappe.whitelist()
+def scaffold_dashboard_charts_batch(app_name, module_name, charts_json):
+    """
+    Scaffold multiple Dashboard Charts at once.
+    charts_json: list of chart dicts with chart_name, chart_type, doctype, etc.
+    """
+    if isinstance(charts_json, str):
+        charts_json = json.loads(charts_json) if charts_json else []
+    charts_json = charts_json or []
+
+    results = []
+    for c in charts_json:
+        try:
+            r = scaffold_dashboard_chart(
+                app_name         = app_name,
+                module_name      = module_name or c.get("module_name", ""),
+                chart_name       = c.get("chart_name", ""),
+                chart_type       = c.get("chart_type", "Count"),
+                doctype          = c.get("doctype", ""),
+                based_on         = c.get("based_on", ""),
+                value_based_on   = c.get("value_based_on", ""),
+                group_by_based_on= c.get("group_by_based_on", ""),
+                group_by_type    = c.get("group_by_type", "Count"),
+                filters_json     = c.get("filters_json", "[]"),
+                time_interval    = c.get("time_interval", "Monthly"),
+                timespan         = c.get("timespan", "Last Year"),
+                color            = c.get("color", "#7c5cbf"),
+                visual_type      = c.get("visual_type", "Bar"),
+            )
+            results.append({"name": c.get("chart_name"), "status": r.get("status")})
+        except Exception as e:
+            results.append({"name": c.get("chart_name"), "status": "error", "message": str(e)})
+
+    ok  = sum(1 for r in results if r["status"] == "success")
+    err = sum(1 for r in results if r["status"] != "success")
+    return {
+        "status" : "success",
+        "message": f"{ok} chart(s) scaffolded, {err} error(s)",
+        "results": results,
     }
 
 
@@ -292,6 +338,45 @@ def scaffold_number_card(
         "status"  : "success",
         "message" : f"Number Card '{card_name}' added to fixtures",
         "path"    : fixture_path
+    }
+
+
+# ─────────────────────────────────────────────────────────────────
+# NUMBER CARD — BATCH
+# ─────────────────────────────────────────────────────────────────
+@frappe.whitelist()
+def scaffold_number_cards_batch(app_name, module_name, cards_json):
+    """
+    Scaffold multiple Number Cards at once.
+    cards_json: list of card dicts with card_name, doctype, function, etc.
+    """
+    if isinstance(cards_json, str):
+        cards_json = json.loads(cards_json) if cards_json else []
+    cards_json = cards_json or []
+
+    results = []
+    for c in cards_json:
+        try:
+            r = scaffold_number_card(
+                app_name                     = app_name,
+                module_name                  = module_name or c.get("module_name", ""),
+                card_name                    = c.get("card_name", ""),
+                doctype                      = c.get("doctype", ""),
+                function                     = c.get("function", "Count"),
+                aggregate_function_based_on  = c.get("aggregate_function_based_on", ""),
+                filters_json                 = c.get("filters_json", "[]"),
+                color                        = c.get("color", "#5c4da8"),
+            )
+            results.append({"name": c.get("card_name"), "status": r.get("status")})
+        except Exception as e:
+            results.append({"name": c.get("card_name"), "status": "error", "message": str(e)})
+
+    ok  = sum(1 for r in results if r["status"] == "success")
+    err = sum(1 for r in results if r["status"] != "success")
+    return {
+        "status" : "success",
+        "message": f"{ok} card(s) scaffolded, {err} error(s)",
+        "results": results,
     }
 
 

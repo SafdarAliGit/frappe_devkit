@@ -437,7 +437,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 .dkqe-center { display: flex; flex-direction: column; flex: 1; min-width: 0; overflow: hidden; }
 .dkqe-editor-wrap {
   flex-shrink: 0; border-bottom: 1px solid #e8e0f8; position: relative;
-  background: #1e1a2e; min-height: 80px;
+  background: #fff; min-height: 200px; height: 240px; display: flex; flex-direction: column;
 }
 .dkqe-resize-handle {
   height: 5px; background: #2a2440; cursor: row-resize; flex-shrink: 0;
@@ -858,6 +858,144 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 
 /* ═══ INLINE CODE ═══ */
 .dkst-code { font-family: 'Consolas','Courier New',monospace; font-size: 12px; background: #f0ecff; color: #5c4da8; padding: 1px 5px; border-radius: 3px; }
+
+/* ═══ WIDGET PRESET PANELS (Number Card / Dashboard Chart) ═══ */
+.dkwc-action-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px; margin-top: 10px;
+  background: linear-gradient(135deg, #f0ebff 0%, #e8dfff 100%);
+  border: 1.5px solid #c4b5fd; border-radius: 8px;
+}
+.dkwc-sel-count {
+  font-size: 12.5px; font-weight: 700; color: #5c4da8;
+}
+.dkwc-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px; border-radius: 11px;
+  background: #5c4da8; color: #fff; font-size: 10px; font-weight: 900;
+  padding: 0 6px; margin-left: 4px;
+}
+.dkwc-desel {
+  margin-left: auto; padding: 3px 12px; border-radius: 5px;
+  border: 1.5px solid #c4b5fd; background: #fff; color: #7c5cbf;
+  font-size: 11px; cursor: pointer; font-weight: 600; font-family: inherit;
+}
+.dkwc-desel:hover { background: #ede9fe; }
+.dkwc-scaffold-btn {
+  padding: 6px 18px; border-radius: 6px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #5c4da8 0%, #8b5cf6 100%);
+  color: #fff; font-size: 12px; font-weight: 700; font-family: inherit;
+  box-shadow: 0 2px 8px rgba(92,77,168,.35);
+  transition: box-shadow .15s, transform .15s;
+}
+.dkwc-scaffold-btn:hover { box-shadow: 0 3px 14px rgba(139,92,246,.55); transform: translateY(-1px); }
+.dkwc-scaffold-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+/* ═══ PAGE PRESET DIALOG ═══ */
+.dkpp-dialog-body { max-height: 70vh; overflow-y: auto; }
+.dkpp-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 10px; margin-bottom: 16px;
+}
+.dkpp-preset-card {
+  border: 2px solid #e0d8f4; border-radius: 10px; cursor: pointer;
+  background: #fff; transition: border-color .15s, box-shadow .15s, transform .12s;
+  overflow: hidden; text-align: left;
+}
+.dkpp-preset-card:hover { border-color: #9070d8; box-shadow: 0 4px 16px rgba(92,77,168,.20); transform: translateY(-1px); }
+.dkpp-preset-card.selected {
+  border-color: #5c4da8; border-width: 2.5px;
+  background: linear-gradient(160deg, #f0ebff 0%, #e8dfff 100%);
+  box-shadow: 0 0 0 3px rgba(92,77,168,.20);
+}
+.dkpp-preset-card.selected::after {
+  content: '✓'; position: absolute; top: 6px; right: 6px;
+  width: 18px; height: 18px; background: #5c4da8; color: #fff;
+  border-radius: 50%; font-size: 10px; font-weight: 900;
+  line-height: 18px; text-align: center;
+}
+.dkpp-preset-top { height: 5px; }
+.dkpp-preset-body { padding: 10px; }
+.dkpp-preset-ico { font-size: 22px; line-height: 1; margin-bottom: 5px; }
+.dkpp-preset-nm { font-size: 11.5px; font-weight: 700; color: #2a2050; margin-bottom: 2px; }
+.dkpp-preset-ds { font-size: 10px; color: #9080b8; line-height: 1.35; min-height: 24px; }
+.dkpp-preset-tag { display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:3px;margin-top:5px; }
+
+.dkwc-chart-type-badge {
+  display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px;
+  border-radius: 3px; margin-top: 2px; background: rgba(255,255,255,.25); color: #fff;
+}
+
+/* ═══ REPORT PRESET CARDS ═══ */
+.dkrb-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.dkrb-preset-card {
+  position: relative;
+  border: 2px solid #e0d8f4;
+  border-radius: 8px;
+  padding: 0;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color .15s, box-shadow .15s, transform .12s, background .12s;
+  overflow: hidden;
+  text-align: left;
+}
+.dkrb-preset-card:hover {
+  border-color: #9070d8;
+  box-shadow: 0 4px 16px rgba(92,77,168,.20);
+  transform: translateY(-1px);
+}
+.dkrb-preset-card.selected {
+  border-color: #5c4da8;
+  border-width: 2.5px;
+  background: linear-gradient(160deg, #f0ebff 0%, #e8dfff 100%);
+  box-shadow: 0 0 0 3px rgba(92,77,168,.20), 0 4px 18px rgba(92,77,168,.28);
+  transform: translateY(-1px);
+}
+.dkrb-preset-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 7px; right: 7px;
+  width: 18px; height: 18px;
+  background: #5c4da8;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(92,77,168,.40);
+}
+.dkrb-preset-top { height: 4px; flex-shrink: 0; }
+.dkrb-preset-body { padding: 10px 10px 9px; }
+.dkrb-preset-ico { font-size: 20px; line-height: 1; margin-bottom: 6px; }
+.dkrb-preset-nm { font-size: 11.5px; font-weight: 700; color: #2a2050; margin-bottom: 3px; }
+.dkrb-preset-ds { font-size: 10px; color: #9080b8; line-height: 1.4; min-height: 26px; }
+.dkrb-preset-tag {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  padding: 1px 7px; border-radius: 3px; margin-top: 6px;
+}
+.dkrb-preset-card.selected .dkrb-preset-nm { color: #4a3a90; }
+.dkrb-preset-card.selected .dkrb-preset-ds { color: #7060a0; }
+.dkrb-preset-search-wrap {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+}
+.dkrb-preset-search {
+  flex: 1; padding: 6px 10px 6px 30px;
+  border: 1.5px solid #d0c8ec; border-radius: 6px;
+  font-size: 12px; background: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239080b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 8px center;
+  outline: none;
+}
+.dkrb-preset-search:focus { border-color: #5c4da8; box-shadow: 0 0 0 2px rgba(92,77,168,.15); }
+.dkrb-preset-count { font-size: 10.5px; color: #9080b8; white-space: nowrap; }
+.dkrb-preset-card.dkrb-hidden { display: none; }
 `;
 		document.head.appendChild(el);
 	}
@@ -997,7 +1135,6 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		{ id:"child",            lbl:"Child Table",          ico:icoGrid()     },
 		{ id:"single",           lbl:"Single / Settings",    ico:icoSettings() },
 		{ id:"report",           lbl:"Report",               ico:icoChart()    },
-		{ id:"print_fmt",        lbl:"Print Format",         ico:icoPrint()    },
 		{ sep:true },
 		{ sec:"✦  Customize" },
 		{ id:"custom_field",     lbl:"Custom Field",         ico:icoSliders()  },
@@ -1027,6 +1164,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		{ id:"dt_inspector",     lbl:"DocType Inspector",    ico:icoSearch()   },
 		{ id:"health_check",     lbl:"App Health Check",     ico:icoHeart()    },
 		{ id:"fixture_diff",     lbl:"Fixture Diff",         ico:icoDiff()     },
+		{ id:"fixture_mgr",      lbl:"Fixture Manager",      ico:icoExport()   },
 		{ id:"log",              lbl:"Scaffold Log",         ico:icoList()     },
 		{ sep:true },
 		{ sec:"⬡  App & Site Manager" },
@@ -1709,12 +1847,53 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		}
 
 		const $c4=card($p,"Permissions");
-		$c4.append(info("System Manager and All roles are added by default. Add extra roles below."));
-		$c4.append(`<div class="dkst-g3">
-			${F("dt_r1","Extra Role 1","text","Accounts Manager")}
-			${F("dt_r2","Extra Role 2","text","Sales Manager")}
-			${F("dt_r3","Extra Role 3","text","")}
-		</div>`);
+		$c4.append(info("System Manager and All roles are added by default. Select or type extra roles below."));
+		$c4.append(`<div class="dkst-tbl-wrap"><table class="dkst-tbl" style="width:100%">
+			<thead><tr><th>Role</th><th style="width:36px"></th></tr></thead>
+			<tbody id="dt-role-rows"></tbody>
+		</table></div>`);
+		$(`<div class="dkst-add-row" id="dt-add-role">+ Add Role</div>`).appendTo($c4);
+
+		let _dtRoles = [];
+		function _loadRoles() {
+			if (_dtRoles.length) return;
+			frappe.call({ method:'frappe.client.get_list',
+				args:{doctype:'Role', fields:['name'], filters:[['name','not in',['All','Guest']]], limit_page_length:200, order_by:'name asc'},
+				callback: r => {
+					_dtRoles = (r.message||[]).map(x=>x.name);
+					// Update any existing selects
+					$("#dt-role-rows select").each(function(){
+						const cur=$(this).val();
+						$(this).empty().append('<option value="">— select role —</option>');
+						_dtRoles.forEach(r2=>$(this).append(`<option value="${r2}">${r2}</option>`));
+						$(this).append('<option value="__custom">Custom…</option>');
+						$(this).val(cur);
+					});
+				}
+			});
+		}
+		function _addRoleRow(val='') {
+			_loadRoles();
+			const $tr=$(`<tr>
+				<td style="display:flex;gap:6px;align-items:center">
+					<select class="dkst-sel dt-role-sel" style="flex:1">
+						<option value="">— select role —</option>
+						${_dtRoles.map(r=>`<option value="${r}"${r===val?' selected':''}>${r}</option>`).join('')}
+						<option value="__custom"${val&&!_dtRoles.includes(val)?' selected':''}>Custom…</option>
+					</select>
+					<input class="dkst-inp dt-role-custom" value="${val&&!_dtRoles.includes(val)?val:''}" placeholder="Custom role name" style="flex:1;display:${val&&!_dtRoles.includes(val)?'block':'none'}">
+				</td>
+				<td><button class="dkst-del-btn">×</button></td>
+			</tr>`);
+			$tr.find('.dt-role-sel').on('change', function(){
+				$tr.find('.dt-role-custom').toggle($(this).val()==='__custom');
+			});
+			$tr.find('.dkst-del-btn').on('click',()=>$tr.remove());
+			$('#dt-role-rows').append($tr);
+		}
+		$c4.on('click','#dt-add-role',()=>_addRoleRow());
+		_addRoleRow('Accounts Manager');
+		_addRoleRow('Sales Manager');
 
 		const $t=term($p);
 		btns($p,[
@@ -1740,7 +1919,11 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				});
 				if(!fields.length){frappe.throw("Add at least one field");return;}
 				const perms=[];
-				[gv("dt_r1"),gv("dt_r2"),gv("dt_r3")].filter(Boolean).forEach(r=>perms.push({role:r,read:1,write:1,create:1}));
+				$("#dt-role-rows tr").each(function(){
+					const sel=$(this).find('.dt-role-sel').val();
+					const r = sel==='__custom' ? $(this).find('.dt-role-custom').val().trim() : sel;
+					if(r) perms.push({role:r,read:1,write:1,create:1});
+				});
 				api("frappe_devkit.api.doctype_builder.scaffold_doctype",{
 					app_name:gv("dt_app"),module_name:gv("dt_mod"),doctype_name:gv("dt_nm"),
 					fields:JSON.stringify(fields),
@@ -1776,11 +1959,1090 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 
 	/* ── Report ── */
 	PANELS.report = function($p) {
-		$p.append(phdr("Report Builder","Generate Script or Query reports with filters, columns and Python stubs.",icoChart(20)));
-		const $c1=card($p,"Report Identity");
+		/* ── Preset definitions ── */
+		const REPORT_PRESETS = [
+			// ── GENERAL ──
+			{
+				id:"blank", name:"Blank", ico:"📄", color:"#6b7280", tag:"Starter", tagBg:"#f3f4f6", tagColor:"#374151",
+				desc:"Empty scaffold — start from scratch.",
+				report_type:"Script Report", ref_doctype:"",
+				joins:[], filters:[], columns:[]
+			},
+			// ── SALES ──
+			{
+				id:"sales_invoice", name:"Sales Summary", ico:"💰", color:"#1d4ed8", tag:"Sales", tagBg:"#dbeafe", tagColor:"#1e40af",
+				desc:"Sales invoices by date, customer, status.",
+				report_type:"Script Report", ref_doctype:"Sales Invoice",
+				joins:[{type:"LEFT",table:"Customer",alias:"cust",on:"t.customer = cust.name"}],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"},
+					{fn:"customer_group",ft:"Link",lbl:"Customer Group",op:"Customer Group"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nSubmitted\nCancelled\nPaid\nUnpaid\nOverdue\nPartly Paid"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Invoice",w:160,op:"Sales Invoice",ta:"t"},
+					{fn:"posting_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"customer",ft:"Link",lbl:"Customer",w:150,op:"Customer",ta:"t"},
+					{fn:"customer_name",ft:"Data",lbl:"Customer Name",w:180,ta:"t"},
+					{fn:"territory",ft:"Data",lbl:"Territory",w:110,ta:"cust"},
+					{fn:"grand_total",ft:"Currency",lbl:"Grand Total",w:120,al:"right",ta:"t"},
+					{fn:"outstanding_amount",ft:"Currency",lbl:"Outstanding",w:120,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:100,ta:"t"},
+				]
+			},
+			{
+				id:"sales_order", name:"Sales Order Status", ico:"📝", color:"#2563eb", tag:"Sales", tagBg:"#dbeafe", tagColor:"#1d4ed8",
+				desc:"Sales orders: pending, delivered, billing status.",
+				report_type:"Script Report", ref_doctype:"Sales Order",
+				joins:[
+					{type:"LEFT",table:"Customer",alias:"cust",on:"t.customer = cust.name"},
+					{type:"LEFT",table:"Territory",alias:"terr",on:"t.territory = terr.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nTo Deliver and Bill\nTo Bill\nTo Deliver\nCompleted\nCancelled\nClosed"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Sales Order",w:160,op:"Sales Order",ta:"t"},
+					{fn:"transaction_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"delivery_date",ft:"Date",lbl:"Delivery Date",w:110,ta:"t"},
+					{fn:"customer",ft:"Link",lbl:"Customer",w:150,op:"Customer",ta:"t"},
+					{fn:"customer_name",ft:"Data",lbl:"Customer Name",w:180,ta:"t"},
+					{fn:"grand_total",ft:"Currency",lbl:"Grand Total",w:120,al:"right",ta:"t"},
+					{fn:"per_delivered",ft:"Percent",lbl:"Delivered %",w:90,al:"right",ta:"t"},
+					{fn:"per_billed",ft:"Percent",lbl:"Billed %",w:80,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:120,ta:"t"},
+				]
+			},
+			{
+				id:"quotation", name:"Quotation Pipeline", ico:"📋", color:"#0369a1", tag:"CRM", tagBg:"#e0f2fe", tagColor:"#0369a1",
+				desc:"Quotations by customer, lead, status.",
+				report_type:"Script Report", ref_doctype:"Quotation",
+				joins:[
+					{type:"LEFT",table:"Customer",alias:"cust",on:"t.party_name = cust.name AND t.quotation_to = 'Customer'"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nOpen\nReplied\nOrdered\nLost\nCancelled\nExpired"},
+					{fn:"quotation_to",ft:"Select",lbl:"Quotation To",op:"Customer\nLead\nProspect"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Quotation",w:160,op:"Quotation",ta:"t"},
+					{fn:"transaction_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"valid_till",ft:"Date",lbl:"Valid Till",w:100,ta:"t"},
+					{fn:"party_name",ft:"Data",lbl:"Customer/Lead",w:160,ta:"t"},
+					{fn:"grand_total",ft:"Currency",lbl:"Amount",w:120,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:100,ta:"t"},
+					{fn:"order_lost_reason",ft:"Data",lbl:"Lost Reason",w:160,ta:"t"},
+				]
+			},
+			{
+				id:"item_wise_sales", name:"Item-wise Sales", ico:"🏷️", color:"#0ea5e9", tag:"Sales", tagBg:"#e0f2fe", tagColor:"#0284c7",
+				desc:"Sales breakdown per item via invoice child table.",
+				report_type:"Script Report", ref_doctype:"Sales Invoice Item",
+				joins:[
+					{type:"INNER",table:"Sales Invoice",alias:"si",on:"t.parent = si.name"},
+					{type:"LEFT",table:"Item",alias:"itm",on:"t.item_code = itm.name"},
+					{type:"LEFT",table:"Customer",alias:"cust",on:"si.customer = cust.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"},
+					{fn:"item_code",ft:"Link",lbl:"Item",op:"Item"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",op:"Item Group"},
+				],
+				columns:[
+					{fn:"item_code",ft:"Link",lbl:"Item Code",w:140,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:180,ta:"t"},
+					{fn:"item_group",ft:"Link",lbl:"Group",w:120,op:"Item Group",ta:"itm"},
+					{fn:"qty",ft:"Float",lbl:"Qty",w:80,al:"right",ta:"t"},
+					{fn:"rate",ft:"Currency",lbl:"Rate",w:100,al:"right",ta:"t"},
+					{fn:"amount",ft:"Currency",lbl:"Amount",w:110,al:"right",ta:"t"},
+					{fn:"customer",ft:"Link",lbl:"Customer",w:150,op:"Customer",ta:"si"},
+					{fn:"posting_date",ft:"Date",lbl:"Date",w:100,ta:"si"},
+				]
+			},
+			// ── BUYING ──
+			{
+				id:"purchase_invoice", name:"Purchase Summary", ico:"🛒", color:"#ea580c", tag:"Buying", tagBg:"#ffedd5", tagColor:"#c2410c",
+				desc:"Purchase invoices by date, supplier.",
+				report_type:"Script Report", ref_doctype:"Purchase Invoice",
+				joins:[{type:"LEFT",table:"Supplier",alias:"sup",on:"t.supplier = sup.name"}],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",op:"Supplier"},
+					{fn:"supplier_group",ft:"Link",lbl:"Supplier Group",op:"Supplier Group"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nSubmitted\nCancelled\nPaid\nUnpaid\nOverdue\nPartly Paid"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Invoice",w:160,op:"Purchase Invoice",ta:"t"},
+					{fn:"posting_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",w:150,op:"Supplier",ta:"t"},
+					{fn:"supplier_name",ft:"Data",lbl:"Supplier Name",w:180,ta:"t"},
+					{fn:"grand_total",ft:"Currency",lbl:"Grand Total",w:120,al:"right",ta:"t"},
+					{fn:"outstanding_amount",ft:"Currency",lbl:"Outstanding",w:120,al:"right",ta:"t"},
+					{fn:"bill_no",ft:"Data",lbl:"Bill No",w:120,ta:"t"},
+					{fn:"bill_date",ft:"Date",lbl:"Bill Date",w:100,ta:"t"},
+				]
+			},
+			{
+				id:"purchase_order", name:"Purchase Order Status", ico:"📦", color:"#f97316", tag:"Buying", tagBg:"#ffedd5", tagColor:"#c2410c",
+				desc:"Purchase orders: pending receipt and billing.",
+				report_type:"Script Report", ref_doctype:"Purchase Order",
+				joins:[{type:"LEFT",table:"Supplier",alias:"sup",on:"t.supplier = sup.name"}],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",op:"Supplier"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nTo Receive and Bill\nTo Bill\nTo Receive\nCompleted\nCancelled\nClosed"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Purchase Order",w:160,op:"Purchase Order",ta:"t"},
+					{fn:"transaction_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"schedule_date",ft:"Date",lbl:"Required By",w:110,ta:"t"},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",w:150,op:"Supplier",ta:"t"},
+					{fn:"supplier_name",ft:"Data",lbl:"Supplier Name",w:180,ta:"t"},
+					{fn:"grand_total",ft:"Currency",lbl:"Grand Total",w:120,al:"right",ta:"t"},
+					{fn:"per_received",ft:"Percent",lbl:"Received %",w:90,al:"right",ta:"t"},
+					{fn:"per_billed",ft:"Percent",lbl:"Billed %",w:80,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:120,ta:"t"},
+				]
+			},
+			{
+				id:"purchase_receipt_items", name:"Purchase Receipt Items", ico:"📥", color:"#b45309", tag:"Buying", tagBg:"#fef3c7", tagColor:"#92400e",
+				desc:"Items received via purchase receipts.",
+				report_type:"Script Report", ref_doctype:"Purchase Receipt Item",
+				joins:[
+					{type:"INNER",table:"Purchase Receipt",alias:"pr",on:"t.parent = pr.name"},
+					{type:"LEFT",table:"Item",alias:"itm",on:"t.item_code = itm.name"},
+					{type:"LEFT",table:"Supplier",alias:"sup",on:"pr.supplier = sup.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",op:"Supplier"},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",op:"Warehouse"},
+					{fn:"item_code",ft:"Link",lbl:"Item",op:"Item"},
+				],
+				columns:[
+					{fn:"posting_date",ft:"Date",lbl:"Date",w:100,ta:"pr"},
+					{fn:"name",ft:"Link",lbl:"Receipt",w:150,op:"Purchase Receipt",ta:"pr"},
+					{fn:"supplier_name",ft:"Data",lbl:"Supplier",w:160,ta:"pr"},
+					{fn:"item_code",ft:"Link",lbl:"Item Code",w:140,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:180,ta:"t"},
+					{fn:"qty",ft:"Float",lbl:"Qty",w:80,al:"right",ta:"t"},
+					{fn:"rate",ft:"Currency",lbl:"Rate",w:100,al:"right",ta:"t"},
+					{fn:"amount",ft:"Currency",lbl:"Amount",w:110,al:"right",ta:"t"},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",w:140,op:"Warehouse",ta:"t"},
+				]
+			},
+			// ── ACCOUNTS ──
+			{
+				id:"accounts_receivable", name:"Accounts Receivable", ico:"📈", color:"#16a34a", tag:"Accounts", tagBg:"#dcfce7", tagColor:"#15803d",
+				desc:"AR aging: customers with outstanding balances.",
+				report_type:"Script Report", ref_doctype:"Sales Invoice",
+				joins:[
+					{type:"LEFT",table:"Customer",alias:"cust",on:"t.customer = cust.name"},
+					{type:"LEFT",table:"Territory",alias:"terr",on:"cust.territory = terr.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"report_date",ft:"Date",lbl:"As On Date",def:"Today",req:1},
+					{fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"},
+					{fn:"territory",ft:"Link",lbl:"Territory",op:"Territory"},
+					{fn:"customer_group",ft:"Link",lbl:"Customer Group",op:"Customer Group"},
+					{fn:"ageing_based_on",ft:"Select",lbl:"Ageing Based On",op:"Due Date\nPosting Date"},
+				],
+				columns:[
+					{fn:"customer",ft:"Link",lbl:"Customer",w:150,op:"Customer",ta:"t"},
+					{fn:"customer_name",ft:"Data",lbl:"Customer Name",w:180,ta:"t"},
+					{fn:"territory",ft:"Data",lbl:"Territory",w:110,ta:"cust"},
+					{fn:"outstanding_amount",ft:"Currency",lbl:"Outstanding",w:130,al:"right",ta:"t"},
+					{fn:"payment_terms_template",ft:"Data",lbl:"Payment Terms",w:130,ta:"t"},
+					{fn:"due_date",ft:"Date",lbl:"Due Date",w:100,ta:"t"},
+				]
+			},
+			{
+				id:"accounts_payable", name:"Accounts Payable", ico:"📉", color:"#dc2626", tag:"Accounts", tagBg:"#fee2e2", tagColor:"#b91c1c",
+				desc:"AP aging: suppliers with outstanding balances.",
+				report_type:"Script Report", ref_doctype:"Purchase Invoice",
+				joins:[{type:"LEFT",table:"Supplier",alias:"sup",on:"t.supplier = sup.name"}],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"report_date",ft:"Date",lbl:"As On Date",def:"Today",req:1},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",op:"Supplier"},
+					{fn:"supplier_group",ft:"Link",lbl:"Supplier Group",op:"Supplier Group"},
+					{fn:"ageing_based_on",ft:"Select",lbl:"Ageing Based On",op:"Due Date\nPosting Date"},
+				],
+				columns:[
+					{fn:"supplier",ft:"Link",lbl:"Supplier",w:150,op:"Supplier",ta:"t"},
+					{fn:"supplier_name",ft:"Data",lbl:"Supplier Name",w:180,ta:"t"},
+					{fn:"outstanding_amount",ft:"Currency",lbl:"Outstanding",w:130,al:"right",ta:"t"},
+					{fn:"due_date",ft:"Date",lbl:"Due Date",w:100,ta:"t"},
+					{fn:"bill_no",ft:"Data",lbl:"Bill No",w:120,ta:"t"},
+				]
+			},
+			{
+				id:"payment_register", name:"Payment Register", ico:"💳", color:"#059669", tag:"Accounts", tagBg:"#d1fae5", tagColor:"#065f46",
+				desc:"Payment entries: received and paid by party.",
+				report_type:"Script Report", ref_doctype:"Payment Entry",
+				joins:[
+					{type:"LEFT",table:"Account",alias:"acct",on:"t.paid_to = acct.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"payment_type",ft:"Select",lbl:"Payment Type",op:"Receive\nPay\nInternal Transfer"},
+					{fn:"party_type",ft:"Select",lbl:"Party Type",op:"Customer\nSupplier\nEmployee\nShareholder"},
+					{fn:"party",ft:"Dynamic Link",lbl:"Party",op:"party_type"},
+					{fn:"mode_of_payment",ft:"Link",lbl:"Mode of Payment",op:"Mode of Payment"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Payment Entry",w:160,op:"Payment Entry",ta:"t"},
+					{fn:"posting_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"payment_type",ft:"Data",lbl:"Type",w:100,ta:"t"},
+					{fn:"party_type",ft:"Data",lbl:"Party Type",w:100,ta:"t"},
+					{fn:"party",ft:"Dynamic Link",lbl:"Party",w:150,op:"party_type",ta:"t"},
+					{fn:"party_name",ft:"Data",lbl:"Party Name",w:180,ta:"t"},
+					{fn:"paid_amount",ft:"Currency",lbl:"Amount",w:120,al:"right",ta:"t"},
+					{fn:"mode_of_payment",ft:"Data",lbl:"Mode",w:110,ta:"t"},
+					{fn:"reference_no",ft:"Data",lbl:"Reference No",w:130,ta:"t"},
+				]
+			},
+			{
+				id:"gl_ledger", name:"GL Ledger Entry", ico:"📒", color:"#7c3aed", tag:"Accounts", tagBg:"#ede9fe", tagColor:"#6d28d9",
+				desc:"General Ledger entries by account, cost center.",
+				report_type:"Script Report", ref_doctype:"GL Entry",
+				joins:[
+					{type:"LEFT",table:"Account",alias:"acct",on:"t.account = acct.name"},
+					{type:"LEFT",table:"Cost Center",alias:"cc",on:"t.cost_center = cc.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"account",ft:"Link",lbl:"Account",op:"Account"},
+					{fn:"cost_center",ft:"Link",lbl:"Cost Center",op:"Cost Center"},
+					{fn:"party_type",ft:"Select",lbl:"Party Type",op:"Customer\nSupplier\nEmployee"},
+					{fn:"party",ft:"Dynamic Link",lbl:"Party",op:"party_type"},
+					{fn:"voucher_type",ft:"Select",lbl:"Voucher Type",op:"Sales Invoice\nPurchase Invoice\nPayment Entry\nJournal Entry\nSales Order\nPurchase Order"},
+				],
+				columns:[
+					{fn:"posting_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"account",ft:"Link",lbl:"Account",w:180,op:"Account",ta:"t"},
+					{fn:"party_type",ft:"Data",lbl:"Party Type",w:100,ta:"t"},
+					{fn:"party",ft:"Dynamic Link",lbl:"Party",w:140,op:"party_type",ta:"t"},
+					{fn:"voucher_type",ft:"Data",lbl:"Voucher Type",w:130,ta:"t"},
+					{fn:"voucher_no",ft:"Dynamic Link",lbl:"Voucher No",w:150,op:"voucher_type",ta:"t"},
+					{fn:"debit",ft:"Currency",lbl:"Debit",w:110,al:"right",ta:"t"},
+					{fn:"credit",ft:"Currency",lbl:"Credit",w:110,al:"right",ta:"t"},
+					{fn:"cost_center",ft:"Link",lbl:"Cost Center",w:130,op:"Cost Center",ta:"t"},
+					{fn:"remarks",ft:"Data",lbl:"Remarks",w:200,ta:"t"},
+				]
+			},
+			{
+				id:"journal_entry", name:"Journal Entry", ico:"📓", color:"#6d28d9", tag:"Accounts", tagBg:"#ede9fe", tagColor:"#5b21b6",
+				desc:"Journal entries with accounts, amounts, narration.",
+				report_type:"Script Report", ref_doctype:"Journal Entry",
+				joins:[
+					{type:"LEFT",table:"Journal Entry Account",alias:"jea",on:"jea.parent = t.name"},
+					{type:"LEFT",table:"Account",alias:"acct",on:"jea.account = acct.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"voucher_type",ft:"Select",lbl:"Voucher Type",op:"Journal Entry\nBank Entry\nCash Entry\nCredit Card Entry\nDebit Note\nCredit Note"},
+					{fn:"account",ft:"Link",lbl:"Account",op:"Account"},
+				],
+				columns:[
+					{fn:"posting_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"name",ft:"Link",lbl:"Journal Entry",w:160,op:"Journal Entry",ta:"t"},
+					{fn:"voucher_type",ft:"Data",lbl:"Voucher Type",w:130,ta:"t"},
+					{fn:"account",ft:"Link",lbl:"Account",w:180,op:"Account",ta:"jea"},
+					{fn:"debit_in_account_currency",ft:"Currency",lbl:"Debit",w:110,al:"right",ta:"jea"},
+					{fn:"credit_in_account_currency",ft:"Currency",lbl:"Credit",w:110,al:"right",ta:"jea"},
+					{fn:"user_remark",ft:"Data",lbl:"Narration",w:200,ta:"t"},
+				]
+			},
+			// ── STOCK ──
+			{
+				id:"stock_movement", name:"Stock Movement", ico:"🔄", color:"#9333ea", tag:"Stock", tagBg:"#f3e8ff", tagColor:"#7e22ce",
+				desc:"Stock ledger: IN/OUT by item, warehouse, voucher.",
+				report_type:"Script Report", ref_doctype:"Stock Ledger Entry",
+				joins:[
+					{type:"LEFT",table:"Item",alias:"itm",on:"t.item_code = itm.name"},
+					{type:"LEFT",table:"Warehouse",alias:"wh",on:"t.warehouse = wh.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",op:"Warehouse"},
+					{fn:"item_code",ft:"Link",lbl:"Item",op:"Item"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",op:"Item Group"},
+					{fn:"voucher_type",ft:"Select",lbl:"Voucher Type",op:"Purchase Receipt\nDelivery Note\nSales Invoice\nStock Entry\nMaterial Transfer\nManufacturing"},
+				],
+				columns:[
+					{fn:"posting_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"item_code",ft:"Link",lbl:"Item Code",w:140,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:180,ta:"t"},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",w:140,op:"Warehouse",ta:"t"},
+					{fn:"actual_qty",ft:"Float",lbl:"Qty In/Out",w:90,al:"right",ta:"t"},
+					{fn:"qty_after_transaction",ft:"Float",lbl:"Balance Qty",w:100,al:"right",ta:"t"},
+					{fn:"stock_uom",ft:"Data",lbl:"UOM",w:70,ta:"t"},
+					{fn:"valuation_rate",ft:"Currency",lbl:"Rate",w:100,al:"right",ta:"t"},
+					{fn:"stock_value_difference",ft:"Currency",lbl:"Value Change",w:110,al:"right",ta:"t"},
+					{fn:"voucher_type",ft:"Data",lbl:"Voucher Type",w:130,ta:"t"},
+					{fn:"voucher_no",ft:"Dynamic Link",lbl:"Voucher No",w:160,op:"voucher_type",ta:"t"},
+				]
+			},
+			{
+				id:"inventory_valuation", name:"Inventory Valuation", ico:"🏭", color:"#0891b2", tag:"Stock", tagBg:"#cffafe", tagColor:"#0e7490",
+				desc:"Current stock value by item and warehouse (Bin).",
+				report_type:"Script Report", ref_doctype:"Item",
+				joins:[
+					{type:"INNER",table:"Bin",alias:"bin",on:"t.name = bin.item_code"},
+					{type:"LEFT",table:"Warehouse",alias:"wh",on:"bin.warehouse = wh.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"item_code",ft:"Link",lbl:"Item",op:"Item"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",op:"Item Group"},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",op:"Warehouse"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Item Code",w:140,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:200,ta:"t"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",w:130,op:"Item Group",ta:"t"},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",w:150,op:"Warehouse",ta:"bin"},
+					{fn:"actual_qty",ft:"Float",lbl:"Qty on Hand",w:100,al:"right",ta:"bin"},
+					{fn:"ordered_qty",ft:"Float",lbl:"Ordered Qty",w:100,al:"right",ta:"bin"},
+					{fn:"reserved_qty",ft:"Float",lbl:"Reserved Qty",w:100,al:"right",ta:"bin"},
+					{fn:"valuation_rate",ft:"Currency",lbl:"Val. Rate",w:110,al:"right",ta:"bin"},
+					{fn:"stock_value",ft:"Currency",lbl:"Stock Value",w:120,al:"right",ta:"bin"},
+				]
+			},
+			{
+				id:"item_price_list", name:"Item Price List", ico:"💲", color:"#0284c7", tag:"Stock", tagBg:"#e0f2fe", tagColor:"#0369a1",
+				desc:"Item prices across price lists and rate periods.",
+				report_type:"Script Report", ref_doctype:"Item Price",
+				joins:[
+					{type:"LEFT",table:"Item",alias:"itm",on:"t.item_code = itm.name"},
+					{type:"LEFT",table:"Price List",alias:"pl",on:"t.price_list = pl.name"},
+				],
+				filters:[
+					{fn:"item_code",ft:"Link",lbl:"Item",op:"Item"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",op:"Item Group"},
+					{fn:"price_list",ft:"Link",lbl:"Price List",op:"Price List"},
+					{fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",op:"Supplier"},
+					{fn:"currency",ft:"Link",lbl:"Currency",op:"Currency"},
+				],
+				columns:[
+					{fn:"item_code",ft:"Link",lbl:"Item Code",w:140,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:200,ta:"t"},
+					{fn:"item_group",ft:"Link",lbl:"Group",w:120,op:"Item Group",ta:"itm"},
+					{fn:"price_list",ft:"Link",lbl:"Price List",w:130,op:"Price List",ta:"t"},
+					{fn:"price_list_rate",ft:"Currency",lbl:"Rate",w:110,al:"right",ta:"t"},
+					{fn:"currency",ft:"Link",lbl:"Currency",w:80,op:"Currency",ta:"t"},
+					{fn:"uom",ft:"Link",lbl:"UOM",w:80,op:"UOM",ta:"t"},
+					{fn:"valid_from",ft:"Date",lbl:"Valid From",w:100,ta:"t"},
+					{fn:"valid_upto",ft:"Date",lbl:"Valid Upto",w:100,ta:"t"},
+				]
+			},
+			{
+				id:"batch_tracking", name:"Batch Tracking", ico:"🔢", color:"#7c3aed", tag:"Stock", tagBg:"#ede9fe", tagColor:"#6d28d9",
+				desc:"Batch-wise stock levels, expiry, supplier.",
+				report_type:"Script Report", ref_doctype:"Batch",
+				joins:[
+					{type:"LEFT",table:"Item",alias:"itm",on:"t.item = itm.name"},
+					{type:"LEFT",table:"Bin",alias:"bin",on:"bin.item_code = t.item"},
+				],
+				filters:[
+					{fn:"item_code",ft:"Link",lbl:"Item",op:"Item"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",op:"Item Group"},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",op:"Warehouse"},
+					{fn:"expiry_date",ft:"Date",lbl:"Expires Before"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Batch No",w:140,op:"Batch",ta:"t"},
+					{fn:"item",ft:"Link",lbl:"Item",w:140,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:180,ta:"itm"},
+					{fn:"expiry_date",ft:"Date",lbl:"Expiry Date",w:110,ta:"t"},
+					{fn:"manufacturing_date",ft:"Date",lbl:"Mfg Date",w:100,ta:"t"},
+					{fn:"batch_qty",ft:"Float",lbl:"Batch Qty",w:90,al:"right",ta:"t"},
+					{fn:"supplier",ft:"Data",lbl:"Supplier",w:140,ta:"t"},
+				]
+			},
+			// ── MANUFACTURING ──
+			{
+				id:"bom_summary", name:"BOM Summary", ico:"⚙️", color:"#0f766e", tag:"Manufacturing", tagBg:"#ccfbf1", tagColor:"#0f766e",
+				desc:"Bill of Materials: items, operations, costs.",
+				report_type:"Script Report", ref_doctype:"BOM",
+				joins:[
+					{type:"LEFT",table:"Item",alias:"itm",on:"t.item = itm.name"},
+					{type:"LEFT",table:"BOM Item",alias:"bomi",on:"bomi.parent = t.name"},
+				],
+				filters:[
+					{fn:"item",ft:"Link",lbl:"Item",op:"Item"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",op:"Item Group"},
+					{fn:"is_active",ft:"Check",lbl:"Active Only"},
+					{fn:"is_default",ft:"Check",lbl:"Default BOM Only"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"BOM",w:160,op:"BOM",ta:"t"},
+					{fn:"item",ft:"Link",lbl:"Item",w:140,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:180,ta:"itm"},
+					{fn:"quantity",ft:"Float",lbl:"BOM Qty",w:80,al:"right",ta:"t"},
+					{fn:"uom",ft:"Data",lbl:"UOM",w:70,ta:"t"},
+					{fn:"total_cost",ft:"Currency",lbl:"Total Cost",w:120,al:"right",ta:"t"},
+					{fn:"is_default",ft:"Check",lbl:"Default",w:70,ta:"t"},
+					{fn:"is_active",ft:"Check",lbl:"Active",w:70,ta:"t"},
+				]
+			},
+			{
+				id:"work_order", name:"Work Order Progress", ico:"🏗️", color:"#15803d", tag:"Manufacturing", tagBg:"#dcfce7", tagColor:"#166534",
+				desc:"Work orders with production progress vs planned.",
+				report_type:"Script Report", ref_doctype:"Work Order",
+				joins:[
+					{type:"LEFT",table:"Item",alias:"itm",on:"t.production_item = itm.name"},
+					{type:"LEFT",table:"Warehouse",alias:"wh",on:"t.wip_warehouse = wh.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"production_item",ft:"Link",lbl:"Item",op:"Item"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nSubmitted\nNot Started\nIn Process\nCompleted\nCancelled\nStopped"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Work Order",w:160,op:"Work Order",ta:"t"},
+					{fn:"production_item",ft:"Link",lbl:"Item",w:140,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:180,ta:"t"},
+					{fn:"qty",ft:"Float",lbl:"Planned Qty",w:100,al:"right",ta:"t"},
+					{fn:"produced_qty",ft:"Float",lbl:"Produced",w:90,al:"right",ta:"t"},
+					{fn:"planned_start_date",ft:"Date",lbl:"Start Date",w:110,ta:"t"},
+					{fn:"planned_end_date",ft:"Date",lbl:"End Date",w:110,ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:110,ta:"t"},
+				]
+			},
+			{
+				id:"job_card", name:"Job Card / Operations", ico:"🔧", color:"#374151", tag:"Manufacturing", tagBg:"#f3f4f6", tagColor:"#374151",
+				desc:"Job card time and operations per work order.",
+				report_type:"Script Report", ref_doctype:"Job Card",
+				joins:[
+					{type:"LEFT",table:"Work Order",alias:"wo",on:"t.work_order = wo.name"},
+					{type:"LEFT",table:"Operation",alias:"op_",on:"t.operation = op_.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"work_order",ft:"Link",lbl:"Work Order",op:"Work Order"},
+					{fn:"operation",ft:"Link",lbl:"Operation",op:"Operation"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Open\nWork In Progress\nCompleted\nCancelled"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Job Card",w:150,op:"Job Card",ta:"t"},
+					{fn:"work_order",ft:"Link",lbl:"Work Order",w:150,op:"Work Order",ta:"t"},
+					{fn:"production_item",ft:"Data",lbl:"Item",w:140,ta:"t"},
+					{fn:"operation",ft:"Data",lbl:"Operation",w:130,ta:"t"},
+					{fn:"for_quantity",ft:"Float",lbl:"Qty",w:70,al:"right",ta:"t"},
+					{fn:"total_time_in_mins",ft:"Float",lbl:"Time (mins)",w:100,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:110,ta:"t"},
+				]
+			},
+			// ── HR ──
+			{
+				id:"payroll_summary", name:"Payroll Summary", ico:"💼", color:"#db2777", tag:"Payroll", tagBg:"#fce7f3", tagColor:"#be185d",
+				desc:"Salary slips with gross, deductions, net pay.",
+				report_type:"Script Report", ref_doctype:"Salary Slip",
+				joins:[
+					{type:"LEFT",table:"Employee",alias:"emp",on:"t.employee = emp.name"},
+					{type:"LEFT",table:"Department",alias:"dept",on:"emp.department = dept.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"start_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"end_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"employee",ft:"Link",lbl:"Employee",op:"Employee"},
+					{fn:"department",ft:"Link",lbl:"Department",op:"Department"},
+					{fn:"payroll_entry",ft:"Link",lbl:"Payroll Entry",op:"Payroll Entry"},
+					{fn:"docstatus",ft:"Select",lbl:"Status",op:"0\n1\n2"},
+				],
+				columns:[
+					{fn:"employee",ft:"Link",lbl:"Employee",w:120,op:"Employee",ta:"t"},
+					{fn:"employee_name",ft:"Data",lbl:"Employee Name",w:160,ta:"t"},
+					{fn:"department",ft:"Link",lbl:"Department",w:130,op:"Department",ta:"emp"},
+					{fn:"designation",ft:"Data",lbl:"Designation",w:130,ta:"emp"},
+					{fn:"start_date",ft:"Date",lbl:"From",w:100,ta:"t"},
+					{fn:"end_date",ft:"Date",lbl:"To",w:100,ta:"t"},
+					{fn:"gross_pay",ft:"Currency",lbl:"Gross Pay",w:110,al:"right",ta:"t"},
+					{fn:"total_deduction",ft:"Currency",lbl:"Deduction",w:110,al:"right",ta:"t"},
+					{fn:"net_pay",ft:"Currency",lbl:"Net Pay",w:110,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:90,ta:"t"},
+				]
+			},
+			{
+				id:"hr_employee", name:"Employee Directory", ico:"👥", color:"#d97706", tag:"HR", tagBg:"#fef3c7", tagColor:"#b45309",
+				desc:"All employees with department, designation, status.",
+				report_type:"Script Report", ref_doctype:"Employee",
+				joins:[
+					{type:"LEFT",table:"Department",alias:"dept",on:"t.department = dept.name"},
+					{type:"LEFT",table:"Designation",alias:"desig",on:"t.designation = desig.name"},
+					{type:"LEFT",table:"Branch",alias:"br",on:"t.branch = br.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"department",ft:"Link",lbl:"Department",op:"Department"},
+					{fn:"designation",ft:"Link",lbl:"Designation",op:"Designation"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Active\nInactive\nLeft\nSuspended"},
+					{fn:"employment_type",ft:"Link",lbl:"Employment Type",op:"Employment Type"},
+					{fn:"gender",ft:"Select",lbl:"Gender",op:"Male\nFemale\nOther"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Employee ID",w:120,op:"Employee",ta:"t"},
+					{fn:"employee_name",ft:"Data",lbl:"Employee Name",w:160,ta:"t"},
+					{fn:"department",ft:"Link",lbl:"Department",w:130,op:"Department",ta:"t"},
+					{fn:"designation",ft:"Data",lbl:"Designation",w:130,ta:"t"},
+					{fn:"date_of_joining",ft:"Date",lbl:"Joining Date",w:110,ta:"t"},
+					{fn:"gender",ft:"Data",lbl:"Gender",w:80,ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:90,ta:"t"},
+					{fn:"cell_number",ft:"Phone",lbl:"Phone",w:110,ta:"t"},
+					{fn:"personal_email",ft:"Data",lbl:"Email",w:160,ta:"t"},
+				]
+			},
+			{
+				id:"leave_summary", name:"Leave Summary", ico:"🌴", color:"#65a30d", tag:"HR", tagBg:"#ecfccb", tagColor:"#4d7c0f",
+				desc:"Leave applications by employee, type, status.",
+				report_type:"Script Report", ref_doctype:"Leave Application",
+				joins:[
+					{type:"LEFT",table:"Employee",alias:"emp",on:"t.employee = emp.name"},
+					{type:"LEFT",table:"Leave Type",alias:"lt",on:"t.leave_type = lt.name"},
+					{type:"LEFT",table:"Department",alias:"dept",on:"emp.department = dept.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"employee",ft:"Link",lbl:"Employee",op:"Employee"},
+					{fn:"department",ft:"Link",lbl:"Department",op:"Department"},
+					{fn:"leave_type",ft:"Link",lbl:"Leave Type",op:"Leave Type"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Open\nApproved\nRejected\nCancelled"},
+				],
+				columns:[
+					{fn:"employee",ft:"Link",lbl:"Employee",w:120,op:"Employee",ta:"t"},
+					{fn:"employee_name",ft:"Data",lbl:"Employee Name",w:160,ta:"t"},
+					{fn:"department",ft:"Link",lbl:"Department",w:130,op:"Department",ta:"emp"},
+					{fn:"leave_type",ft:"Link",lbl:"Leave Type",w:130,op:"Leave Type",ta:"t"},
+					{fn:"from_date",ft:"Date",lbl:"From",w:100,ta:"t"},
+					{fn:"to_date",ft:"Date",lbl:"To",w:100,ta:"t"},
+					{fn:"total_leave_days",ft:"Float",lbl:"Days",w:70,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:100,ta:"t"},
+					{fn:"description",ft:"Small Text",lbl:"Reason",w:200,ta:"t"},
+				]
+			},
+			{
+				id:"attendance_report", name:"Attendance Report", ico:"📅", color:"#7c3aed", tag:"HR", tagBg:"#ede9fe", tagColor:"#6d28d9",
+				desc:"Daily attendance with status, in/out time, late entry.",
+				report_type:"Script Report", ref_doctype:"Attendance",
+				joins:[
+					{type:"LEFT",table:"Employee",alias:"emp",on:"t.employee = emp.name"},
+					{type:"LEFT",table:"Department",alias:"dept",on:"emp.department = dept.name"},
+					{type:"LEFT",table:"Shift Type",alias:"shft",on:"t.shift = shft.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"employee",ft:"Link",lbl:"Employee",op:"Employee"},
+					{fn:"department",ft:"Link",lbl:"Department",op:"Department"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Present\nAbsent\nHalf Day\nWork From Home\nOn Leave"},
+				],
+				columns:[
+					{fn:"attendance_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"employee",ft:"Link",lbl:"Employee",w:120,op:"Employee",ta:"t"},
+					{fn:"employee_name",ft:"Data",lbl:"Employee Name",w:160,ta:"t"},
+					{fn:"department",ft:"Data",lbl:"Department",w:130,ta:"emp"},
+					{fn:"status",ft:"Data",lbl:"Status",w:100,ta:"t"},
+					{fn:"in_time",ft:"Datetime",lbl:"In Time",w:130,ta:"t"},
+					{fn:"out_time",ft:"Datetime",lbl:"Out Time",w:130,ta:"t"},
+					{fn:"working_hours",ft:"Float",lbl:"Working Hours",w:110,al:"right",ta:"t"},
+					{fn:"late_entry",ft:"Check",lbl:"Late Entry",w:80,ta:"t"},
+					{fn:"early_exit",ft:"Check",lbl:"Early Exit",w:80,ta:"t"},
+				]
+			},
+			{
+				id:"expense_claims", name:"Expense Claims", ico:"🧾", color:"#dc2626", tag:"HR", tagBg:"#fee2e2", tagColor:"#b91c1c",
+				desc:"Employee expense claims with type, amounts, status.",
+				report_type:"Script Report", ref_doctype:"Expense Claim",
+				joins:[
+					{type:"LEFT",table:"Employee",alias:"emp",on:"t.employee = emp.name"},
+					{type:"LEFT",table:"Department",alias:"dept",on:"emp.department = dept.name"},
+					{type:"LEFT",table:"Expense Claim Detail",alias:"ecd",on:"ecd.parent = t.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"employee",ft:"Link",lbl:"Employee",op:"Employee"},
+					{fn:"department",ft:"Link",lbl:"Department",op:"Department"},
+					{fn:"approval_status",ft:"Select",lbl:"Approval Status",op:"Draft\nSubmitted\nApproved\nRejected"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Expense Claim",w:160,op:"Expense Claim",ta:"t"},
+					{fn:"employee",ft:"Link",lbl:"Employee",w:120,op:"Employee",ta:"t"},
+					{fn:"employee_name",ft:"Data",lbl:"Employee Name",w:160,ta:"t"},
+					{fn:"department",ft:"Data",lbl:"Department",w:130,ta:"emp"},
+					{fn:"expense_date",ft:"Date",lbl:"Date",w:100,ta:"t"},
+					{fn:"expense_type",ft:"Data",lbl:"Expense Type",w:140,ta:"ecd"},
+					{fn:"total_claimed_amount",ft:"Currency",lbl:"Claimed",w:110,al:"right",ta:"t"},
+					{fn:"total_sanctioned_amount",ft:"Currency",lbl:"Sanctioned",w:110,al:"right",ta:"t"},
+					{fn:"approval_status",ft:"Data",lbl:"Status",w:100,ta:"t"},
+				]
+			},
+			// ── ASSETS ──
+			{
+				id:"asset_register", name:"Asset Register", ico:"🏢", color:"#475569", tag:"Assets", tagBg:"#f1f5f9", tagColor:"#334155",
+				desc:"Fixed assets with category, location, value.",
+				report_type:"Script Report", ref_doctype:"Asset",
+				joins:[
+					{type:"LEFT",table:"Asset Category",alias:"acat",on:"t.asset_category = acat.name"},
+					{type:"LEFT",table:"Location",alias:"loc",on:"t.location = loc.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"asset_category",ft:"Link",lbl:"Asset Category",op:"Asset Category"},
+					{fn:"location",ft:"Link",lbl:"Location",op:"Location"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nSubmitted\nPartially Depreciated\nFully Depreciated\nScrapped\nSold\nIn Maintenance"},
+					{fn:"custodian",ft:"Link",lbl:"Custodian",op:"Employee"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Asset",w:160,op:"Asset",ta:"t"},
+					{fn:"asset_name",ft:"Data",lbl:"Asset Name",w:180,ta:"t"},
+					{fn:"asset_category",ft:"Link",lbl:"Category",w:140,op:"Asset Category",ta:"t"},
+					{fn:"purchase_date",ft:"Date",lbl:"Purchase Date",w:110,ta:"t"},
+					{fn:"gross_purchase_amount",ft:"Currency",lbl:"Purchase Value",w:120,al:"right",ta:"t"},
+					{fn:"accumulated_depreciation_amount",ft:"Currency",lbl:"Acc. Depreciation",w:130,al:"right",ta:"t"},
+					{fn:"value_after_depreciation",ft:"Currency",lbl:"Net Book Value",w:120,al:"right",ta:"t"},
+					{fn:"location",ft:"Link",lbl:"Location",w:120,op:"Location",ta:"t"},
+					{fn:"custodian",ft:"Link",lbl:"Custodian",w:130,op:"Employee",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:110,ta:"t"},
+				]
+			},
+			// ── PROJECTS ──
+			{
+				id:"project_tracker", name:"Project Tracker", ico:"📋", color:"#4f46e5", tag:"Projects", tagBg:"#e0e7ff", tagColor:"#3730a3",
+				desc:"Projects with tasks, progress, timeline, cost.",
+				report_type:"Script Report", ref_doctype:"Project",
+				joins:[
+					{type:"LEFT",table:"Customer",alias:"cust",on:"t.customer = cust.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Open\nCompleted\nCancelled\nOverdue"},
+					{fn:"from_date",ft:"Date",lbl:"From Date"},
+					{fn:"to_date",ft:"Date",lbl:"To Date"},
+					{fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"},
+					{fn:"department",ft:"Link",lbl:"Department",op:"Department"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Project",w:150,op:"Project",ta:"t"},
+					{fn:"project_name",ft:"Data",lbl:"Project Name",w:200,ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:100,ta:"t"},
+					{fn:"customer",ft:"Link",lbl:"Customer",w:140,op:"Customer",ta:"t"},
+					{fn:"expected_start_date",ft:"Date",lbl:"Start Date",w:100,ta:"t"},
+					{fn:"expected_end_date",ft:"Date",lbl:"End Date",w:100,ta:"t"},
+					{fn:"percent_complete",ft:"Percent",lbl:"Progress %",w:90,al:"right",ta:"t"},
+					{fn:"total_costing_amount",ft:"Currency",lbl:"Actual Cost",w:120,al:"right",ta:"t"},
+					{fn:"total_budgeted_amount",ft:"Currency",lbl:"Budget",w:110,al:"right",ta:"t"},
+				]
+			},
+			{
+				id:"timesheet_summary", name:"Timesheet Summary", ico:"⏱️", color:"#6366f1", tag:"Projects", tagBg:"#e0e7ff", tagColor:"#4338ca",
+				desc:"Timesheet hours and billing by employee, project.",
+				report_type:"Script Report", ref_doctype:"Timesheet",
+				joins:[
+					{type:"LEFT",table:"Employee",alias:"emp",on:"t.employee = emp.name"},
+					{type:"LEFT",table:"Timesheet Detail",alias:"tsd",on:"tsd.parent = t.name"},
+					{type:"LEFT",table:"Project",alias:"proj",on:"tsd.project = proj.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"employee",ft:"Link",lbl:"Employee",op:"Employee"},
+					{fn:"project",ft:"Link",lbl:"Project",op:"Project"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nSubmitted\nCancelled\nBilled"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Timesheet",w:150,op:"Timesheet",ta:"t"},
+					{fn:"employee",ft:"Link",lbl:"Employee",w:120,op:"Employee",ta:"t"},
+					{fn:"employee_name",ft:"Data",lbl:"Employee Name",w:160,ta:"emp"},
+					{fn:"start_date",ft:"Date",lbl:"Start Date",w:100,ta:"t"},
+					{fn:"end_date",ft:"Date",lbl:"End Date",w:100,ta:"t"},
+					{fn:"project",ft:"Link",lbl:"Project",w:150,op:"Project",ta:"tsd"},
+					{fn:"hours",ft:"Float",lbl:"Hours",w:80,al:"right",ta:"tsd"},
+					{fn:"billing_hours",ft:"Float",lbl:"Billing Hrs",w:90,al:"right",ta:"t"},
+					{fn:"total_billed_amount",ft:"Currency",lbl:"Billed Amount",w:120,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:90,ta:"t"},
+				]
+			},
+			// ── CRM ──
+			{
+				id:"lead_report", name:"Lead Report", ico:"🎯", color:"#e11d48", tag:"CRM", tagBg:"#ffe4e6", tagColor:"#be123c",
+				desc:"CRM leads by source, status, territory.",
+				report_type:"Script Report", ref_doctype:"Lead",
+				joins:[
+					{type:"LEFT",table:"Campaign",alias:"camp",on:"t.campaign_name = camp.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"status",ft:"Select",lbl:"Status",op:"New\nOpen\nReplied\nOpportunity\nQuotation\nLost Quotation\nInterested\nConverted\nDo Not Contact"},
+					{fn:"lead_owner",ft:"Link",lbl:"Lead Owner",op:"User"},
+					{fn:"source",ft:"Select",lbl:"Source",op:"Cold Calling\nExhibition\nReferral\nOther"},
+					{fn:"territory",ft:"Link",lbl:"Territory",op:"Territory"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Lead",w:140,op:"Lead",ta:"t"},
+					{fn:"lead_name",ft:"Data",lbl:"Lead Name",w:160,ta:"t"},
+					{fn:"company_name",ft:"Data",lbl:"Company",w:150,ta:"t"},
+					{fn:"source",ft:"Data",lbl:"Source",w:110,ta:"t"},
+					{fn:"territory",ft:"Link",lbl:"Territory",w:110,op:"Territory",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:100,ta:"t"},
+					{fn:"lead_owner",ft:"Link",lbl:"Owner",w:130,op:"User",ta:"t"},
+					{fn:"creation",ft:"Datetime",lbl:"Created",w:130,ta:"t"},
+					{fn:"converted",ft:"Check",lbl:"Converted",w:80,ta:"t"},
+				]
+			},
+			{
+				id:"opportunity_pipeline", name:"Opportunity Pipeline", ico:"🚀", color:"#be185d", tag:"CRM", tagBg:"#fce7f3", tagColor:"#9d174d",
+				desc:"Opportunity pipeline: stage, value, closing date.",
+				report_type:"Script Report", ref_doctype:"Opportunity",
+				joins:[
+					{type:"LEFT",table:"Customer",alias:"cust",on:"t.party_name = cust.name AND t.opportunity_from = 'Customer'"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company"},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Open\nQuotation\nConverted\nSuspended\nLost\nClosed"},
+					{fn:"sales_stage",ft:"Link",lbl:"Sales Stage",op:"Sales Stage"},
+					{fn:"opportunity_owner",ft:"Link",lbl:"Opportunity Owner",op:"User"},
+					{fn:"territory",ft:"Link",lbl:"Territory",op:"Territory"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Opportunity",w:160,op:"Opportunity",ta:"t"},
+					{fn:"party_name",ft:"Data",lbl:"Customer/Lead",w:160,ta:"t"},
+					{fn:"opportunity_amount",ft:"Currency",lbl:"Opp. Amount",w:120,al:"right",ta:"t"},
+					{fn:"probability",ft:"Percent",lbl:"Probability %",w:100,al:"right",ta:"t"},
+					{fn:"expected_closing",ft:"Date",lbl:"Expected Close",w:120,ta:"t"},
+					{fn:"sales_stage",ft:"Data",lbl:"Stage",w:110,ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:100,ta:"t"},
+					{fn:"opportunity_owner",ft:"Link",lbl:"Owner",w:130,op:"User",ta:"t"},
+					{fn:"source",ft:"Data",lbl:"Source",w:110,ta:"t"},
+
+				]
+			},
+			// ── ADVANCED ──
+			{
+				id:"reorder_alert", name:"Reorder Level Alert", ico:"⚠️", color:"#b45309", tag:"Inventory", tagBg:"#fef3c7", tagColor:"#92400e",
+				desc:"Items below reorder level — actual vs reorder qty.",
+				report_type:"Script Report", ref_doctype:"Item",
+				joins:[
+					{type:"LEFT",table:"Bin",alias:"bin",on:"t.name = bin.item_code"},
+					{type:"LEFT",table:"Item Default",alias:"idef",on:"idef.parent = t.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",op:"Warehouse"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",op:"Item Group"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Item Code",w:160,op:"Item",ta:"t"},
+					{fn:"item_name",ft:"Data",lbl:"Item Name",w:200,ta:"t"},
+					{fn:"item_group",ft:"Link",lbl:"Item Group",w:130,op:"Item Group",ta:"t"},
+					{fn:"warehouse",ft:"Link",lbl:"Warehouse",w:150,op:"Warehouse",ta:"bin"},
+					{fn:"actual_qty",ft:"Float",lbl:"Actual Qty",w:100,al:"right",ta:"bin"},
+					{fn:"reorder_level",ft:"Float",lbl:"Reorder Level",w:110,al:"right",ta:"bin"},
+					{fn:"reorder_qty",ft:"Float",lbl:"Reorder Qty",w:110,al:"right",ta:"bin"},
+					{fn:"stock_uom",ft:"Data",lbl:"UOM",w:70,ta:"t"},
+				]
+			},
+			{
+				id:"delivery_performance", name:"Delivery Performance", ico:"🚚", color:"#0369a1", tag:"Logistics", tagBg:"#e0f2fe", tagColor:"#0c4a6e",
+				desc:"Delivery Notes vs Sales Orders: qty ordered, delivered, pending.",
+				report_type:"Script Report", ref_doctype:"Delivery Note",
+				joins:[
+					{type:"LEFT",table:"Delivery Note Item",alias:"dni",on:"dni.parent = t.name"},
+					{type:"LEFT",table:"Sales Order",alias:"so",on:"dni.against_sales_order = so.name"},
+					{type:"LEFT",table:"Customer",alias:"cust",on:"t.customer = cust.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"},
+					{fn:"status",ft:"Select",lbl:"DN Status",op:"Draft\nSubmitted\nReturn Issued\nCompleted\nCancelled"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Delivery Note",w:160,op:"Delivery Note",ta:"t"},
+					{fn:"posting_date",ft:"Date",lbl:"Delivery Date",w:110,ta:"t"},
+					{fn:"customer",ft:"Link",lbl:"Customer",w:150,op:"Customer",ta:"t"},
+					{fn:"against_sales_order",ft:"Link",lbl:"Sales Order",w:150,op:"Sales Order",ta:"dni"},
+					{fn:"item_code",ft:"Link",lbl:"Item",w:140,op:"Item",ta:"dni"},
+					{fn:"qty",ft:"Float",lbl:"Ordered Qty",w:100,al:"right",ta:"dni"},
+					{fn:"delivered_qty",ft:"Float",lbl:"Delivered",w:100,al:"right",ta:"dni"},
+					{fn:"status",ft:"Data",lbl:"Status",w:90,ta:"t"},
+				]
+			},
+			{
+				id:"pending_po_receipt", name:"Pending PO Receipt", ico:"📦", color:"#7c3aed", tag:"Purchase", tagBg:"#ede9fe", tagColor:"#5b21b6",
+				desc:"Purchase orders with outstanding receipt quantity.",
+				report_type:"Script Report", ref_doctype:"Purchase Order",
+				joins:[
+					{type:"LEFT",table:"Supplier",alias:"sup",on:"t.supplier = sup.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",op:"Supplier"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nTo Receive and Bill\nTo Bill\nCompleted\nCancelled\nClosed"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"PO",w:160,op:"Purchase Order",ta:"t"},
+					{fn:"transaction_date",ft:"Date",lbl:"PO Date",w:100,ta:"t"},
+					{fn:"supplier",ft:"Link",lbl:"Supplier",w:160,op:"Supplier",ta:"t"},
+					{fn:"supplier_name",ft:"Data",lbl:"Supplier Name",w:180,ta:"sup"},
+					{fn:"grand_total",ft:"Currency",lbl:"PO Total",w:120,al:"right",ta:"t"},
+					{fn:"per_received",ft:"Percent",lbl:"% Received",w:100,al:"right",ta:"t"},
+					{fn:"per_billed",ft:"Percent",lbl:"% Billed",w:100,al:"right",ta:"t"},
+					{fn:"status",ft:"Data",lbl:"Status",w:120,ta:"t"},
+					{fn:"schedule_date",ft:"Date",lbl:"Required By",w:110,ta:"t"},
+				]
+			},
+			{
+				id:"pl_quick_view", name:"P&L Quick View", ico:"📊", color:"#065f46", tag:"Accounts", tagBg:"#d1fae5", tagColor:"#064e3b",
+				desc:"Profit & Loss by account: debit vs credit grouped by account.",
+				report_type:"Script Report", ref_doctype:"GL Entry",
+				joins:[
+					{type:"LEFT",table:"Account",alias:"acc",on:"t.account = acc.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"finance_book",ft:"Link",lbl:"Finance Book",op:"Finance Book"},
+					{fn:"root_type",ft:"Select",lbl:"Root Type",op:"Income\nExpense\nAsset\nLiability\nEquity"},
+				],
+				columns:[
+					{fn:"account",ft:"Link",lbl:"Account",w:200,op:"Account",ta:"t"},
+					{fn:"account_name",ft:"Data",lbl:"Account Name",w:200,ta:"acc"},
+					{fn:"root_type",ft:"Data",lbl:"Root Type",w:90,ta:"acc"},
+					{fn:"account_type",ft:"Data",lbl:"Account Type",w:120,ta:"acc"},
+					{fn:"debit",ft:"Currency",lbl:"Total Debit",w:130,al:"right",ta:"t"},
+					{fn:"credit",ft:"Currency",lbl:"Total Credit",w:130,al:"right",ta:"t"},
+				]
+			},
+			{
+				id:"service_issue_tracker", name:"Service Issue Tracker", ico:"🎫", color:"#dc2626", tag:"Support", tagBg:"#fee2e2", tagColor:"#991b1b",
+				desc:"Support issues by customer, priority, SLA and status.",
+				report_type:"Script Report", ref_doctype:"Issue",
+				joins:[
+					{type:"LEFT",table:"Customer",alias:"cust",on:"t.customer = cust.name"},
+					{type:"LEFT",table:"User",alias:"usr",on:"t.assigned_to = usr.name"},
+				],
+				filters:[
+					{fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
+					{fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Open\nReplied\nHold\nResolved\nClosed"},
+					{fn:"priority",ft:"Select",lbl:"Priority",op:"Low\nMedium\nHigh\nUrgent"},
+					{fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Issue",w:150,op:"Issue",ta:"t"},
+					{fn:"subject",ft:"Data",lbl:"Subject",w:250,ta:"t"},
+					{fn:"customer",ft:"Link",lbl:"Customer",w:150,op:"Customer",ta:"t"},
+					{fn:"customer_name",ft:"Data",lbl:"Customer Name",w:180,ta:"cust"},
+					{fn:"status",ft:"Data",lbl:"Status",w:90,ta:"t"},
+					{fn:"priority",ft:"Data",lbl:"Priority",w:80,ta:"t"},
+					{fn:"opening_date",ft:"Date",lbl:"Opened",w:100,ta:"t"},
+					{fn:"resolution_date",ft:"Date",lbl:"Resolved",w:100,ta:"t"},
+					{fn:"response_by",ft:"Datetime",lbl:"SLA Response",w:130,ta:"t"},
+					{fn:"full_name",ft:"Data",lbl:"Assigned To",w:130,ta:"usr"},
+				]
+			},
+			{
+				id:"budget_variance", name:"Budget vs Actual", ico:"📉", color:"#1e3a5f", tag:"Accounts", tagBg:"#dbeafe", tagColor:"#1e40af",
+				desc:"Budget consumption: allocated budget vs actual GL posting.",
+				report_type:"Script Report", ref_doctype:"Budget",
+				joins:[
+					{type:"LEFT",table:"Budget Account",alias:"ba",on:"ba.parent = t.name"},
+					{type:"LEFT",table:"Account",alias:"acc",on:"ba.account = acc.name"},
+					{type:"LEFT",table:"Cost Center",alias:"cc",on:"t.cost_center = cc.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"fiscal_year",ft:"Link",lbl:"Fiscal Year",op:"Fiscal Year",req:1},
+					{fn:"cost_center",ft:"Link",lbl:"Cost Center",op:"Cost Center"},
+					{fn:"budget_against",ft:"Select",lbl:"Budget Against",op:"Cost Center\nProject"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Budget",w:160,op:"Budget",ta:"t"},
+					{fn:"cost_center",ft:"Link",lbl:"Cost Center",w:160,op:"Cost Center",ta:"t"},
+					{fn:"account",ft:"Link",lbl:"Account",w:180,op:"Account",ta:"ba"},
+					{fn:"account_name",ft:"Data",lbl:"Account Name",w:180,ta:"acc"},
+					{fn:"budget_amount",ft:"Currency",lbl:"Budgeted",w:120,al:"right",ta:"ba"},
+					{fn:"fiscal_year",ft:"Data",lbl:"Fiscal Year",w:100,ta:"t"},
+					{fn:"action_if_annual_budget_exceeded",ft:"Data",lbl:"Action",w:100,ta:"t"},
+				]
+			},
+			{
+				id:"asset_depreciation_schedule", name:"Asset Depreciation", ico:"🏗️", color:"#374151", tag:"Assets", tagBg:"#f3f4f6", tagColor:"#111827",
+				desc:"Fixed asset depreciation schedule by category and method.",
+				report_type:"Script Report", ref_doctype:"Asset",
+				joins:[
+					{type:"LEFT",table:"Asset Finance Book",alias:"afb",on:"afb.parent = t.name"},
+					{type:"LEFT",table:"Asset Category",alias:"acat",on:"t.asset_category = acat.name"},
+				],
+				filters:[
+					{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
+					{fn:"asset_category",ft:"Link",lbl:"Asset Category",op:"Asset Category"},
+					{fn:"status",ft:"Select",lbl:"Status",op:"Draft\nSubmitted\nPartially Depreciated\nFully Depreciated\nScrapped\nSold"},
+					{fn:"from_date",ft:"Date",lbl:"Purchase From",def:"Today"},
+					{fn:"to_date",ft:"Date",lbl:"Purchase To",def:"Today"},
+				],
+				columns:[
+					{fn:"name",ft:"Link",lbl:"Asset",w:160,op:"Asset",ta:"t"},
+					{fn:"asset_name",ft:"Data",lbl:"Asset Name",w:200,ta:"t"},
+					{fn:"asset_category",ft:"Link",lbl:"Category",w:140,op:"Asset Category",ta:"t"},
+					{fn:"purchase_date",ft:"Date",lbl:"Purchase Date",w:110,ta:"t"},
+					{fn:"gross_purchase_amount",ft:"Currency",lbl:"Purchase Value",w:130,al:"right",ta:"t"},
+					{fn:"value_after_depreciation",ft:"Currency",lbl:"Current Value",w:130,al:"right",ta:"t"},
+					{fn:"depreciation_method",ft:"Data",lbl:"Dep. Method",w:130,ta:"afb"},
+					{fn:"total_number_of_depreciations",ft:"Int",lbl:"Total Periods",w:100,al:"right",ta:"afb"},
+					{fn:"status",ft:"Data",lbl:"Status",w:110,ta:"t"},
+				]
+			},
+		];
+
+		/* ── Per-preset query conditions (extra WHERE, ORDER BY, GROUP BY, HAVING, LIMIT) ── */
+		const PRESET_CONDITIONS = {
+			blank:                  { extra_where:"",                                         order_by:"t.modified DESC",                                    group_by:"",                                            having:"",                     limit_rows:0    },
+			sales_invoice:          { extra_where:"",                                         order_by:"t.posting_date DESC, t.name DESC",                   group_by:"",                                            having:"",                     limit_rows:0    },
+			sales_order:            { extra_where:"",                                         order_by:"t.transaction_date DESC",                            group_by:"",                                            having:"",                     limit_rows:0    },
+			quotation:              { extra_where:"AND t.docstatus < 2",                      order_by:"t.transaction_date DESC",                            group_by:"",                                            having:"",                     limit_rows:0    },
+			item_wise_sales:        { extra_where:"AND si.docstatus = 1",                     order_by:"SUM(t.amount) DESC",                                 group_by:"t.item_code, t.item_name, itm.item_group",    having:"SUM(t.qty) > 0",       limit_rows:500  },
+			purchase_invoice:       { extra_where:"",                                         order_by:"t.posting_date DESC, t.name DESC",                   group_by:"",                                            having:"",                     limit_rows:0    },
+			purchase_order:         { extra_where:"",                                         order_by:"t.transaction_date DESC",                            group_by:"",                                            having:"",                     limit_rows:0    },
+			purchase_receipt_items: { extra_where:"AND pr.docstatus = 1",                     order_by:"pr.posting_date DESC",                               group_by:"",                                            having:"",                     limit_rows:0    },
+			accounts_receivable:    { extra_where:"AND t.outstanding_amount > 0",             order_by:"t.outstanding_amount DESC",                          group_by:"",                                            having:"",                     limit_rows:0    },
+			accounts_payable:       { extra_where:"AND t.outstanding_amount > 0",             order_by:"t.outstanding_amount DESC",                          group_by:"",                                            having:"",                     limit_rows:0    },
+			payment_register:       { extra_where:"AND t.docstatus = 1",                      order_by:"t.posting_date DESC",                                group_by:"",                                            having:"",                     limit_rows:0    },
+			gl_ledger:              { extra_where:"AND t.is_cancelled = 0",                   order_by:"t.posting_date DESC, t.creation DESC",               group_by:"",                                            having:"",                     limit_rows:1000 },
+			journal_entry:          { extra_where:"AND t.docstatus = 1",                      order_by:"t.posting_date DESC",                                group_by:"",                                            having:"",                     limit_rows:0    },
+			stock_movement:         { extra_where:"",                                         order_by:"t.posting_date DESC, t.posting_time DESC",           group_by:"",                                            having:"",                     limit_rows:1000 },
+			inventory_valuation:    { extra_where:"AND bin.actual_qty > 0",                   order_by:"t.item_name ASC, bin.warehouse ASC",                 group_by:"",                                            having:"",                     limit_rows:0    },
+			item_price_list:        { extra_where:"",                                         order_by:"t.item_code ASC, t.price_list ASC",                  group_by:"",                                            having:"",                     limit_rows:0    },
+			batch_tracking:         { extra_where:"AND t.disabled = 0",                       order_by:"t.expiry_date ASC",                                  group_by:"",                                            having:"",                     limit_rows:0    },
+			bom_summary:            { extra_where:"AND t.docstatus = 1 AND t.is_active = 1",  order_by:"t.item ASC",                                         group_by:"",                                            having:"",                     limit_rows:0    },
+			work_order:             { extra_where:"",                                         order_by:"t.planned_start_date ASC",                           group_by:"",                                            having:"",                     limit_rows:0    },
+			job_card:               { extra_where:"AND t.docstatus < 2",                      order_by:"t.creation DESC",                                    group_by:"",                                            having:"",                     limit_rows:0    },
+			payroll_summary:        { extra_where:"AND t.docstatus = 1",                      order_by:"emp.department ASC, t.employee_name ASC",            group_by:"",                                            having:"",                     limit_rows:0    },
+			hr_employee:            { extra_where:"",                                         order_by:"t.department ASC, t.employee_name ASC",              group_by:"",                                            having:"",                     limit_rows:0    },
+			leave_summary:          { extra_where:"AND t.docstatus = 1",                      order_by:"t.from_date DESC",                                   group_by:"",                                            having:"",                     limit_rows:0    },
+			attendance_report:      { extra_where:"AND t.docstatus = 1",                      order_by:"t.attendance_date DESC, t.employee ASC",             group_by:"",                                            having:"",                     limit_rows:0    },
+			expense_claims:         { extra_where:"AND t.docstatus < 2",                      order_by:"t.expense_date DESC",                                group_by:"",                                            having:"",                     limit_rows:0    },
+			asset_register:         { extra_where:"AND t.docstatus = 1",                      order_by:"t.asset_category ASC, t.asset_name ASC",             group_by:"",                                            having:"",                     limit_rows:0    },
+			project_tracker:        { extra_where:"",                                         order_by:"t.expected_end_date ASC, t.status ASC",              group_by:"",                                            having:"",                     limit_rows:0    },
+			timesheet_summary:      { extra_where:"AND t.docstatus = 1",                      order_by:"t.start_date DESC, t.employee ASC",                  group_by:"",                                            having:"",                     limit_rows:0    },
+			lead_report:            { extra_where:"",                                         order_by:"t.creation DESC",                                    group_by:"",                                            having:"",                     limit_rows:0    },
+			opportunity_pipeline:   { extra_where:"AND t.docstatus < 2",                      order_by:"t.expected_closing ASC, t.probability DESC",         group_by:"",                                            having:"",                     limit_rows:0    },
+			// ── ADVANCED ──
+			reorder_alert:              { extra_where:"AND bin.actual_qty <= bin.reorder_level",    order_by:"bin.actual_qty ASC",                                 group_by:"",                                            having:"",                     limit_rows:0    },
+			delivery_performance:       { extra_where:"AND t.docstatus = 1",                       order_by:"t.posting_date DESC",                                group_by:"",                                            having:"",                     limit_rows:0    },
+			pending_po_receipt:         { extra_where:"AND t.per_received < 100 AND t.docstatus = 1 AND t.status NOT IN ('Completed','Cancelled','Closed')", order_by:"t.schedule_date ASC", group_by:"",             having:"",                     limit_rows:0    },
+			pl_quick_view:              { extra_where:"AND t.is_cancelled = 0",                    order_by:"acc.root_type ASC, t.account ASC",                   group_by:"t.account, acc.account_name, acc.root_type, acc.account_type", having:"", limit_rows:0    },
+			service_issue_tracker:      { extra_where:"",                                          order_by:"t.opening_date DESC, t.priority DESC",               group_by:"",                                            having:"",                     limit_rows:0    },
+			budget_variance:            { extra_where:"AND t.docstatus = 1",                       order_by:"cc.name ASC, acc.account_name ASC",                  group_by:"",                                            having:"",                     limit_rows:0    },
+			asset_depreciation_schedule:{ extra_where:"AND t.docstatus = 1",                       order_by:"t.asset_category ASC, t.asset_name ASC",             group_by:"",                                            having:"",                     limit_rows:0    },
+		};
+
+		$p.append(phdr("Report Builder","Scaffold Script / Query reports with presets, multi-table joins, filters and columns.",icoChart(20)));
+
+		/* ── Preset Selector ── */
+		const $cp = card($p, "Report Presets");
+		$cp.append(info("Select a preset to auto-fill the ref DocType, joins, filters and columns. You can freely edit everything after applying."));
+		const $psw = $(`<div class="dkrb-preset-search-wrap"><input id="dkrb-search" class="dkrb-preset-search" type="text" placeholder="Search presets by name, module or keyword…"><span class="dkrb-preset-count" id="dkrb-pcount"></span></div>`).appendTo($cp);
+		const $pg = $(`<div class="dkrb-preset-grid"></div>`).appendTo($cp);
+		REPORT_PRESETS.forEach(pr => {
+			$(`<div class="dkrb-preset-card" data-pid="${pr.id}">
+				<div class="dkrb-preset-top" style="background:${pr.color}"></div>
+				<div class="dkrb-preset-body">
+					<div class="dkrb-preset-ico">${pr.ico}</div>
+					<div class="dkrb-preset-nm">${pr.name}</div>
+					<div class="dkrb-preset-ds">${pr.desc}</div>
+					<div class="dkrb-preset-tag" style="background:${pr.tagBg};color:${pr.tagColor}">${pr.tag}</div>
+				</div>
+			</div>`).appendTo($pg).on("click", function() {
+				$pg.find(".dkrb-preset-card").removeClass("selected");
+				$(this).addClass("selected");
+				applyPreset(pr);
+			});
+		});
+		// Initialize count and wire search
+		const _updatePCount = () => {
+			const total = REPORT_PRESETS.length;
+			const vis = $pg.find(".dkrb-preset-card:not(.dkrb-hidden)").length;
+			$("#dkrb-pcount").text(vis === total ? `${total} presets` : `${vis} of ${total}`);
+		};
+		_updatePCount();
+		$("#dkrb-search").on("input", function() {
+			const q = $(this).val().trim().toLowerCase();
+			$pg.find(".dkrb-preset-card").each(function() {
+				const pid = $(this).data("pid");
+				const pr = REPORT_PRESETS.find(p => p.id === pid);
+				if (!pr) return;
+				const match = !q ||
+					pr.name.toLowerCase().includes(q) ||
+					pr.tag.toLowerCase().includes(q) ||
+					pr.desc.toLowerCase().includes(q) ||
+					(pr.ref_doctype||"").toLowerCase().includes(q);
+				$(this).toggleClass("dkrb-hidden", !match);
+			});
+			_updatePCount();
+		});
+
+		// "Start from scratch" link
+		$cp.append(`<div style="margin-top:8px;text-align:right"><a href="#" id="dkrb-skip" style="font-size:12px;color:#5c4da8;text-decoration:underline">Start from scratch ›</a></div>`);
+		$p.on('click','#dkrb-skip',function(e){e.preventDefault();_showBuilder();});
+
+		const $builderWrap = $('<div style="display:none"></div>').appendTo($p);
+
+		/* ── Report Identity ── */
+		const $c1 = card($builderWrap, "Report Identity");
 		$c1.append(`<div class="dkst-g2">
 			${AppSel("rp_app")} ${ModSel("rp_mod")}
-			${FR("rp_nm","Report Name","text","My Report")}
+			${FR("rp_nm","Report Name","text","My Custom Report")}
 			${DtSel("rp_dt","Ref DocType")}
 			${F("rp_ty","Report Type","select","","",[["Script Report","Script Report"],["Query Report","Query Report"]])}
 			${F("rp_st","Is Standard","select","","",[["Yes","Yes"],["No","No"]])}
@@ -1790,97 +3052,147 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		</div>`);
 		wireAMD($c1,"rp_app","rp_mod","rp_dt");
 
-		const $c2=card($p,"Filters");
+		/* ── Join Builder ── */
+		const $c2 = card($builderWrap, "Table Joins");
+		$c2.append(info(`Add tables to JOIN the primary DocType <span class="dkst-code">t</span>. Use alias prefixes in ON conditions — e.g. <span class="dkst-code">t.customer = cust.name</span>. Presets auto-populate joins; you can add, edit or remove rows.`));
 		$c2.append(`<div class="dkst-tbl-wrap"><table class="dkst-tbl">
-			<thead><tr><th>Fieldname</th><th>Fieldtype</th><th>Label</th><th>Options</th><th>Default</th><th>Req</th><th></th></tr></thead>
-			<tbody id="rp-fr"></tbody>
+			<thead><tr>
+				<th style="width:150px">Join Type</th>
+				<th>Table (DocType)</th>
+				<th style="width:100px">Alias</th>
+				<th>ON Condition</th>
+				<th style="width:36px"></th>
+			</tr></thead>
+			<tbody id="rp-jr"></tbody>
 		</table></div>`);
-		$(`<div class="dkst-add-row">+ Add Filter</div>`).appendTo($c2).on("click",()=>addRF());
-		[{fn:"company",ft:"Link",lbl:"Company",op:"Company",req:1},
-		 {fn:"from_date",ft:"Date",lbl:"From Date",def:"Today",req:1},
-		 {fn:"to_date",ft:"Date",lbl:"To Date",def:"Today",req:1},
-		 {fn:"customer",ft:"Link",lbl:"Customer",op:"Customer"}].forEach(addRF);
+		$(`<div class="dkst-add-row">+ Add Join</div>`).appendTo($c2).on("click", ()=>addRJ());
 
-		const $c3=card($p,"Columns");
-		$c3.append(`<div class="dkst-tbl-wrap"><table class="dkst-tbl">
-			<thead><tr><th>Fieldname</th><th>Fieldtype</th><th>Label</th><th>Width</th><th>Options (Link)</th><th>Align</th><th></th></tr></thead>
-			<tbody id="rp-cr"></tbody>
-		</table></div>`);
-		$(`<div class="dkst-add-row">+ Add Column</div>`).appendTo($c3).on("click",()=>addRC());
-		[{fn:"name",ft:"Link",lbl:"Document",w:150,op:"Sales Invoice"},
-		 {fn:"posting_date",ft:"Date",lbl:"Date",w:100},
-		 {fn:"customer",ft:"Link",lbl:"Customer",w:150,op:"Customer"},
-		 {fn:"total_amount",ft:"Currency",lbl:"Amount",w:120,al:"right"}].forEach(addRC);
+		/* ── Query Conditions ── */
+		const $c3 = card($builderWrap, "Query Conditions");
+		$c3.append(info(`Fine-tune the generated SQL. All fields are optional and appended to the scaffolded query. The <span class="dkst-code">get_conditions()</span> function body is auto-generated from preset filters — add any extra SQL fragments here.`));
+		$c3.append(`<div class="dkst-g2" style="gap:10px 18px">
+			<div class="dkst-fld" style="grid-column:1/-1">
+				<label class="dkst-lbl">Extra WHERE Conditions <span style="color:#9080b8;font-weight:400">(raw SQL, appended after preset conditions)</span></label>
+				<textarea id="rp_where" class="dkst-inp" rows="3" style="width:100%;font-family:monospace;font-size:12px;resize:vertical" placeholder="AND t.company = %(company)s&#10;AND t.status = 'Submitted'&#10;AND si.customer_group = 'Commercial'"></textarea>
+			</div>
+			<div class="dkst-fld">
+				<label class="dkst-lbl">GROUP BY</label>
+				<input id="rp_grp" class="dkst-inp" placeholder="t.customer, t.company">
+			</div>
+			<div class="dkst-fld">
+				<label class="dkst-lbl">HAVING</label>
+				<input id="rp_hav" class="dkst-inp" placeholder="SUM(t.grand_total) > 0">
+			</div>
+			<div class="dkst-fld">
+				<label class="dkst-lbl">ORDER BY <span style="color:#9080b8;font-weight:400">(overrides preset default)</span></label>
+				<input id="rp_ord" class="dkst-inp" placeholder="t.posting_date DESC, t.name DESC">
+			</div>
+			<div class="dkst-fld">
+				<label class="dkst-lbl">LIMIT <span style="color:#9080b8;font-weight:400">(rows, 0 = no limit)</span></label>
+				<input id="rp_lim" class="dkst-inp" type="number" min="0" value="0" style="width:100px">
+			</div>
+		</div>`);
 
-		function addRF(d={}) {
+		/* ── Preset state ── */
+		let _presetData = { filters:[], columns:[] };
+
+		/* ── Row helper ── */
+		function addRJ(d={}) {
+			const JTYPES = [
+				["LEFT","LEFT JOIN"],["LEFT OUTER","LEFT OUTER JOIN"],
+				["INNER","INNER JOIN"],["RIGHT","RIGHT JOIN"],
+				["RIGHT OUTER","RIGHT OUTER JOIN"],["CROSS","CROSS JOIN"],
+				["STRAIGHT_JOIN","STRAIGHT_JOIN"],
+			];
 			const $tr=$(`<tr>
-				<td><input class="dkst-inp f-fn" value="${d.fn||""}" placeholder="company"></td>
-				<td><select class="dkst-sel f-ft">${FT_MINI.map(t=>`<option ${t===(d.ft||"Data")?"selected":""}>${t}</option>`).join("")}</select></td>
-				<td><input class="dkst-inp f-lbl" value="${d.lbl||""}" placeholder="Company"></td>
-				<td><input class="dkst-inp f-op"  value="${d.op||""}"  placeholder="Link DocType"></td>
-				<td><input class="dkst-inp f-def" value="${d.def||""}" placeholder="default value"></td>
-				<td style="text-align:center"><input type="checkbox" class="f-req" ${d.req?"checked":""}></td>
+				<td><select class="dkst-sel f-jt" style="width:148px">
+					${JTYPES.map(([v,l])=>`<option value="${v}" ${(d.type||"LEFT")===v?"selected":""}>${l}</option>`).join("")}
+				</select></td>
+				<td><input class="dkst-inp f-jtbl" value="${d.table||""}" placeholder="e.g. Customer"></td>
+				<td><input class="dkst-inp f-ja" value="${d.alias||""}" placeholder="cust" style="width:95px"></td>
+				<td><input class="dkst-inp f-jo" value="${d.on||""}" placeholder="t.customer = cust.name"></td>
 				<td><button class="dkst-del-btn">×</button></td>
 			</tr>`);
-			$tr.find(".dkst-del-btn").on("click",()=>$tr.remove());
-			$("#rp-fr").append($tr);
-		}
-		function addRC(d={}) {
-			const $tr=$(`<tr>
-				<td><input class="dkst-inp f-fn" value="${d.fn||""}" placeholder="total_amount"></td>
-				<td><select class="dkst-sel f-ft">${FT_MINI.map(t=>`<option ${t===(d.ft||"Data")?"selected":""}>${t}</option>`).join("")}</select></td>
-				<td><input class="dkst-inp f-lbl" value="${d.lbl||""}" placeholder="Total Amount"></td>
-				<td><input class="dkst-inp f-w" value="${d.w||120}" style="width:64px"></td>
-				<td><input class="dkst-inp f-op" value="${d.op||""}" placeholder="DocType (Link)"></td>
-				<td><select class="dkst-sel f-al" style="width:80px"><option value="">—</option><option ${d.al==="left"?"selected":""}>left</option><option ${d.al==="right"?"selected":""}>right</option><option ${d.al==="center"?"selected":""}>center</option></select></td>
-				<td><button class="dkst-del-btn">×</button></td>
-			</tr>`);
-			$tr.find(".dkst-del-btn").on("click",()=>$tr.remove());
-			$("#rp-cr").append($tr);
+			$tr.find(".dkst-del-btn").on("click", ()=>$tr.remove());
+			$("#rp-jr").append($tr);
 		}
 
-		const $t=term($p);
-		btns($p,[{ lbl:"Generate Report", cls:"dkst-btn-p", fn:()=>{
+		/* ── Show builder ── */
+		function _showBuilder() {
+			$builderWrap.show();
+		}
+
+		/* ── Apply Preset ── */
+		function applyPreset(pr) {
+			// Ref DocType
+			if (pr.ref_doctype) {
+				const $dt = $("#rp_dt");
+				if ($dt.is("select")) {
+					if (!$dt.find(`option[value="${pr.ref_doctype}"]`).length)
+						$dt.append(`<option value="${pr.ref_doctype}">${pr.ref_doctype}</option>`);
+					$dt.val(pr.ref_doctype);
+				} else {
+					$dt.val(pr.ref_doctype);
+				}
+			}
+			// Report type
+			if (pr.report_type) $("#rp_ty").val(pr.report_type);
+			// Joins
+			$("#rp-jr").empty(); (pr.joins||[]).forEach(j => addRJ(j));
+			// Store filters + columns (used by generate, not shown as editable tables)
+			_presetData = { filters: pr.filters||[], columns: pr.columns||[] };
+			// Populate query condition fields from PRESET_CONDITIONS map
+			const cond = PRESET_CONDITIONS[pr.id] || {};
+			$("#rp_where").val(cond.extra_where || "");
+			$("#rp_ord").val(cond.order_by || "");
+			$("#rp_grp").val(cond.group_by || "");
+			$("#rp_hav").val(cond.having || "");
+			$("#rp_lim").val(cond.limit_rows || 0);
+			// Info badge on identity card
+			$("#rp-preset-badge").remove();
+			const condParts = [];
+			if (cond.extra_where) condParts.push("WHERE");
+			if (cond.group_by)    condParts.push("GROUP BY");
+			if (cond.having)      condParts.push("HAVING");
+			if (cond.order_by)    condParts.push("ORDER BY");
+			if (cond.limit_rows)  condParts.push(`LIMIT ${cond.limit_rows}`);
+			$(`<div id="rp-preset-badge" style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px;background:linear-gradient(135deg,#5c4da8,#8b5cf6);color:#fff;border-radius:20px;font-size:11.5px;font-weight:600;margin-top:10px;flex-wrap:wrap;">
+				<span>${pr.ico}</span><span>${pr.name}</span>
+				<span style="opacity:.75;font-weight:400">· ${(pr.filters||[]).length} filters · ${(pr.columns||[]).length} cols · ${(pr.joins||[]).length} joins</span>
+				${condParts.length ? `<span style="opacity:.65;font-weight:400;font-size:10.5px">${condParts.join(" · ")}</span>` : ""}
+			</div>`).appendTo($c1.find(".dkst-card-body, .dkst-card").first());
+			_showBuilder();
+			frappe.show_alert({message:`Preset applied: ${pr.name}`, indicator:"green"}, 3);
+		}
+
+		/* ── Generate ── */
+		const $t = term($builderWrap);
+		btns($builderWrap,[{ lbl:"Generate Report", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("rp_app")||!gv("rp_mod")||!gv("rp_nm")||!gv("rp_dt")){frappe.throw("App, Module, Name and Ref DocType required");return;}
-			const filters=[],columns=[];
-			$("#rp-fr tr").each(function(){
-				const r={fieldname:$(this).find(".f-fn").val().trim(),fieldtype:$(this).find(".f-ft").val(),label:$(this).find(".f-lbl").val().trim()};
-				const op=$(this).find(".f-op").val().trim(); if(op) r.options=op;
-				const def=$(this).find(".f-def").val().trim(); if(def) r.default=def;
-				if($(this).find(".f-req").is(":checked")) r.reqd=1;
-				if(r.fieldname) filters.push(r);
+			const joins=[];
+			$("#rp-jr tr").each(function(){
+				const r={
+					type:$(this).find(".f-jt").val()||"LEFT",
+					table:$(this).find(".f-jtbl").val().trim(),
+					alias:$(this).find(".f-ja").val().trim(),
+					on:$(this).find(".f-jo").val().trim()
+				};
+				if(r.table&&r.on) joins.push(r);
 			});
-			$("#rp-cr tr").each(function(){
-				const r={fieldname:$(this).find(".f-fn").val().trim(),fieldtype:$(this).find(".f-ft").val(),label:$(this).find(".f-lbl").val().trim(),width:parseInt($(this).find(".f-w").val())||120};
-				const op=$(this).find(".f-op").val().trim(); if(op) r.options=op;
-				const al=$(this).find(".f-al").val().trim(); if(al) r.align=al;
-				if(r.fieldname) columns.push(r);
-			});
+			const extra_where = $("#rp_where").val().trim();
+			const order_by    = gv("rp_ord");
+			const group_by    = gv("rp_grp");
+			const having      = gv("rp_hav");
+			const limit_rows  = parseInt($("#rp_lim").val())||0;
 			api("frappe_devkit.api.report_builder.scaffold_report",{
 				app_name:gv("rp_app"),module_name:gv("rp_mod"),report_name:gv("rp_nm"),
 				report_type:gv("rp_ty"),ref_doctype:gv("rp_dt"),is_standard:gv("rp_st")||"Yes",
 				add_total_row:gc("rp_tr")?1:0,overwrite:gc("rp_ow"),
-				filters:JSON.stringify(filters),columns:JSON.stringify(columns),
+				joins:JSON.stringify(joins),
+				filters:JSON.stringify(_presetData.filters),
+				columns:JSON.stringify(_presetData.columns),
+				extra_where,order_by,group_by,having,limit_rows,
 			},$t);
-		}}]);
-	};
-
-	/* ── Print Format ── */
-	PANELS.print_fmt = function($p) {
-		$p.append(phdr("Print Format","Scaffold a Jinja2 HTML print format with a starter template.",icoPrint(20)));
-		const $c=card($p,"Print Format Details");
-		$c.append(`<div class="dkst-g2">
-			${AppSel("pf_app")} ${ModSel("pf_mod")}
-			${FR("pf_nm","Print Format Name","text","My Invoice Print")}
-			${DtSel("pf_dt","DocType")}
-			${F("pf_st","Standard","select","","",[["Yes","Yes"],["No","No"]])}
-			${F("pf_css","Custom CSS","text","/* optional CSS */")}
-		</div>`);
-		wireAMD($c,"pf_app","pf_mod","pf_dt");
-		const $t=term($p);
-		btns($p,[{ lbl:"Generate Print Format", cls:"dkst-btn-p", fn:()=>{
-			if(!gv("pf_app")||!gv("pf_mod")||!gv("pf_nm")){frappe.throw("App, Module and Name required");return;}
-			api("frappe_devkit.api.fixture_builder.scaffold_print_format",{app_name:gv("pf_app"),module_name:gv("pf_mod"),print_format_name:gv("pf_nm"),dt:gv("pf_dt"),standard:gv("pf_st")||"Yes",css:gv("pf_css")},$t);
 		}}]);
 	};
 
@@ -2001,17 +3313,15 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		</div>`);
 		$c.append(`<div class="dkst-fld" style="margin-top:14px">
 			<label class="dkst-lbl">JavaScript Code</label>
-			<textarea class="dkst-ta" id="cs_sc" rows="10" style="font-family:'Consolas','Courier New',monospace;font-size:12.5px;line-height:1.6">frappe.ui.form.on("MyDocType", {
-  setup(frm) {
-    // runs once on form init
-  },
-  refresh(frm) {
-    // runs on every load
-  },
-  validate(frm) {
-    // runs before save
-  }
-});</textarea></div>`);
+			<textarea id="cs_sc" style="display:none"></textarea>
+			<div id="cs_sc_mc" style="height:260px;border:1px solid #d0c8e8;border-radius:4px"></div>
+		</div>`);
+		_mcLoad(mc => {
+			const _csMc = _mcCreate($c.find('#cs_sc_mc'), 'javascript',
+				'frappe.ui.form.on("MyDocType", {\n  setup(frm) {\n    // runs once on form init\n  },\n  refresh(frm) {\n    // runs on every load\n  },\n  validate(frm) {\n    // runs before save\n  }\n});');
+			_csMc.onDidChangeModelContent(() => { $('#cs_sc').val(_csMc.getValue()); });
+			$('#cs_sc').val(_csMc.getValue());
+		});
 		wireAMD($c,"cs_app","cs_mod","cs_dt");
 		const $t=term($p);
 		btns($p,[{ lbl:"Add Client Script to Fixtures", cls:"dkst-btn-p", fn:()=>{
@@ -2191,13 +3501,13 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				<span style="color:#888">• Use <code>frappe.db.sql()</code>, <code>frappe.get_all()</code>, <code>frappe.db.set_value()</code>, <code>frappe.reload_doc()</code> etc.</span><br>
 				<span style="color:#888">• Always make logic <b>idempotent</b> (safe to re-run) — check before modifying.</span>
 			</div>
-			<textarea class="dkst-ta" id="pa_bd" rows="8" style="font-family:Consolas,monospace;font-size:12px" placeholder="# Example:
-if not frappe.db.has_column('Sales Order', 'custom_field'):
-    frappe.reload_doc('selling', 'doctype', 'sales_order')
-
-for name in frappe.get_all('Sales Order', pluck='name'):
-    frappe.db.set_value('Sales Order', name, 'status', 'Draft', update_modified=False)"></textarea>
+			<textarea id="pa_bd" style="display:none"></textarea>
+			<div id="pa_bd_mc" style="height:200px;border:1px solid #d0c8e8;border-radius:4px"></div>
 		</div>`);
+		_mcLoad(mc => {
+			const _paMc = _mcCreate($c.find('#pa_bd_mc'), 'python', '');
+			_paMc.onDidChangeModelContent(() => { $('#pa_bd').val(_paMc.getValue()); });
+		});
 		const $t=term($p);
 		btns($p,[{ lbl:"Generate Patch", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("pa_ap")||!gv("pa_mo")){frappe.throw("App and Patch Module required");return;}
@@ -2384,56 +3694,610 @@ for name in frappe.get_all('Sales Order', pluck='name'):
 
 	/* ── Dashboard Chart ── */
 	PANELS.dashboard_chart = function($p) {
-		$p.append(phdr("Dashboard Chart","Scaffold a Dashboard Chart fixture for Frappe Desk dashboards.",icoChart(20)));
-		const $c=card($p,"Chart Configuration");
-		$c.append(`<div class="dkst-g2">
-			${AppSel("dc_ap")} ${ModSel("dc_mo")}
+		const DC_PRESETS = [
+			// ── SALES ──
+			{ id:"monthly_sales_rev", name:"Monthly Sales Revenue", ico:"📈", color:"#1d4ed8", tag:"Sales", tagBg:"#dbeafe", tagColor:"#1e40af",
+			  desc:"Monthly sum of SI grand total — last 12 months.",
+			  doctype:"Sales Invoice", chart_type:"Sum", based_on:"posting_date", value_based_on:"grand_total",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#1d4ed8",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"daily_order_count", name:"Daily Sales Count", ico:"📊", color:"#0369a1", tag:"Sales", tagBg:"#e0f2fe", tagColor:"#0c4a6e",
+			  desc:"Daily count of sales invoices — last 30 days.",
+			  doctype:"Sales Invoice", chart_type:"Count", based_on:"posting_date", value_based_on:"",
+			  time_interval:"Daily", timespan:"Last Month", visual:"Bar", color_hex:"#0369a1",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"sales_by_customer_grp", name:"Sales by Customer Group", ico:"🍩", color:"#7c3aed", tag:"Sales", tagBg:"#ede9fe", tagColor:"#5b21b6",
+			  desc:"Count of sales invoices grouped by customer group.",
+			  doctype:"Sales Invoice", chart_type:"Group By", based_on:"posting_date", value_based_on:"",
+			  group_by_based_on:"customer_group", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Donut", color_hex:"#7c3aed",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"quarterly_revenue", name:"Quarterly Revenue Trend", ico:"📉", color:"#059669", tag:"Sales", tagBg:"#d1fae5", tagColor:"#064e3b",
+			  desc:"Quarterly revenue trend over last 3 years.",
+			  doctype:"Sales Invoice", chart_type:"Sum", based_on:"posting_date", value_based_on:"grand_total",
+			  time_interval:"Quarterly", timespan:"Last 3 Years", visual:"Line", color_hex:"#059669",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"sales_by_territory", name:"Sales by Territory", ico:"🗺️", color:"#0891b2", tag:"Sales", tagBg:"#cffafe", tagColor:"#155e75",
+			  desc:"Sales invoice count by territory.",
+			  doctype:"Sales Invoice", chart_type:"Group By", based_on:"posting_date", value_based_on:"",
+			  group_by_based_on:"territory", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Pie", color_hex:"#0891b2",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			// ── PURCHASE ──
+			{ id:"monthly_purchase", name:"Monthly Purchase Cost", ico:"🛒", color:"#b45309", tag:"Purchase", tagBg:"#fef3c7", tagColor:"#92400e",
+			  desc:"Monthly sum of purchase invoice totals.",
+			  doctype:"Purchase Invoice", chart_type:"Sum", based_on:"posting_date", value_based_on:"grand_total",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#b45309",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"purchase_by_supplier", name:"Purchase by Supplier", ico:"🏭", color:"#b91c1c", tag:"Purchase", tagBg:"#fee2e2", tagColor:"#991b1b",
+			  desc:"Invoice count grouped by supplier.",
+			  doctype:"Purchase Invoice", chart_type:"Group By", based_on:"posting_date", value_based_on:"",
+			  group_by_based_on:"supplier", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Donut", color_hex:"#b91c1c",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"po_trend", name:"PO Creation Trend", ico:"📋", color:"#92400e", tag:"Purchase", tagBg:"#fef3c7", tagColor:"#78350f",
+			  desc:"Monthly purchase order creation count.",
+			  doctype:"Purchase Order", chart_type:"Count", based_on:"transaction_date", value_based_on:"",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Line", color_hex:"#92400e",
+			  filters_json:'[]' },
+
+			// ── INVENTORY ──
+			{ id:"stock_movement_monthly", name:"Stock Movement", ico:"🔄", color:"#065f46", tag:"Inventory", tagBg:"#d1fae5", tagColor:"#064e3b",
+			  desc:"Monthly stock ledger entry count.",
+			  doctype:"Stock Ledger Entry", chart_type:"Count", based_on:"posting_date", value_based_on:"",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#065f46",
+			  filters_json:'[]' },
+
+			{ id:"items_by_category", name:"Items by Category", ico:"📦", color:"#0369a1", tag:"Inventory", tagBg:"#e0f2fe", tagColor:"#0c4a6e",
+			  desc:"Item count grouped by item group.",
+			  doctype:"Item", chart_type:"Group By", based_on:"creation", value_based_on:"",
+			  group_by_based_on:"item_group", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Donut", color_hex:"#0369a1",
+			  filters_json:'[["disabled","=","0"]]' },
+
+			// ── HR ──
+			{ id:"employees_by_dept", name:"Employees by Department", ico:"👥", color:"#1e3a5f", tag:"HR", tagBg:"#dbeafe", tagColor:"#1e40af",
+			  desc:"Active employee count by department.",
+			  doctype:"Employee", chart_type:"Group By", based_on:"date_of_joining", value_based_on:"",
+			  group_by_based_on:"department", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#1e3a5f",
+			  filters_json:'[["status","=","Active"]]' },
+
+			{ id:"monthly_attendance", name:"Monthly Attendance", ico:"🗓️", color:"#0369a1", tag:"HR", tagBg:"#e0f2fe", tagColor:"#0c4a6e",
+			  desc:"Monthly attendance record count.",
+			  doctype:"Attendance", chart_type:"Count", based_on:"attendance_date", value_based_on:"",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#0369a1",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"leave_trend", name:"Leave Applications Trend", ico:"🌴", color:"#15803d", tag:"HR", tagBg:"#dcfce7", tagColor:"#14532d",
+			  desc:"Monthly leave application submissions.",
+			  doctype:"Leave Application", chart_type:"Count", based_on:"from_date", value_based_on:"",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Line", color_hex:"#15803d",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"salary_trend", name:"Monthly Payroll Cost", ico:"💵", color:"#7c3aed", tag:"HR", tagBg:"#ede9fe", tagColor:"#5b21b6",
+			  desc:"Sum of gross pay per month.",
+			  doctype:"Salary Slip", chart_type:"Sum", based_on:"start_date", value_based_on:"gross_pay",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#7c3aed",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			// ── ACCOUNTS ──
+			{ id:"monthly_payments", name:"Monthly Payments", ico:"💳", color:"#065f46", tag:"Accounts", tagBg:"#d1fae5", tagColor:"#064e3b",
+			  desc:"Monthly sum of payment entry paid amounts.",
+			  doctype:"Payment Entry", chart_type:"Sum", based_on:"posting_date", value_based_on:"paid_amount",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#065f46",
+			  filters_json:'[["docstatus","=","1"]]' },
+
+			{ id:"gl_by_account_type", name:"GL by Account Type", ico:"📒", color:"#1e3a5f", tag:"Accounts", tagBg:"#dbeafe", tagColor:"#1e40af",
+			  desc:"GL entry count grouped by account type.",
+			  doctype:"GL Entry", chart_type:"Group By", based_on:"posting_date", value_based_on:"",
+			  group_by_based_on:"account_type", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Donut", color_hex:"#1e3a5f",
+			  filters_json:'[["is_cancelled","=","0"]]' },
+
+			{ id:"receivable_trend", name:"Receivable Aging Trend", ico:"⏳", color:"#b45309", tag:"Accounts", tagBg:"#fef3c7", tagColor:"#92400e",
+			  desc:"Monthly outstanding invoice count trend.",
+			  doctype:"Sales Invoice", chart_type:"Count", based_on:"due_date", value_based_on:"",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Line", color_hex:"#b45309",
+			  filters_json:'[["docstatus","=","1"],["outstanding_amount",">","0"]]' },
+
+			// ── CRM ──
+			{ id:"leads_by_source", name:"Leads by Source", ico:"🎯", color:"#be185d", tag:"CRM", tagBg:"#fce7f3", tagColor:"#9d174d",
+			  desc:"Lead count grouped by lead source.",
+			  doctype:"Lead", chart_type:"Group By", based_on:"creation", value_based_on:"",
+			  group_by_based_on:"source", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Pie", color_hex:"#be185d",
+			  filters_json:'[]' },
+
+			{ id:"opportunity_pipeline", name:"Opportunity Pipeline", ico:"🚀", color:"#7c3aed", tag:"CRM", tagBg:"#ede9fe", tagColor:"#5b21b6",
+			  desc:"Open opportunities by sales stage.",
+			  doctype:"Opportunity", chart_type:"Group By", based_on:"creation", value_based_on:"",
+			  group_by_based_on:"sales_stage", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#7c3aed",
+			  filters_json:'[["status","=","Open"]]' },
+
+			// ── SUPPORT ──
+			{ id:"issues_by_priority", name:"Issues by Priority", ico:"🎫", color:"#dc2626", tag:"Support", tagBg:"#fee2e2", tagColor:"#991b1b",
+			  desc:"Open issue count grouped by priority.",
+			  doctype:"Issue", chart_type:"Group By", based_on:"opening_date", value_based_on:"",
+			  group_by_based_on:"priority", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Donut", color_hex:"#dc2626",
+			  filters_json:'[["status","!=","Closed"]]' },
+
+			{ id:"issues_resolved_monthly", name:"Monthly Resolved Issues", ico:"✅", color:"#059669", tag:"Support", tagBg:"#d1fae5", tagColor:"#064e3b",
+			  desc:"Monthly count of resolved/closed issues.",
+			  doctype:"Issue", chart_type:"Count", based_on:"resolution_date", value_based_on:"",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Line", color_hex:"#059669",
+			  filters_json:'[["status","in","Resolved,Closed"]]' },
+
+			// ── MANUFACTURING ──
+			{ id:"work_orders_by_status", name:"Work Orders by Status", ico:"⚙️", color:"#374151", tag:"Mfg", tagBg:"#f3f4f6", tagColor:"#111827",
+			  desc:"Work order count grouped by status.",
+			  doctype:"Work Order", chart_type:"Group By", based_on:"planned_start_date", value_based_on:"",
+			  group_by_based_on:"status", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#374151",
+			  filters_json:'[]' },
+
+			{ id:"monthly_production", name:"Monthly Production Orders", ico:"🏭", color:"#4b5563", tag:"Mfg", tagBg:"#f3f4f6", tagColor:"#1f2937",
+			  desc:"Monthly work order creation trend.",
+			  doctype:"Work Order", chart_type:"Count", based_on:"planned_start_date", value_based_on:"",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Bar", color_hex:"#4b5563",
+			  filters_json:'[]' },
+
+			// ── PROJECTS ──
+			{ id:"tasks_by_status", name:"Tasks by Status", ico:"✏️", color:"#0891b2", tag:"Projects", tagBg:"#cffafe", tagColor:"#155e75",
+			  desc:"Task count grouped by status.",
+			  doctype:"Task", chart_type:"Group By", based_on:"creation", value_based_on:"",
+			  group_by_based_on:"status", group_by_type:"Count",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Donut", color_hex:"#0891b2",
+			  filters_json:'[]' },
+
+			{ id:"project_task_trend", name:"Project Task Trend", ico:"📅", color:"#0369a1", tag:"Projects", tagBg:"#e0f2fe", tagColor:"#0c4a6e",
+			  desc:"Monthly task creation trend across projects.",
+			  doctype:"Task", chart_type:"Count", based_on:"creation", value_based_on:"",
+			  time_interval:"Monthly", timespan:"Last Year", visual:"Line", color_hex:"#0369a1",
+			  filters_json:'[]' },
+		];
+
+		/* ── Visual type icons ── */
+		const VIS_ICO = { Bar:"▬", Line:"📈", Pie:"🥧", Donut:"🍩", Percentage:"📊", Heatmap:"🌡️", Scatter:"✦" };
+
+		let _dcSelected = new Set();
+
+		$p.append(phdr("Dashboard Chart","Scaffold Dashboard Chart fixtures for Frappe Desk dashboards — pick presets or configure manually.",icoChart(20)));
+
+		/* ── App / Module ── */
+		const $cam = card($p, "App & Module");
+		$cam.append(`<div class="dkst-g2">${AppSel("dc_ap")} ${ModSel("dc_mo")}</div>`);
+		wireAMD($p, "dc_ap", "dc_mo", "dc_dt");
+
+		/* ── Preset Selector ── */
+		const $cp = card($p, "Dashboard Chart Presets");
+		$cp.append(info("Click to select • hold Shift to multi-select • click again to deselect. Apply auto-fills the form below for individual customisation."));
+
+		const $psw = $(`<div class="dkrb-preset-search-wrap">
+			<input id="dc-search" class="dkrb-preset-search" type="text" placeholder="Search charts by name, module or keyword…">
+			<span class="dkrb-preset-count" id="dc-pcount"></span>
+		</div>`).appendTo($cp);
+
+		const $pg = $(`<div class="dkrb-preset-grid"></div>`).appendTo($cp);
+		DC_PRESETS.forEach(pr => {
+			$(`<div class="dkrb-preset-card" data-pid="${pr.id}" style="cursor:pointer">
+				<div class="dkrb-preset-top" style="background:${pr.color}">
+					<span class="dkwc-chart-type-badge">${pr.visual} ${VIS_ICO[pr.visual]||""}</span>
+				</div>
+				<div class="dkrb-preset-body">
+					<div class="dkrb-preset-ico">${pr.ico}</div>
+					<div class="dkrb-preset-nm">${pr.name}</div>
+					<div class="dkrb-preset-ds">${pr.desc}</div>
+					<div class="dkrb-preset-tag" style="background:${pr.tagBg};color:${pr.tagColor}">${pr.tag}</div>
+				</div>
+			</div>`).appendTo($pg).on("click", function() {
+				const pid = $(this).data("pid");
+				if (_dcSelected.has(pid)) { _dcSelected.delete(pid); $(this).removeClass("selected"); }
+				else { _dcSelected.add(pid); $(this).addClass("selected"); }
+				_dcUpdateBar();
+				// Also apply to form
+				const pr2 = DC_PRESETS.find(p => p.id === pid);
+				if (pr2 && _dcSelected.has(pid)) _dcApply(pr2);
+			});
+		});
+
+		/* ── Selection action bar ── */
+		const $bar = $(`<div class="dkwc-action-bar" style="display:none">
+			<span class="dkwc-sel-count">Selected</span>
+			<span class="dkwc-badge" id="dc-sel-n">0</span>
+			<button class="dkwc-scaffold-btn" id="dc-batch-btn" disabled>⚡ Scaffold All Selected</button>
+			<button class="dkwc-desel" id="dc-desel-btn">✕ Clear</button>
+		</div>`).appendTo($cp);
+
+		function _dcUpdateBar() {
+			const n = _dcSelected.size;
+			$("#dc-sel-n").text(n);
+			$bar.toggle(n > 0);
+			$("#dc-batch-btn").prop("disabled", n === 0);
+		}
+
+		function _dcApply(pr) {
+			$dcCustomWrap.show();
+			$("#dc_nm").val(pr.name);
+			$("#dc_ty").val(pr.chart_type);
+			$("#dc_dt").trigger && ($("#dc_dt").val(pr.doctype));
+			$("#dc_bo").val(pr.based_on || "");
+			$("#dc_vl").val(pr.value_based_on || "");
+			$("#dc_gb").val(pr.group_by_based_on || "");
+			$("#dc_gbt").val(pr.group_by_type || "Count");
+			$("#dc_ti").val(pr.time_interval || "Monthly");
+			$("#dc_ts").val(pr.timespan || "Last Year");
+			$("#dc_vty").val(pr.visual || "Bar");
+			$("#dc_cl").val(pr.color_hex || "#7c5cbf");
+			$("#dc_fi").val(pr.filters_json || "[]");
+		}
+
+		/* ── Search ── */
+		const _dcUpdateCount = () => {
+			const total = DC_PRESETS.length, vis = $pg.find(".dkrb-preset-card:not(.dkrb-hidden)").length;
+			$("#dc-pcount").text(vis === total ? `${total} presets` : `${vis} of ${total}`);
+		};
+		_dcUpdateCount();
+		$("#dc-search").on("input", function() {
+			const q = $(this).val().trim().toLowerCase();
+			$pg.find(".dkrb-preset-card").each(function() {
+				const pr = DC_PRESETS.find(p => p.id === $(this).data("pid"));
+				if (!pr) return;
+				const match = !q || pr.name.toLowerCase().includes(q) || pr.tag.toLowerCase().includes(q) || pr.desc.toLowerCase().includes(q) || (pr.doctype||"").toLowerCase().includes(q);
+				$(this).toggleClass("dkrb-hidden", !match);
+			});
+			_dcUpdateCount();
+		});
+		$("#dc-desel-btn").on("click", () => {
+			_dcSelected.clear(); $pg.find(".dkrb-preset-card").removeClass("selected"); _dcUpdateBar();
+		});
+
+		/* ── Batch scaffold ── */
+		$("#dc-batch-btn").on("click", function() {
+			const app = $("#dc_ap").val();
+			if (!app) { frappe.throw("Select an App first"); return; }
+			const charts = DC_PRESETS.filter(p => _dcSelected.has(p.id)).map(p => ({
+				chart_name: p.name, chart_type: p.chart_type, doctype: p.doctype,
+				based_on: p.based_on||"", value_based_on: p.value_based_on||"",
+				group_by_based_on: p.group_by_based_on||"", group_by_type: p.group_by_type||"Count",
+				time_interval: p.time_interval||"Monthly", timespan: p.timespan||"Last Year",
+				visual_type: p.visual||"Bar", color: p.color_hex||"#7c5cbf",
+				filters_json: p.filters_json||"[]",
+			}));
+			api("frappe_devkit.api.advanced_builder.scaffold_dashboard_charts_batch",
+				{ app_name: app, module_name: $("#dc_mo").val()||"", charts_json: JSON.stringify(charts) }, $t);
+		});
+
+		/* ── Customise / Single card form ── */
+		$cp.append(`<div style="margin-top:8px;text-align:right"><a href="#" id="dc-custom-skip" style="font-size:12px;color:#5c4da8;text-decoration:underline">Add custom chart ›</a></div>`);
+		$p.on('click','#dc-custom-skip',function(e){e.preventDefault();$dcCustomWrap.show();});
+		const $dcCustomWrap = $('<div style="display:none"></div>').appendTo($p);
+		const $cc = card($dcCustomWrap, "Customise & Add Single Chart");
+		$cc.append(`<div class="dkst-g2">
 			${FR("dc_nm","Chart Name","text","Monthly Sales")}
 			${F("dc_ty","Chart Type","select","","",[["Count","Count"],["Sum","Sum"],["Average","Average"],["Group By","Group By"]])}
 			${DtSel("dc_dt","DocType")}
 			${F("dc_bo","Based On (date field)","text","posting_date")}
-			${F("dc_vl","Value Field (for Sum/Avg)","text","grand_total")}
+			${F("dc_vl","Value Field (Sum / Avg)","text","grand_total")}
+			${F("dc_gb","Group By Field","text","customer_group")}
+			${F("dc_gbt","Group By Function","select","","",[["Count","Count"],["Sum","Sum"],["Average","Average"]])}
 			${F("dc_ti","Time Interval","select","","",[["Daily","Daily"],["Weekly","Weekly"],["Monthly","Monthly"],["Quarterly","Quarterly"],["Yearly","Yearly"]])}
-			${F("dc_ts","Timespan","select","","",[["Last Month","Last Month"],["Last Quarter","Last Quarter"],["Last Year","Last Year"],["Last 3 Years","Last 3 Years"]])}
+			${F("dc_ts","Timespan","select","","",[["Last Week","Last Week"],["Last Month","Last Month"],["Last Quarter","Last Quarter"],["Last Year","Last Year"],["Last 3 Years","Last 3 Years"]])}
+			${F("dc_vty","Visual Type","select","","",[["Bar","Bar"],["Line","Line"],["Pie","Pie"],["Donut","Donut"],["Percentage","Percentage"],["Heatmap","Heatmap"],["Scatter","Scatter"]])}
 			<div class="dkst-fld"><label class="dkst-lbl">Color</label>
 				<input type="color" id="dc_cl" value="#7c5cbf" style="width:60px;height:36px;border:1px solid #d0c8e8;border-radius:5px;cursor:pointer;"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Filters JSON</label>
+				<textarea class="dkst-ta" id="dc_fi" rows="2" style="font-family:monospace;font-size:12px">[]</textarea></div>
 		</div>`);
-		wireAMD($c,"dc_ap","dc_mo","dc_dt");
-		const $t=term($p);
-		btns($p,[{ lbl:"Add Dashboard Chart", cls:"dkst-btn-p", fn:()=>{
-			if(!gv("dc_ap")||!gv("dc_nm")||!gv("dc_dt")){frappe.throw("App, Name and DocType required");return;}
+		// doctype wired via wireAMD($p, ...) above
+
+		const $t = term($dcCustomWrap);
+		btns($dcCustomWrap,[{ lbl:"Add This Chart", cls:"dkst-btn-p", fn:()=>{
+			if(!$("#dc_ap").val()||!$("#dc_nm").val()||!$("#dc_dt").val()){frappe.throw("App, Name and DocType required");return;}
 			api("frappe_devkit.api.advanced_builder.scaffold_dashboard_chart",{
-				app_name:gv("dc_ap"),module_name:gv("dc_mo"),chart_name:gv("dc_nm"),
-				chart_type:gv("dc_ty"),doctype:gv("dc_dt"),based_on:gv("dc_bo"),
-				value_based_on:gv("dc_vl"),time_interval:gv("dc_ti"),timespan:gv("dc_ts"),
-				color:$('#dc_cl').val(),
+				app_name:$("#dc_ap").val(), module_name:$("#dc_mo").val()||"",
+				chart_name:$("#dc_nm").val(), chart_type:$("#dc_ty").val(),
+				doctype:$("#dc_dt").val(), based_on:$("#dc_bo").val(),
+				value_based_on:$("#dc_vl").val(), group_by_based_on:$("#dc_gb").val(),
+				group_by_type:$("#dc_gbt").val(), time_interval:$("#dc_ti").val(),
+				timespan:$("#dc_ts").val(), visual_type:$("#dc_vty").val(),
+				color:$('#dc_cl').val(), filters_json:$("#dc_fi").val()||"[]",
 			},$t);
 		}}]);
 	};
 
 	/* ── Number Card ── */
 	PANELS.number_card = function($p) {
-		$p.append(phdr("Number Card","Scaffold a Number Card for dashboards showing counts, sums or averages.",icoHash(20)));
-		const $c=card($p,"Number Card Configuration");
-		$c.append(`<div class="dkst-g2">
-			${AppSel("nc_ap")} ${ModSel("nc_mo")}
+		const NC_PRESETS = [
+			// ── SALES ──
+			{ id:"sales_today", name:"Sales Today", ico:"💰", color:"#1d4ed8", tag:"Sales", tagBg:"#dbeafe", tagColor:"#1e40af",
+			  desc:"Sum of submitted sales invoices posted today.",
+			  doctype:"Sales Invoice", func:"Sum", agg_field:"grand_total",
+			  filters_json:'[["docstatus","=","1"],["posting_date","=","Today"]]', color_hex:"#1d4ed8" },
+
+			{ id:"open_sales_orders", name:"Open Sales Orders", ico:"📑", color:"#0369a1", tag:"Sales", tagBg:"#e0f2fe", tagColor:"#0c4a6e",
+			  desc:"Count of sales orders that are open.",
+			  doctype:"Sales Order", func:"Count", agg_field:"",
+			  filters_json:'[["status","in","Draft,To Deliver and Bill,To Deliver,To Bill"]]', color_hex:"#0369a1" },
+
+			{ id:"monthly_revenue", name:"Monthly Revenue", ico:"📊", color:"#7c3aed", tag:"Sales", tagBg:"#ede9fe", tagColor:"#5b21b6",
+			  desc:"Sum of sales invoices this calendar month.",
+			  doctype:"Sales Invoice", func:"Sum", agg_field:"grand_total",
+			  filters_json:'[["docstatus","=","1"],["posting_date",">=","01-01-2024"]]', color_hex:"#7c3aed" },
+
+			{ id:"unpaid_invoices", name:"Unpaid Invoices", ico:"⚠️", color:"#dc2626", tag:"Sales", tagBg:"#fee2e2", tagColor:"#991b1b",
+			  desc:"Count of submitted invoices with outstanding amount.",
+			  doctype:"Sales Invoice", func:"Count", agg_field:"",
+			  filters_json:'[["docstatus","=","1"],["outstanding_amount",">","0"]]', color_hex:"#dc2626" },
+
+			{ id:"total_receivable", name:"Total Receivable", ico:"💳", color:"#b45309", tag:"Accounts", tagBg:"#fef3c7", tagColor:"#92400e",
+			  desc:"Sum of outstanding amounts on submitted sales invoices.",
+			  doctype:"Sales Invoice", func:"Sum", agg_field:"outstanding_amount",
+			  filters_json:'[["docstatus","=","1"],["outstanding_amount",">","0"]]', color_hex:"#b45309" },
+
+			// ── PURCHASE ──
+			{ id:"pending_pos", name:"Pending PO Receipt", ico:"📦", color:"#92400e", tag:"Purchase", tagBg:"#fef3c7", tagColor:"#78350f",
+			  desc:"Purchase orders awaiting goods receipt.",
+			  doctype:"Purchase Order", func:"Count", agg_field:"",
+			  filters_json:'[["status","in","To Receive and Bill,To Receive"]]', color_hex:"#92400e" },
+
+			{ id:"purchase_this_month", name:"Purchase This Month", ico:"🛒", color:"#b91c1c", tag:"Purchase", tagBg:"#fee2e2", tagColor:"#991b1b",
+			  desc:"Sum of purchase invoices this month.",
+			  doctype:"Purchase Invoice", func:"Sum", agg_field:"grand_total",
+			  filters_json:'[["docstatus","=","1"]]', color_hex:"#b91c1c" },
+
+			{ id:"total_payable", name:"Total Payable", ico:"🏦", color:"#7c3aed", tag:"Accounts", tagBg:"#ede9fe", tagColor:"#5b21b6",
+			  desc:"Sum of outstanding amounts on purchase invoices.",
+			  doctype:"Purchase Invoice", func:"Sum", agg_field:"outstanding_amount",
+			  filters_json:'[["docstatus","=","1"],["outstanding_amount",">","0"]]', color_hex:"#7c3aed" },
+
+			{ id:"overdue_bills", name:"Overdue Bills", ico:"🔴", color:"#dc2626", tag:"Purchase", tagBg:"#fee2e2", tagColor:"#991b1b",
+			  desc:"Purchase invoices past due date with outstanding amount.",
+			  doctype:"Purchase Invoice", func:"Count", agg_field:"",
+			  filters_json:'[["docstatus","=","1"],["outstanding_amount",">","0"],["due_date","<","Today"]]', color_hex:"#dc2626" },
+
+			// ── INVENTORY ──
+			{ id:"total_items", name:"Total Active Items", ico:"📦", color:"#065f46", tag:"Inventory", tagBg:"#d1fae5", tagColor:"#064e3b",
+			  desc:"Count of all active, non-disabled items.",
+			  doctype:"Item", func:"Count", agg_field:"",
+			  filters_json:'[["disabled","=","0"]]', color_hex:"#065f46" },
+
+			{ id:"low_stock_items", name:"Low / Zero Stock Items", ico:"⚠️", color:"#b45309", tag:"Inventory", tagBg:"#fef3c7", tagColor:"#92400e",
+			  desc:"Items where actual quantity is at or below reorder level.",
+			  doctype:"Bin", func:"Count", agg_field:"",
+			  filters_json:'[["actual_qty","<=","reorder_level"]]', color_hex:"#b45309" },
+
+			{ id:"negative_stock", name:"Negative Stock Items", ico:"📉", color:"#dc2626", tag:"Inventory", tagBg:"#fee2e2", tagColor:"#991b1b",
+			  desc:"Warehouse bins with negative actual quantity.",
+			  doctype:"Bin", func:"Count", agg_field:"",
+			  filters_json:'[["actual_qty","<","0"]]', color_hex:"#dc2626" },
+
+			// ── HR ──
+			{ id:"active_employees", name:"Active Employees", ico:"👥", color:"#1e3a5f", tag:"HR", tagBg:"#dbeafe", tagColor:"#1e40af",
+			  desc:"Count of employees with Active status.",
+			  doctype:"Employee", func:"Count", agg_field:"",
+			  filters_json:'[["status","=","Active"]]', color_hex:"#1e3a5f" },
+
+			{ id:"open_leave_requests", name:"Open Leave Requests", ico:"🌴", color:"#15803d", tag:"HR", tagBg:"#dcfce7", tagColor:"#14532d",
+			  desc:"Leave applications awaiting approval.",
+			  doctype:"Leave Application", func:"Count", agg_field:"",
+			  filters_json:'[["status","=","Open"],["docstatus","=","1"]]', color_hex:"#15803d" },
+
+			{ id:"pending_expense_claims", name:"Pending Expense Claims", ico:"🧾", color:"#0369a1", tag:"HR", tagBg:"#e0f2fe", tagColor:"#0c4a6e",
+			  desc:"Expense claims submitted but not approved.",
+			  doctype:"Expense Claim", func:"Count", agg_field:"",
+			  filters_json:'[["status","=","Submitted"],["docstatus","=","1"]]', color_hex:"#0369a1" },
+
+			{ id:"total_payroll", name:"Total Monthly Payroll", ico:"💵", color:"#7c3aed", tag:"HR", tagBg:"#ede9fe", tagColor:"#5b21b6",
+			  desc:"Sum of gross pay on submitted salary slips this month.",
+			  doctype:"Salary Slip", func:"Sum", agg_field:"gross_pay",
+			  filters_json:'[["docstatus","=","1"]]', color_hex:"#7c3aed" },
+
+			// ── PROJECTS ──
+			{ id:"open_tasks", name:"Open Tasks", ico:"✏️", color:"#0891b2", tag:"Projects", tagBg:"#cffafe", tagColor:"#155e75",
+			  desc:"Count of open/in-progress project tasks.",
+			  doctype:"Task", func:"Count", agg_field:"",
+			  filters_json:'[["status","in","Open,Working,Pending Review"]]', color_hex:"#0891b2" },
+
+			{ id:"overdue_tasks", name:"Overdue Tasks", ico:"🔔", color:"#dc2626", tag:"Projects", tagBg:"#fee2e2", tagColor:"#991b1b",
+			  desc:"Tasks past their expected end date.",
+			  doctype:"Task", func:"Count", agg_field:"",
+			  filters_json:'[["status","!=","Completed"],["exp_end_date","<","Today"]]', color_hex:"#dc2626" },
+
+			{ id:"active_projects", name:"Active Projects", ico:"🗂️", color:"#1e3a5f", tag:"Projects", tagBg:"#dbeafe", tagColor:"#1e40af",
+			  desc:"Count of currently open projects.",
+			  doctype:"Project", func:"Count", agg_field:"",
+			  filters_json:'[["status","=","Open"]]', color_hex:"#1e3a5f" },
+
+			// ── SUPPORT ──
+			{ id:"open_issues", name:"Open Issues", ico:"🎫", color:"#dc2626", tag:"Support", tagBg:"#fee2e2", tagColor:"#991b1b",
+			  desc:"Count of open support issues.",
+			  doctype:"Issue", func:"Count", agg_field:"",
+			  filters_json:'[["status","in","Open,Replied,Hold"]]', color_hex:"#dc2626" },
+
+			{ id:"high_priority_issues", name:"High Priority Issues", ico:"🔥", color:"#b91c1c", tag:"Support", tagBg:"#fee2e2", tagColor:"#7f1d1d",
+			  desc:"High or Urgent priority open issues.",
+			  doctype:"Issue", func:"Count", agg_field:"",
+			  filters_json:'[["priority","in","High,Urgent"],["status","!=","Closed"]]', color_hex:"#b91c1c" },
+
+			{ id:"sla_breached", name:"SLA Breached Issues", ico:"💥", color:"#7c3aed", tag:"Support", tagBg:"#ede9fe", tagColor:"#5b21b6",
+			  desc:"Issues where SLA agreement status is Failed.",
+			  doctype:"Issue", func:"Count", agg_field:"",
+			  filters_json:'[["agreement_status","=","Failed"]]', color_hex:"#7c3aed" },
+
+			// ── MANUFACTURING ──
+			{ id:"work_orders_in_progress", name:"Work Orders In Progress", ico:"⚙️", color:"#374151", tag:"Mfg", tagBg:"#f3f4f6", tagColor:"#111827",
+			  desc:"Work orders currently being manufactured.",
+			  doctype:"Work Order", func:"Count", agg_field:"",
+			  filters_json:'[["status","=","In Process"]]', color_hex:"#374151" },
+
+			{ id:"pending_job_cards", name:"Pending Job Cards", ico:"🗒️", color:"#4b5563", tag:"Mfg", tagBg:"#f3f4f6", tagColor:"#1f2937",
+			  desc:"Open job cards awaiting work.",
+			  doctype:"Job Card", func:"Count", agg_field:"",
+			  filters_json:'[["status","=","Open"]]', color_hex:"#4b5563" },
+
+			// ── CRM ──
+			{ id:"new_leads_month", name:"New Leads This Month", ico:"🎯", color:"#be185d", tag:"CRM", tagBg:"#fce7f3", tagColor:"#9d174d",
+			  desc:"Leads created in the current month.",
+			  doctype:"Lead", func:"Count", agg_field:"",
+			  filters_json:'[]', color_hex:"#be185d" },
+
+			{ id:"open_opportunities", name:"Open Opportunities", ico:"🚀", color:"#7c3aed", tag:"CRM", tagBg:"#ede9fe", tagColor:"#5b21b6",
+			  desc:"Open opportunities in the CRM pipeline.",
+			  doctype:"Opportunity", func:"Count", agg_field:"",
+			  filters_json:'[["status","=","Open"]]', color_hex:"#7c3aed" },
+
+			// ── ASSETS ──
+			{ id:"active_assets", name:"Active Assets", ico:"🏗️", color:"#374151", tag:"Assets", tagBg:"#f3f4f6", tagColor:"#111827",
+			  desc:"Submitted, active fixed assets.",
+			  doctype:"Asset", func:"Count", agg_field:"",
+			  filters_json:'[["docstatus","=","1"],["status","in","Submitted,Partially Depreciated"]]', color_hex:"#374151" },
+
+			{ id:"fully_depreciated", name:"Fully Depreciated Assets", ico:"📦", color:"#6b7280", tag:"Assets", tagBg:"#f3f4f6", tagColor:"#374151",
+			  desc:"Assets that have been fully depreciated.",
+			  doctype:"Asset", func:"Count", agg_field:"",
+			  filters_json:'[["status","=","Fully Depreciated"]]', color_hex:"#6b7280" },
+
+			// ── ACCOUNTS ──
+			{ id:"journal_entries_today", name:"Journal Entries Today", ico:"📒", color:"#1e3a5f", tag:"Accounts", tagBg:"#dbeafe", tagColor:"#1e40af",
+			  desc:"Journal entries posted today.",
+			  doctype:"Journal Entry", func:"Count", agg_field:"",
+			  filters_json:'[["docstatus","=","1"],["posting_date","=","Today"]]', color_hex:"#1e3a5f" },
+		];
+
+		let _ncSelected = new Set();
+
+		$p.append(phdr("Number Card","Scaffold Number Card fixtures — pick presets or configure a custom card.",icoHash(20)));
+
+		/* ── App / Module ── */
+		const $cam = card($p, "App & Module");
+		$cam.append(`<div class="dkst-g2">${AppSel("nc_ap")} ${ModSel("nc_mo")}</div>`);
+		wireAMD($p, "nc_ap", "nc_mo", "nc_dt");
+
+		/* ── Preset Selector ── */
+		const $cp = card($p, "Number Card Presets");
+		$cp.append(info("Click cards to select • click again to deselect. Use Scaffold All Selected to create multiple cards at once."));
+
+		$cp.append(`<div class="dkrb-preset-search-wrap">
+			<input id="nc-search" class="dkrb-preset-search" type="text" placeholder="Search cards by name, module or keyword…">
+			<span class="dkrb-preset-count" id="nc-pcount"></span>
+		</div>`);
+		const $pg = $(`<div class="dkrb-preset-grid"></div>`).appendTo($cp);
+
+		NC_PRESETS.forEach(pr => {
+			const funcBadge = `<span class="dkwc-chart-type-badge">${pr.func}</span>`;
+			$(`<div class="dkrb-preset-card" data-pid="${pr.id}">
+				<div class="dkrb-preset-top" style="background:${pr.color}">${funcBadge}</div>
+				<div class="dkrb-preset-body">
+					<div class="dkrb-preset-ico">${pr.ico}</div>
+					<div class="dkrb-preset-nm">${pr.name}</div>
+					<div class="dkrb-preset-ds">${pr.desc}</div>
+					<div class="dkrb-preset-tag" style="background:${pr.tagBg};color:${pr.tagColor}">${pr.tag}</div>
+				</div>
+			</div>`).appendTo($pg).on("click", function() {
+				const pid = $(this).data("pid");
+				if (_ncSelected.has(pid)) { _ncSelected.delete(pid); $(this).removeClass("selected"); }
+				else { _ncSelected.add(pid); $(this).addClass("selected"); }
+				_ncUpdateBar();
+				const pr2 = NC_PRESETS.find(p => p.id === pid);
+				if (pr2 && _ncSelected.has(pid)) _ncApply(pr2);
+			});
+		});
+
+		/* ── Selection bar ── */
+		const $bar = $(`<div class="dkwc-action-bar" style="display:none">
+			<span class="dkwc-sel-count">Selected</span>
+			<span class="dkwc-badge" id="nc-sel-n">0</span>
+			<button class="dkwc-scaffold-btn" id="nc-batch-btn" disabled>⚡ Scaffold All Selected</button>
+			<button class="dkwc-desel" id="nc-desel-btn">✕ Clear</button>
+		</div>`).appendTo($cp);
+
+		function _ncUpdateBar() {
+			const n = _ncSelected.size;
+			$("#nc-sel-n").text(n);
+			$bar.toggle(n > 0);
+			$("#nc-batch-btn").prop("disabled", n === 0);
+		}
+
+		function _ncApply(pr) {
+			$ncCustomWrap.show();
+			$("#nc_nm").val(pr.name);
+			$("#nc_dt").val(pr.doctype);
+			$("#nc_fn").val(pr.func);
+			$("#nc_af").val(pr.agg_field || "");
+			$("#nc_fi").val(pr.filters_json || "[]");
+			$("#nc_cl").val(pr.color_hex || "#5c4da8");
+		}
+
+		/* ── Search ── */
+		const _ncUpdateCount = () => {
+			const total = NC_PRESETS.length, vis = $pg.find(".dkrb-preset-card:not(.dkrb-hidden)").length;
+			$("#nc-pcount").text(vis === total ? `${total} presets` : `${vis} of ${total}`);
+		};
+		_ncUpdateCount();
+		$("#nc-search").on("input", function() {
+			const q = $(this).val().trim().toLowerCase();
+			$pg.find(".dkrb-preset-card").each(function() {
+				const pr = NC_PRESETS.find(p => p.id === $(this).data("pid"));
+				if (!pr) return;
+				const match = !q || pr.name.toLowerCase().includes(q) || pr.tag.toLowerCase().includes(q) || pr.desc.toLowerCase().includes(q) || (pr.doctype||"").toLowerCase().includes(q);
+				$(this).toggleClass("dkrb-hidden", !match);
+			});
+			_ncUpdateCount();
+		});
+		$("#nc-desel-btn").on("click", () => {
+			_ncSelected.clear(); $pg.find(".dkrb-preset-card").removeClass("selected"); _ncUpdateBar();
+		});
+
+		/* ── Batch scaffold ── */
+		$("#nc-batch-btn").on("click", function() {
+			const app = $("#nc_ap").val();
+			if (!app) { frappe.throw("Select an App first"); return; }
+			const cards = NC_PRESETS.filter(p => _ncSelected.has(p.id)).map(p => ({
+				card_name: p.name, doctype: p.doctype, function: p.func,
+				aggregate_function_based_on: p.agg_field||"",
+				filters_json: p.filters_json||"[]", color: p.color_hex||"#5c4da8",
+			}));
+			api("frappe_devkit.api.advanced_builder.scaffold_number_cards_batch",
+				{ app_name: app, module_name: $("#nc_mo").val()||"", cards_json: JSON.stringify(cards) }, $t);
+		});
+
+		/* ── Customise / single card form ── */
+		$cp.append(`<div style="margin-top:8px;text-align:right"><a href="#" id="nc-custom-skip" style="font-size:12px;color:#5c4da8;text-decoration:underline">Add custom card ›</a></div>`);
+		const $ncCustomWrap = $('<div style="display:none"></div>').appendTo($p);
+		$p.on('click','#nc-custom-skip',function(e){e.preventDefault();$ncCustomWrap.show();});
+		const $cc = card($ncCustomWrap, "Customise & Add Single Card");
+		$cc.append(`<div class="dkst-g2">
 			${FR("nc_nm","Card Name","text","Total Open Orders")}
 			${DtSel("nc_dt","DocType")}
 			${F("nc_fn","Function","select","","",[["Count","Count"],["Sum","Sum"],["Average","Average"],["Minimum","Minimum"],["Maximum","Maximum"]])}
-			${F("nc_af","Aggregate Field (Sum/Avg)","text","grand_total")}
+			${F("nc_af","Aggregate Field (Sum / Avg / Min / Max)","text","grand_total")}
+			${F("nc_si","Stats Time Interval","select","","",[["Daily","Daily"],["Weekly","Weekly"],["Monthly","Monthly"]])}
 			<div class="dkst-fld"><label class="dkst-lbl">Color</label>
 				<input type="color" id="nc_cl" value="#5c4da8" style="width:60px;height:36px;border:1px solid #d0c8e8;border-radius:5px;cursor:pointer;"></div>
 			<div class="dkst-fld"><label class="dkst-lbl">Filters JSON</label>
-				<textarea class="dkst-ta" id="nc_fi" rows="3" style="font-family:monospace;font-size:12px">[["status","=","Open"]]</textarea></div>
+				<textarea class="dkst-ta" id="nc_fi" rows="2" style="font-family:monospace;font-size:12px">[["status","=","Open"]]</textarea></div>
 		</div>`);
-		wireAMD($c,"nc_ap","nc_mo","nc_dt");
-		const $t=term($p);
-		btns($p,[{ lbl:"Add Number Card", cls:"dkst-btn-p", fn:()=>{
-			if(!gv("nc_ap")||!gv("nc_nm")||!gv("nc_dt")){frappe.throw("App, Name and DocType required");return;}
+		// doctype wired via wireAMD($p, ...) above
+
+		const $t = term($ncCustomWrap);
+		btns($ncCustomWrap,[{ lbl:"Add This Card", cls:"dkst-btn-p", fn:()=>{
+			if(!$("#nc_ap").val()||!$("#nc_nm").val()||!$("#nc_dt").val()){frappe.throw("App, Name and DocType required");return;}
 			api("frappe_devkit.api.advanced_builder.scaffold_number_card",{
-				app_name:gv("nc_ap"),module_name:gv("nc_mo"),card_name:gv("nc_nm"),
-				doctype:gv("nc_dt"),function:gv("nc_fn"),aggregate_function_based_on:gv("nc_af"),
-				filters_json:gv("nc_fi"),color:$('#nc_cl').val(),
+				app_name:$("#nc_ap").val(), module_name:$("#nc_mo").val()||"",
+				card_name:$("#nc_nm").val(), doctype:$("#nc_dt").val(),
+				function:$("#nc_fn").val(), aggregate_function_based_on:$("#nc_af").val(),
+				stats_time_interval:$("#nc_si").val()||"Monthly",
+				filters_json:$("#nc_fi").val()||"[]", color:$('#nc_cl').val(),
 			},$t);
 		}}]);
 	};
@@ -2526,7 +4390,7 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 
 		const $matrix = $(`<div class="dkst-card" style="display:none"><div class="dkst-card-title">Permission Matrix</div>
 			<div class="dkst-tbl-wrap"><table class="dkst-tbl" id="perm-tbl">
-			<thead><tr><th>Role</th><th>R</th><th>W</th><th>C</th><th>D</th><th>Sub</th><th>Can</th><th>Amd</th><th>Prt</th><th>Eml</th><th>Exp</th><th>Shr</th><th>Own</th><th></th></tr></thead>
+			<thead><tr><th>Role</th><th>Read</th><th>Write</th><th>Create</th><th>Delete</th><th>Submit</th><th>Cancel</th><th>Amend</th><th>Print</th><th>Email</th><th>Export</th><th>Share</th><th>If Owner</th><th></th></tr></thead>
 			<tbody id="perm-rows"></tbody>
 			</table></div>
 			<div class="dkst-add-row" id="perm-add-row">+ Add Role</div>
@@ -2743,6 +4607,135 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 	};
 
 	/* ── Fixture Diff ── */
+
+	PANELS.fixture_mgr = function($p) {
+		$p.append(phdr("Fixture Manager","View, inspect and manage fixture JSON files for any app.",icoExport(20)));
+
+		const $sel = card($p, "App Selection");
+		$sel.append(`<div class="dkst-g2">${AppSel("fm_ap")}</div>`);
+		loadApps().then(() => fillSel($sel.find("#fm_ap"), _apps, "select app"));
+
+		const $filesWrap = $(`<div id="fm-files-wrap" style="display:none"></div>`).appendTo($p);
+		const $filesCard = card($filesWrap, "Fixture Files");
+		$filesCard.append(`<div style="display:flex;gap:10px;margin-bottom:10px;align-items:center">
+			<button class="dkst-btn dkst-btn-s" id="fm-refresh">↻ Refresh</button>
+			<button class="dkst-btn dkst-btn-p" id="fm-export">⬆ Export Fixtures</button>
+			<span style="flex:1"></span>
+			<span style="font-size:12px;color:#9080b8" id="fm-file-count"></span>
+		</div>`);
+		$filesCard.append(`<div class="dkst-tbl-wrap">
+			<table class="dkst-tbl">
+				<thead><tr><th>Filename</th><th>DocType</th><th>Records</th><th></th></tr></thead>
+				<tbody id="fm-file-rows"></tbody>
+			</table>
+		</div>`);
+
+		const $recWrap = $(`<div id="fm-rec-wrap" style="display:none"></div>`).appendTo($p);
+		const $recCard = card($recWrap, "Records");
+		$recCard.append(`<div style="display:flex;gap:10px;margin-bottom:10px;align-items:center">
+			<button class="dkst-btn dkst-btn-s" id="fm-rec-back">← Back to Files</button>
+			<span style="font-size:13px;font-weight:600;color:#1e1a2e" id="fm-rec-title"></span>
+			<span style="flex:1"></span>
+			<input class="dkst-inp" id="fm-rec-search" style="width:220px" placeholder="Filter records…">
+			<span style="font-size:12px;color:#9080b8" id="fm-rec-count"></span>
+		</div>`);
+		$recCard.append(`<div class="dkst-tbl-wrap" style="max-height:420px;overflow-y:auto">
+			<table class="dkst-tbl">
+				<thead><tr><th>#</th><th>Name</th><th>Fields</th><th style="width:60px"></th></tr></thead>
+				<tbody id="fm-rec-rows"></tbody>
+			</table>
+		</div>`);
+
+		const $ft = term($p);
+		let _fmApp = '', _fmFile = '', _fmRecords = [];
+
+		function loadFiles() {
+			_fmApp = gv("fm_ap");
+			if (!_fmApp) { frappe.throw("Select an app"); return; }
+			frappe.call({ method:"frappe_devkit.api.fixture_builder.list_fixture_files",
+				args:{app_name:_fmApp},
+				callback: r => {
+					const files = r.message?.files || [];
+					$("#fm-file-count").text(`${files.length} fixture file${files.length!==1?'s':''}`);
+					const $tbody = $("#fm-file-rows").empty();
+					if (!files.length) {
+						$tbody.html(`<tr><td colspan="4" class="dkst-empty">No fixture files found for this app.</td></tr>`);
+					} else {
+						files.forEach(f => {
+							$tbody.append(`<tr>
+								<td style="font-family:monospace;font-size:12px;color:#0055cc">${f.filename}</td>
+								<td>${f.doctype}</td>
+								<td><span class="dkst-pill dkst-pill-b">${f.count}</span></td>
+								<td><button class="dkst-btn dkst-btn-s fm-view-btn" data-fn="${f.filename}">View</button></td>
+							</tr>`);
+						});
+					}
+					$filesWrap.show();
+					$recWrap.hide();
+				}
+			});
+		}
+
+		function loadRecords(filename) {
+			_fmFile = filename;
+			$("#fm-rec-title").text(filename);
+			$("#fm-rec-rows").html(`<tr><td colspan="4" class="dkst-empty">Loading…</td></tr>`);
+			$filesWrap.hide(); $recWrap.show();
+			frappe.call({ method:"frappe_devkit.api.fixture_builder.read_fixture_file",
+				args:{app_name:_fmApp, filename},
+				callback: r => {
+					_fmRecords = r.message?.records || [];
+					renderRecords(_fmRecords);
+				}
+			});
+		}
+
+		function renderRecords(records) {
+			const $tbody = $("#fm-rec-rows").empty();
+			$("#fm-rec-count").text(`${records.length} record${records.length!==1?'s':''}`);
+			if (!records.length) {
+				$tbody.html(`<tr><td colspan="4" class="dkst-empty">No records in this fixture file.</td></tr>`);
+				return;
+			}
+			records.forEach((rec, i) => {
+				const keys = Object.keys(rec).filter(k => k !== 'doctype').slice(0,6).join(', ');
+				$tbody.append(`<tr>
+					<td style="color:#b0a8c8;width:40px">${i+1}</td>
+					<td style="font-weight:600;color:#1e1a2e;word-break:break-all">${frappe.utils.escape_html(rec.name||'—')}</td>
+					<td style="font-size:11.5px;color:#7a70a8">${frappe.utils.escape_html(keys)}</td>
+					<td><button class="dkst-btn dkst-btn-r fm-del-btn" style="padding:2px 8px;font-size:11px" data-name="${frappe.utils.escape_html(rec.name||'')}">✕</button></td>
+				</tr>`);
+			});
+		}
+
+		$sel.on('change', '#fm_ap', loadFiles);
+		$p.on('click', '#fm-refresh', loadFiles);
+		$p.on('click', '#fm-export', () => {
+			if (!_fmApp) return;
+			api("frappe_devkit.api.fixture_builder.export_fixtures", {app_name:_fmApp}, $ft);
+		});
+		$p.on('click', '.fm-view-btn', function() { loadRecords($(this).data('fn')); });
+		$p.on('click', '#fm-rec-back', () => { $recWrap.hide(); $filesWrap.show(); });
+		$p.on('input', '#fm-rec-search', function() {
+			const q = this.value.toLowerCase();
+			const filtered = q ? _fmRecords.filter(r => (r.name||'').toLowerCase().includes(q)) : _fmRecords;
+			renderRecords(filtered);
+		});
+		$p.on('click', '.fm-del-btn', function() {
+			const name = $(this).data('name');
+			if (!name || !_fmFile) return;
+			frappe.confirm(`Remove <b>${frappe.utils.escape_html(name)}</b> from fixture file <b>${_fmFile}</b>?`, () => {
+				frappe.call({ method:"frappe_devkit.api.fixture_builder.delete_fixture_record",
+					args:{app_name:_fmApp, filename:_fmFile, record_name:name},
+					callback: r => {
+						frappe.show_alert({message:`Removed from fixture`, indicator:'green'}, 3);
+						loadRecords(_fmFile);
+					}
+				});
+			});
+		});
+	};
+
 	PANELS.fixture_diff = function($p) {
 		$p.append(phdr("Fixture Diff","Compare fixture JSON file records with current database records.",icoDiff(20)));
 		$p.append(info("Identifies records that exist only in the fixture file, only in the DB, or are in sync."));
@@ -3775,7 +5768,8 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			<div class="dkst-stab" data-t="mnt">Maintenance</div>
 			<div class="dkst-stab" data-t="pwd">Admin Password</div>
 			<div class="dkst-stab" data-t="exc">Execute</div>
-			<div class="dkst-stab" data-t="drp" style="color:#c0392b">Drop Site</div>
+			<div class="dkst-stab" data-t="bld">Build & Restart</div>
+		<div class="dkst-stab" data-t="drp" style="color:#c0392b">Drop Site</div>
 		</div>`).appendTo($p);
 		const $pp = $('<div></div>').appendTo($p);
 		function mkSub(id) {
@@ -3869,15 +5863,44 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			Runs in the site context with full Frappe/ERPNext access. Destructive operations are blocked.
 		</div>`);
 		$ec.append(`<div class="dkst-fld"><label class="dkst-lbl dkst-req">Python Expression</label>
-			<textarea class="dkst-ta" id="exc-sc" rows="6" style="font-family:Consolas,monospace;font-size:12.5px">frappe.db.count("Sales Invoice", {"status": "Open"})</textarea>
+			<textarea id="exc-sc" style="display:none">frappe.db.count("Sales Invoice", {"status": "Open"})</textarea>
+			<div id="exc-sc-mc" style="height:180px;border:1px solid #d0c8e8;border-radius:4px;margin-bottom:4px"></div>
 			<span class="dkst-hint">Any Python expression: frappe.db.get_value(), frappe.get_doc(), frappe.cache().get_value(), etc.</span>
 		</div>`);
+		_mcLoad(mc => {
+			const _excMc = _mcCreate($exc.find('#exc-sc-mc'), 'python', 'frappe.db.count("Sales Invoice", {"status": "Open"})');
+			_excMc.onDidChangeModelContent(() => { $('#exc-sc').val(_excMc.getValue()); });
+			$('#exc-sc').val(_excMc.getValue());
+		});
 		const $et = smTerm($exc);
 		smBtns($ec, [{ lbl: 'Execute', cls: 'dkst-btn-p', fn: () => {
 			const site = gsite(); if (!site) return;
 			const sc = smGv('exc-sc'); if (!sc) { frappe.throw('Expression required'); return; }
 			smApi('frappe_devkit.api.site_manager.execute_script', { site, script: sc }, $et);
 		}}]);
+
+		// Build & Restart
+		const $bld = mkSub('bld');
+		const $bc = smCard($bld, 'Build Assets & Restart Workers');
+		$bc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px;line-height:1.7">
+			<span class="dkst-code">bench build</span> — rebuild JS/CSS assets &nbsp;·&nbsp;
+			<span class="dkst-code">bench build --app &lt;app&gt;</span> — single app &nbsp;·&nbsp;
+			<span class="dkst-code">bench restart</span> — reload workers
+		</div>`);
+		$bc.append(`<div class="dkst-g2" style="margin-bottom:12px">
+			<div class="dkst-fld"><label class="dkst-lbl">App (optional — leave blank for all apps)</label>
+			<input class="dkst-inp" id="bld-app" placeholder="e.g. frappe, erpnext, my_app"></div>
+		</div>`);
+		const $bt = smTerm($bld);
+		smBtns($bc, [
+			{ lbl: 'Build Assets',     cls: 'dkst-btn-p', fn: () => {
+				const app = $('#bld-app').val().trim();
+				smApi('frappe_devkit.api.site_manager.build_assets', { app_name: app }, $bt);
+			}},
+			{ lbl: 'Restart Workers',  cls: 'dkst-btn-s', fn: () => {
+				smApi('frappe_devkit.api.site_manager.restart_workers', {}, $bt);
+			}},
+		]);
 
 		// Drop Site
 		const $drp = mkSub('drp');
@@ -4096,29 +6119,78 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		/* ── CENTER: editor + results ── */
 		const $center = $(`<div class="dkqe-center"></div>`).appendTo($area);
 
-		// Editor wrap
+		// Editor wrap — Monaco
 		const $edWrap = $(`<div class="dkqe-editor-wrap"></div>`).appendTo($center);
-		const $editor = $(`<textarea class="dkqe-editor" id="qe-editor" rows="8" spellcheck="false" placeholder="-- Write your SQL here (Ctrl+Enter to run)
--- Supported: SELECT, SHOW, DESCRIBE, EXPLAIN
--- Write queries (INSERT/UPDATE/DELETE) require 'Allow write' checkbox
-SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
-
+		const $edMcDiv = $(`<div id="qe-editor-mc" style="flex:1;height:100%;min-height:180px"></div>`).appendTo($edWrap);
 		const $edFooter = $(`<div class="dkqe-editor-footer">
 			<span id="qe-cursor-pos">Ln 1, Col 1</span>
 			<span class="dkqe-tb-sep"></span>
 			<span id="qe-char-count">0 chars</span>
 			<span class="dkqe-tb-sep"></span>
-			<span style="color:#5c4da8">MariaDB</span>
+			<span style="color:#5c4da8">MariaDB / SQL</span>
 		</div>`).appendTo($edWrap);
 
+		// Shim: $editor.val() / $editor.val(v) work via Monaco
+		let _qeMonaco = null;
+		const $editor = {
+			val(v) {
+				if (_qeMonaco) {
+					if (v === undefined) return _qeMonaco.getValue();
+					_qeMonaco.setValue(v); return;
+				}
+				return '';
+			},
+			focus() { _qeMonaco && _qeMonaco.focus(); },
+			on() { return $editor; }, // no-op: keyup/click handled by Monaco
+		};
 		function _updateFooter() {
-			const val = $editor.val();
-			const pos = $editor[0].selectionStart;
-			const lines = val.substring(0, pos).split('\n');
-			$('#qe-cursor-pos').text(`Ln ${lines.length}, Col ${lines[lines.length-1].length+1}`);
+			if (!_qeMonaco) return;
+			const pos = _qeMonaco.getPosition();
+			const val = _qeMonaco.getValue();
+			$('#qe-cursor-pos').text(`Ln ${pos.lineNumber}, Col ${pos.column}`);
 			$('#qe-char-count').text(`${val.length} chars`);
 		}
-		$editor.on('keyup click', _updateFooter);
+		_mcLoad(mc => {
+			_qeMonaco = _mcCreate($edMcDiv, 'sql',
+				'-- Write your SQL here (Ctrl+Enter to run)\nSELECT * FROM `tabDocType` LIMIT 20');
+			_qeMonaco.addCommand(mc.KeyMod.CtrlCmd | mc.KeyCode.Enter, () => { $runBtn.trigger('click'); });
+			_qeMonaco.onDidChangeCursorPosition(_updateFooter);
+			_qeMonaco.onDidChangeModelContent(_updateFooter);
+			// Register SQL completions with dynamic table + column support
+			mc.languages.registerCompletionItemProvider('sql', {
+				provideCompletionItems(model, position) {
+					const word = model.getWordUntilPosition(position);
+					const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
+						startColumn: word.startColumn, endColumn: word.endColumn };
+					const wUp = word.word.toUpperCase();
+					if (!wUp) return { suggestions: [] };
+					// Prefetch columns for tables mentioned in the query
+					const qUp = model.getValue().toUpperCase();
+					_tables.filter(t => qUp.includes(t.toUpperCase())).slice(0,5).forEach(_fetchCols);
+					const sugg = [];
+					SQL_KW.filter(k => k.startsWith(wUp)).forEach(k => sugg.push({
+						label: k, kind: mc.languages.CompletionItemKind.Keyword,
+						insertText: k, range, detail: 'keyword',
+					}));
+					SQL_FN.filter(fn => fn.toUpperCase().startsWith(wUp)).forEach(fn => sugg.push({
+						label: fn, kind: mc.languages.CompletionItemKind.Function,
+						insertText: fn, range, detail: 'function',
+					}));
+					_tables.filter(t => t.toUpperCase().includes(wUp)).slice(0, 16).forEach(t => sugg.push({
+						label: t, kind: mc.languages.CompletionItemKind.Class,
+						insertText: '`' + t + '`', range, detail: 'table',
+					}));
+					// Column completions from schema cache
+					Object.entries(_ac.schema).forEach(([tbl, cols]) => {
+						if (Array.isArray(cols)) cols.filter(c => c.toUpperCase().includes(wUp)).forEach(c => sugg.push({
+							label: c, kind: mc.languages.CompletionItemKind.Field,
+							insertText: c, range, detail: tbl,
+						}));
+					});
+					return { suggestions: sugg.slice(0, 24) };
+				}
+			});
+		});
 
 		/* ── SQL Autocomplete ── */
 		const SQL_KW = ['SELECT','FROM','WHERE','AND','OR','NOT','IN','IS','NULL',
@@ -4146,59 +6218,7 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 			'JSON_VALUE(','JSON_EXTRACT(','JSON_OBJECT(','JSON_ARRAY(',
 			'ROW_NUMBER()','RANK()','DENSE_RANK()','LAG(','LEAD(','OVER('];
 
-		const _ac = { visible: false, items: [], selIdx: -1, schema: {}, pending: {} };
-		const $acDrop = $('<div class="dkqe-ac-drop"></div>').hide().appendTo(document.body);
-
-		function _acHide() { $acDrop.hide(); _ac.visible = false; _ac.selIdx = -1; }
-
-		function _acRender(items, cx, cy) {
-			if (!items.length) { _acHide(); return; }
-			_ac.items = items; _ac.selIdx = 0; _ac.visible = true;
-			$acDrop.empty();
-			// Group items by type for visual separation
-			let lastType = null;
-			items.forEach((item, i) => {
-				if (item.type !== lastType) {
-					const sectionName = {keyword:'Keywords', function:'Functions', table:'Tables', column:'Columns'}[item.type] || item.type;
-					$(`<div class="dkqe-ac-section">${sectionName}</div>`).appendTo($acDrop);
-					lastType = item.type;
-				}
-				const ico = {keyword:'KW', function:'FN', table:'TB', column:'COL'}[item.type] || '?';
-				$(`<div class="dkqe-ac-item dkqe-ac-${item.type}${i===0?' sel':''}" data-idx="${i}">
-					<span class="dkqe-ac-ico">${ico}</span>
-					<span class="dkqe-ac-lbl">${frappe.utils.escape_html(item.label)}</span>
-					${item.detail ? `<span class="dkqe-ac-detail">${frappe.utils.escape_html(item.detail)}</span>` : ''}
-				</div>`).appendTo($acDrop);
-			});
-			$acDrop.append(`<div class="dkqe-ac-hint">↑↓ navigate · Tab/Enter confirm · Esc dismiss</div>`);
-			const wh = window.innerHeight;
-			$acDrop.css({ left: Math.min(cx, window.innerWidth - 320), top: -9999, display: 'block' });
-			const dh = $acDrop.outerHeight();
-			$acDrop.css('top', (cy + dh > wh - 8) ? Math.max(cy - dh - 20, 4) : cy);
-		}
-
-		function _acMove(d) {
-			if (!_ac.visible) return;
-			const $items = $acDrop.find('.dkqe-ac-item');
-			const n = $items.length; if (!n) return;
-			_ac.selIdx = (_ac.selIdx + d + n) % n;
-			$items.removeClass('sel').eq(_ac.selIdx).addClass('sel');
-			const $s = $items.eq(_ac.selIdx);
-			const dt = $acDrop.scrollTop(), it = ($s.position()||{}).top || 0, ih = $s.outerHeight();
-			if (it < 0) $acDrop.scrollTop(dt + it);
-			else if (it + ih > $acDrop.height()) $acDrop.scrollTop(dt + it + ih - $acDrop.height());
-		}
-
-		function _acCommit() {
-			if (!_ac.visible || _ac.selIdx < 0) return false;
-			const item = _ac.items[_ac.selIdx]; if (!item) return false;
-			const el = $editor[0], pos = el.selectionStart, text = el.value;
-			let ws = pos;
-			while (ws > 0 && /[\w`\-]/.test(text[ws-1])) ws--;
-			el.value = text.substring(0, ws) + item.insert + text.substring(pos);
-			el.selectionStart = el.selectionEnd = ws + item.insert.length;
-			_acHide(); _updateFooter(); return true;
-		}
+		const _ac = { schema: {}, pending: {} };
 
 		function _fetchCols(table) {
 			if (_ac.schema[table] !== undefined || _ac.pending[table] || !_qeSite) return;
@@ -4211,102 +6231,6 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 			});
 		}
 
-		function _acTrigger() {
-			const el = $editor[0], pos = el.selectionStart, text = el.value;
-			let ws = pos;
-			while (ws > 0 && /[\w`\-]/.test(text[ws-1])) ws--;
-			const word = text.substring(ws, pos).replace(/`/g, '');
-			if (word.length < 1) { _acHide(); return; }
-
-			const before = text.substring(0, ws).trim().toUpperCase().split(/[\s,();]+/).filter(Boolean);
-			const prev1  = before[before.length - 1] || '';
-			const prev2  = before[before.length - 2] || '';
-			const wUp    = word.toUpperCase();
-
-			// Tables mentioned anywhere in query (for column fetch prefetch)
-			const qUp = text.toUpperCase();
-			const mentioned = _tables.filter(t => {
-				const safe = t.toUpperCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-				return new RegExp(`\\b${safe}\\b`).test(qUp);
-			});
-			mentioned.forEach(_fetchCols);
-
-			let sugg = [];
-			const TBL_KW = ['FROM','JOIN','UPDATE','INTO','TABLE','DESCRIBE','EXPLAIN','DROP','ALTER','TRUNCATE'];
-			const COL_KW = ['SELECT','WHERE','ON','SET','HAVING','BY','RETURNING'];
-
-			if (TBL_KW.includes(prev1) || (prev1 === 'JOIN') ||
-				(['LEFT','RIGHT','INNER','OUTER','CROSS','FULL'].includes(prev2) && prev1 === 'JOIN')) {
-				sugg = _tables.filter(t => t.toUpperCase().includes(wUp)).slice(0, 16)
-					.map(t => ({ label: t, type: 'table', insert: '`' + t + '`' }));
-			} else if (COL_KW.includes(prev1) || (['ORDER','GROUP'].includes(prev2) && prev1 === 'BY')) {
-				mentioned.forEach(t => (_ac.schema[t]||[]).forEach(c => {
-					if (c.toUpperCase().includes(wUp))
-						sugg.push({ label: c, type: 'column', insert: c, detail: t });
-				}));
-				SQL_KW.filter(k => k.startsWith(wUp))
-					.forEach(k => sugg.push({ label: k, type: 'keyword', insert: k }));
-			} else {
-				SQL_KW.filter(k => k.startsWith(wUp))
-					.forEach(k => sugg.push({ label: k, type: 'keyword', insert: k }));
-				SQL_FN.filter(f => f.toUpperCase().startsWith(wUp))
-					.forEach(f => sugg.push({ label: f, type: 'function', insert: f }));
-				if (word.length >= 2) {
-					_tables.filter(t => t.toUpperCase().includes(wUp)).slice(0, 8)
-						.forEach(t => sugg.push({ label: t, type: 'table', insert: '`' + t + '`' }));
-					mentioned.forEach(t => (_ac.schema[t]||[]).filter(c => c.toUpperCase().includes(wUp))
-						.forEach(c => sugg.push({ label: c, type: 'column', insert: c, detail: t })));
-				}
-			}
-
-			sugg = sugg.slice(0, 16);
-			if (!sugg.length) { _acHide(); return; }
-
-			// Approximate caret screen position from line number
-			const linesBefore = text.substring(0, pos).split('\n');
-			const lineNum     = linesBefore.length - 1;
-			const st          = window.getComputedStyle(el);
-			const lh          = parseFloat(st.lineHeight) || 21;
-			const pt          = parseFloat(st.paddingTop)  || 14;
-			const rect        = el.getBoundingClientRect();
-			const cx          = rect.left + 60;
-			const cy          = rect.top + pt + lineNum * lh - el.scrollTop + lh + 2;
-
-			_acRender(sugg, cx, Math.min(cy, rect.bottom - 10));
-		}
-
-		// Tab key inserts 4 spaces / autocomplete navigation
-		$editor.on('keydown', function(e) {
-			if (_ac.visible) {
-				if (e.key === 'ArrowDown')  { e.preventDefault(); _acMove(1);   return; }
-				if (e.key === 'ArrowUp')    { e.preventDefault(); _acMove(-1);  return; }
-				if (e.key === 'Tab' || e.key === 'Enter') {
-					if (_acCommit()) { e.preventDefault(); return; }
-				}
-				if (e.key === 'Escape')     { e.preventDefault(); _acHide();    return; }
-			}
-			if (e.key === 'Tab' && !_ac.visible) {
-				e.preventDefault();
-				const s = this.selectionStart, end = this.selectionEnd, v = this.value;
-				this.value = v.substring(0, s) + '    ' + v.substring(end);
-				this.selectionStart = this.selectionEnd = s + 4;
-				_updateFooter();
-				return;
-			}
-			if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-				e.preventDefault();
-				$runBtn.trigger('click');
-			}
-		});
-
-		$editor.on('input', _acTrigger);
-		$editor.on('blur',  () => setTimeout(_acHide, 180));
-		$acDrop.on('mousedown', '.dkqe-ac-item', function(e) {
-			e.preventDefault();
-			_ac.selIdx = parseInt($(this).data('idx'));
-			_acCommit();
-		});
-
 		// Drag-resize handle between editor and results
 		const $resizeHandle = $(`<div class="dkqe-resize-handle" title="Drag to resize"></div>`).appendTo($center);
 		let _dragging = false, _dragY = 0, _edH = 0;
@@ -4316,7 +6240,7 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 				if (!_dragging) return;
 				const newH = Math.max(60, Math.min(_edH + (ev.clientY - _dragY), $center.height() - 100));
 				$edWrap.height(newH);
-				$editor.height(newH - 32);
+				if (_qeMonaco) _qeMonaco.layout();
 			}).on('mouseup.qe-resize', function() {
 				_dragging = false;
 				$('body').css('cursor','').off('.qe-resize');
@@ -4357,7 +6281,6 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 			_tables = [];
 			// Reset autocomplete schema cache on site change
 			_ac.schema = {}; _ac.pending = {};
-			_acHide();
 			$tblList.html(`<div style="font-size:11px;color:#b0a8c8;padding:8px 12px">Loading…</div>`);
 			if (!_qeSite) { renderTables(''); return; }
 			frappe.call({
@@ -4463,7 +6386,7 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 		$runBtn.on('click', function() {
 			const site = $qeSiteSel.val();
 			if (!site) { frappe.throw('Select a site first'); return; }
-			const sql = $editor.val().trim();
+			const sql = (_qeMonaco ? _qeMonaco.getValue() : '').trim();
 			if (!sql) { frappe.throw('Query is empty'); return; }
 
 			$runBtn.prop('disabled', true).html(`<div class="dkst-spin"></div>&nbsp;Running…`);
@@ -4508,8 +6431,7 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 		// Table double-click → describe
 		$tblList.on('dblclick', '.dkqe-tbl-item', function() {
 			const tbl = $(this).data('tbl');
-			$editor.val(`DESCRIBE \`${tbl}\``);
-			_updateFooter();
+			if (_qeMonaco) _qeMonaco.setValue(`DESCRIBE \`${tbl}\``);
 			$runBtn.trigger('click');
 		});
 
@@ -4886,22 +6808,86 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 		/* ── new page ── */
 		$newBtn.on('click', function() {
 			if (!_app) { frappe.show_alert({ message:'Select an app first', indicator:'orange' }); return; }
-			frappe.prompt([
-				{ label:'File Name', fieldname:'route', fieldtype:'Data', reqd:1,
-				  description:'Exact name as you want it — e.g. about-us or products/my-product (no leading slash, .html added automatically if no extension given)' },
-				{ label:'Create Python handler (.py)', fieldname:'create_py', fieldtype:'Check', default:1 },
-			], values => {
-				frappe.call({
-					method: 'frappe_devkit.api.page_builder.create_www_page',
-					args: { app: _app, route: values.route, create_py: values.create_py },
-					callback: r => {
-						if (r.message?.created) {
-							frappe.show_alert({ message:`Created: ${r.message.created.join(', ')}`, indicator:'green' }, 3);
-							_loadTree(_app, r.message.path);
+
+			const WWW_PRESETS = [
+				{ id:"blank",          name:"Blank Page",         ico:"📄", color:"#6b7280", tag:"General",  tagBg:"#f3f4f6", tagColor:"#374151", desc:"Minimal starter — clean HTML + PY stub." },
+				{ id:"landing",        name:"Landing Page",       ico:"🚀", color:"#5c4da8", tag:"Marketing",tagBg:"#ede9fe", tagColor:"#4c1d95", desc:"Hero, features, stats band, CTA section." },
+				{ id:"product_detail", name:"Product Detail",     ico:"📦", color:"#0369a1", tag:"eCommerce",tagBg:"#e0f2fe", tagColor:"#0c4a6e", desc:"Image gallery, pricing, specs, add to cart." },
+				{ id:"contact_form",   name:"Contact Form",       ico:"✉️", color:"#059669", tag:"Forms",    tagBg:"#d1fae5", tagColor:"#064e3b", desc:"Full contact form with validation + info cards." },
+				{ id:"portal_dashboard",name:"Portal Dashboard",  ico:"📊", color:"#1d4ed8", tag:"Portal",   tagBg:"#dbeafe", tagColor:"#1e40af", desc:"Auth-protected KPI dashboard + data table." },
+				{ id:"list_directory", name:"List / Directory",   ico:"🗂️", color:"#7c3aed", tag:"Catalog",  tagBg:"#ede9fe", tagColor:"#5b21b6", desc:"Searchable grid of records with pagination." },
+				{ id:"pricing",        name:"Pricing Page",       ico:"💳", color:"#b45309", tag:"Marketing",tagBg:"#fef3c7", tagColor:"#92400e", desc:"3-tier pricing cards with feature lists." },
+				{ id:"faq",            name:"FAQ Page",           ico:"❓", color:"#be185d", tag:"Support",  tagBg:"#fce7f3", tagColor:"#9d174d", desc:"Searchable accordion FAQ with CTA footer." },
+				{ id:"blog_post",      name:"Blog Post",          ico:"✍️", color:"#0891b2", tag:"Blog",     tagBg:"#cffafe", tagColor:"#155e75", desc:"Article layout with sidebar + share buttons." },
+				{ id:"ecommerce_cart", name:"Shopping Cart",      ico:"🛒", color:"#dc2626", tag:"eCommerce", tagBg:"#fee2e2", tagColor:"#991b1b", desc:"Cart, checkout form, order summary, upsell strip." },
+				{ id:"user_profile",   name:"User Profile",       ico:"👤", color:"#0369a1", tag:"Portal",    tagBg:"#e0f2fe", tagColor:"#0c4a6e", desc:"Account details, avatar, activity & preferences." },
+				{ id:"news_feed",      name:"News Feed",          ico:"📰", color:"#15803d", tag:"Blog",      tagBg:"#dcfce7", tagColor:"#14532d", desc:"Infinite-scroll article feed with category pills." },
+				{ id:"event_detail",   name:"Event Detail",       ico:"🎟️", color:"#9333ea", tag:"Events",    tagBg:"#f3e8ff", tagColor:"#581c87", desc:"Event header, schedule, speakers, register CTA." },
+				{ id:"knowledge_base", name:"Knowledge Base",     ico:"📚", color:"#0f766e", tag:"Support",   tagBg:"#ccfbf1", tagColor:"#134e4a", desc:"Searchable articles with breadcrumb + TOC sidebar." },
+				{ id:"coming_soon",    name:"Coming Soon",        ico:"⏳", color:"#7c3aed", tag:"Marketing", tagBg:"#ede9fe", tagColor:"#4c1d95", desc:"Countdown timer, email capture, social links." },
+			];
+
+			let _selPreset = 'blank';
+
+			const $dlg = $(`<div style="padding:4px 0">
+				<div class="dkpp-preset-grid" id="www-pg"></div>
+				<hr style="border-color:#ede9fe;margin:10px 0">
+				<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">
+					<div>
+						<label style="font-size:11px;font-weight:700;color:#5c4da8;display:block;margin-bottom:4px">File / Route *</label>
+						<input id="www-new-route" class="dkst-inp" placeholder="about-us or products/my-item" style="width:100%">
+						<div style="font-size:10px;color:#9080b8;margin-top:3px">No leading slash — .html added automatically</div>
+					</div>
+					<div>
+						<label style="font-size:11px;font-weight:700;color:#5c4da8;display:block;margin-bottom:4px">Python Handler</label>
+						<label style="cursor:pointer;font-size:12px"><input type="checkbox" id="www-new-py" checked style="margin-right:6px">Create .py file</label>
+					</div>
+				</div>
+			</div>`);
+
+			const d = new frappe.ui.Dialog({
+				title: '✨ New WWW Page',
+				fields: [{ fieldtype:'HTML', options: $dlg[0].outerHTML }],
+				primary_action_label: 'Create Page',
+				primary_action() {
+					const route = d.$wrapper.find('#www-new-route').val().trim();
+					if (!route) { frappe.show_alert({ message:'File name required', indicator:'orange' }); return; }
+					const create_py = d.$wrapper.find('#www-new-py').is(':checked') ? 1 : 0;
+					d.hide();
+					frappe.call({
+						method: 'frappe_devkit.api.page_builder.create_www_page',
+						args: { app: _app, route, create_py, preset: _selPreset },
+						callback: r => {
+							if (r.message?.created) {
+								frappe.show_alert({ message:`✅ Created: ${r.message.created.join(', ')}`, indicator:'green' }, 4);
+								_loadTree(_app, r.message.path);
+							}
 						}
+					});
+				}
+			});
+			d.show();
+
+			// Render preset cards after dialog is shown
+			const $pg = d.$wrapper.find('#www-pg');
+			WWW_PRESETS.forEach(pr => {
+				$(`<div class="dkpp-preset-card${pr.id==='blank'?' selected':''}" data-pid="${pr.id}" style="position:relative">
+					<div class="dkpp-preset-top" style="background:${pr.color}"></div>
+					<div class="dkpp-preset-body">
+						<div class="dkpp-preset-ico">${pr.ico}</div>
+						<div class="dkpp-preset-nm">${pr.name}</div>
+						<div class="dkpp-preset-ds">${pr.desc}</div>
+						<div class="dkpp-preset-tag" style="background:${pr.tagBg};color:${pr.tagColor}">${pr.tag}</div>
+					</div>
+				</div>`).appendTo($pg).on('click', function() {
+					$pg.find('.dkpp-preset-card').removeClass('selected');
+					$(this).addClass('selected');
+					_selPreset = pr.id;
+					if (!d.$wrapper.find('#www-new-route').val()) {
+						d.$wrapper.find('#www-new-route').val(pr.id.replace(/_/g,'-'));
 					}
 				});
-			}, 'New WWW Page', 'Create');
+			});
 		});
 
 		/* ── app change ── */
@@ -4926,6 +6912,7 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 			_app = this.value; _file = null; _dirty = false; _tree = [];
 			$bc.hide(); $compTabs.hide(); $emptyMsg.show();
 			(_wwwEd?.setValue('')); $saveBtn.prop('disabled',true); $delBtn.prop('disabled',true);
+			$tb.find('.dkst-ce-link').toggleClass('visible', !!_app);
 			if (_app) _loadTree(_app);
 		});
 	};
@@ -5082,42 +7069,115 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 		/* ── new desk page ── */
 		$newDeskBtn.on('click', function() {
 			if (!_app) { frappe.show_alert({ message:'Select an app first', indicator:'orange' }); return; }
+
+			const DESK_PRESETS = [
+				{ id:"blank",      name:"Blank Page",       ico:"📄", color:"#6b7280", tag:"General",    tagBg:"#f3f4f6", tagColor:"#374151", desc:"Minimal JS + PY + Jinja2 starter." },
+				{ id:"dashboard",  name:"Dashboard",        ico:"📊", color:"#5c4da8", tag:"Analytics",  tagBg:"#ede9fe", tagColor:"#4c1d95", desc:"KPI cards, data table, chart hooks." },
+				{ id:"list_tool",  name:"List / Report",    ico:"🗂️", color:"#0369a1", tag:"Data",       tagBg:"#e0f2fe", tagColor:"#0c4a6e", desc:"Filterable list with action buttons." },
+				{ id:"form_tool",  name:"Form Tool",        ico:"📝", color:"#059669", tag:"Forms",      tagBg:"#d1fae5", tagColor:"#064e3b", desc:"Input form with validation + submit." },
+				{ id:"analytics",  name:"Analytics",        ico:"📈", color:"#7c3aed", tag:"Charts",     tagBg:"#ede9fe", tagColor:"#5b21b6", desc:"Charts + summary tables." },
+				{ id:"settings",   name:"Settings Page",    ico:"⚙️", color:"#374151", tag:"Config",     tagBg:"#f3f4f6", tagColor:"#111827", desc:"App configuration with sections." },
+				{ id:"wizard",     name:"Multi-step Wizard",ico:"🧙", color:"#b45309", tag:"Workflow",   tagBg:"#fef3c7", tagColor:"#92400e", desc:"Guided step-by-step workflow." },
+				{ id:"kanban",     name:"Kanban Board",     ico:"🗃️", color:"#be185d", tag:"Board",      tagBg:"#fce7f3", tagColor:"#9d174d", desc:"Drag-drop card board by status." },
+				{ id:"import_export",name:"Import / Export",ico:"⬆️", color:"#0891b2", tag:"Tools",      tagBg:"#cffafe", tagColor:"#155e75", desc:"CSV/Excel import + export tooling." },
+				{ id:"approval_inbox", name:"Approval Inbox",    ico:"✅", color:"#15803d", tag:"Workflow",  tagBg:"#dcfce7", tagColor:"#14532d", desc:"Pending approvals queue with batch approve/reject." },
+				{ id:"report_viewer",  name:"Report Viewer",     ico:"📊", color:"#0369a1", tag:"Reports",   tagBg:"#e0f2fe", tagColor:"#0c4a6e", desc:"Dynamic filters + tabular report + CSV export." },
+				{ id:"calendar_view",  name:"Calendar View",     ico:"📅", color:"#9333ea", tag:"Planning",  tagBg:"#f3e8ff", tagColor:"#581c87", desc:"Month/week calendar with event create & drill-down." },
+				{ id:"audit_trail",    name:"Audit Trail",       ico:"🔍", color:"#374151", tag:"Admin",     tagBg:"#f3f4f6", tagColor:"#111827", desc:"Filterable activity log with diff viewer." },
+				{ id:"notification_center",name:"Notification Hub",ico:"🔔", color:"#b45309", tag:"Admin",  tagBg:"#fef3c7", tagColor:"#92400e", desc:"Read/unread notifications with bulk mark + filter." },
+				{ id:"bulk_ops",       name:"Bulk Operations",   ico:"⚡", color:"#dc2626", tag:"Tools",     tagBg:"#fee2e2", tagColor:"#991b1b", desc:"Select records, choose action, run with progress bar." },
+			];
+
+			let _selPreset = 'blank';
+			let _mods = [];
+
+			// Fetch modules then open dialog
 			frappe.call({
 				method: 'frappe_devkit.api.page_builder.list_app_modules',
 				args: { app: _app },
 				callback: r => {
-				const mods = r.message?.modules || [];
-				const modOpts = mods.join('\n');
-				frappe.prompt([
-					{ label:'Module Name', fieldname:'module', fieldtype:'Select', reqd:1,
-					  options: modOpts,
-					  description:'Select the module where the page will be created' },
-					{ label:'Page Name (internal ID)', fieldname:'page_name', fieldtype:'Data', reqd:1,
-					  description:'e.g. my-custom-page  (letters, numbers, hyphens)' },
-					{ label:'Page Title', fieldname:'title', fieldtype:'Data', reqd:1,
-					  description:'Human-readable title shown in the desk sidebar' },
-				], values => {
-				frappe.call({
-					method: 'frappe_devkit.api.page_builder.create_desk_page',
-					args: { app:_app, module:values.module, page_name:values.page_name, title:values.title },
-					callback: r => {
-						if (r.message?.created) {
-							frappe.show_alert({ message:`Page '${values.page_name}' created`, indicator:'green' }, 3);
+					_mods = r.message?.modules || [];
+
+					const $dlg = $(`<div style="padding:4px 0">
+						<div class="dkpp-preset-grid" id="desk-pg"></div>
+						<hr style="border-color:#ede9fe;margin:10px 0">
+						<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:4px">
+							<div>
+								<label style="font-size:11px;font-weight:700;color:#5c4da8;display:block;margin-bottom:4px">Module *</label>
+								<select id="desk-new-mod" class="dkst-inp" style="width:100%">
+									<option value="">— select module —</option>
+									${_mods.map(m=>`<option value="${m}">${m}</option>`).join('')}
+								</select>
+							</div>
+							<div>
+								<label style="font-size:11px;font-weight:700;color:#5c4da8;display:block;margin-bottom:4px">Page ID *</label>
+								<input id="desk-new-name" class="dkst-inp" placeholder="my-dashboard" style="width:100%">
+								<div style="font-size:10px;color:#9080b8;margin-top:3px">Letters, numbers, hyphens</div>
+							</div>
+							<div>
+								<label style="font-size:11px;font-weight:700;color:#5c4da8;display:block;margin-bottom:4px">Page Title *</label>
+								<input id="desk-new-title" class="dkst-inp" placeholder="My Dashboard" style="width:100%">
+							</div>
+						</div>
+					</div>`);
+
+					const d = new frappe.ui.Dialog({
+						title: '✨ New Desk Page',
+						fields: [{ fieldtype:'HTML', options: $dlg[0].outerHTML }],
+						primary_action_label: 'Create Page',
+						primary_action() {
+							const mod   = d.$wrapper.find('#desk-new-mod').val();
+							const pname = d.$wrapper.find('#desk-new-name').val().trim();
+							const ptitle= d.$wrapper.find('#desk-new-title').val().trim();
+							if (!mod)    { frappe.show_alert({ message:'Select a module', indicator:'orange' }); return; }
+							if (!pname)  { frappe.show_alert({ message:'Page ID required', indicator:'orange' }); return; }
+							if (!ptitle) { frappe.show_alert({ message:'Page Title required', indicator:'orange' }); return; }
+							d.hide();
 							frappe.call({
-								method: 'frappe_devkit.api.page_builder.list_desk_pages',
-								args: { app: _app },
-								callback: r2 => {
-									_pages = r2.message?.pages || []; _renderPgList($pgSearch.val());
-									const newPg = _pages.find(p => p.name === values.page_name);
-									if (newPg) _openPage(newPg);
+								method: 'frappe_devkit.api.page_builder.create_desk_page',
+								args: { app:_app, module:mod, page_name:pname, title:ptitle, preset:_selPreset },
+								callback: r => {
+									if (r.message?.created) {
+										frappe.show_alert({ message:`✅ Page '${pname}' created`, indicator:'green' }, 4);
+										frappe.call({
+											method: 'frappe_devkit.api.page_builder.list_desk_pages',
+											args: { app: _app },
+											callback: r2 => {
+												_pages = r2.message?.pages || []; _renderPgList($pgSearch.val());
+												const newPg = _pages.find(p => p.name === pname);
+												if (newPg) _openPage(newPg);
+											}
+										});
+									}
 								}
 							});
 						}
-					}
-				});
-					}, 'New Desk Page', 'Create');
-			}
-		});
+					});
+					d.show();
+
+					// Render preset cards after dialog shown
+					const $pg2 = d.$wrapper.find('#desk-pg');
+					DESK_PRESETS.forEach(pr => {
+						$(`<div class="dkpp-preset-card${pr.id==='blank'?' selected':''}" data-pid="${pr.id}" style="position:relative">
+							<div class="dkpp-preset-top" style="background:${pr.color}"></div>
+							<div class="dkpp-preset-body">
+								<div class="dkpp-preset-ico">${pr.ico}</div>
+								<div class="dkpp-preset-nm">${pr.name}</div>
+								<div class="dkpp-preset-ds">${pr.desc}</div>
+								<div class="dkpp-preset-tag" style="background:${pr.tagBg};color:${pr.tagColor}">${pr.tag}</div>
+							</div>
+						</div>`).appendTo($pg2).on('click', function() {
+							$pg2.find('.dkpp-preset-card').removeClass('selected');
+							$(this).addClass('selected');
+							_selPreset = pr.id;
+							if (!d.$wrapper.find('#desk-new-name').val()) {
+								d.$wrapper.find('#desk-new-name').val(pr.id.replace(/_/g,'-'));
+								d.$wrapper.find('#desk-new-title').val(pr.name);
+							}
+						});
+					});
+				}
+			});
 		});
 
 		/* ── delete page ── */
@@ -5197,6 +7257,7 @@ SELECT * FROM \`tabDocType\` LIMIT 20"></textarea>`).appendTo($edWrap);
 			$fileTabs.hide(); $edWrap.hide(); $emptyMsg.show();
 			$delDeskBtn.prop('disabled', true);
 			$editDeskBtn.prop('disabled', true);
+			$tb.find('.dkst-ce-link').toggleClass('visible', !!_app);
 			if (_mcInstance) {
 				Object.values(_deskModels).forEach(m => { try { m.dispose(); } catch(e) {} });
 			}

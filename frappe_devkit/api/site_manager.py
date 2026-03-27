@@ -581,6 +581,22 @@ def upload_backup_file(site, file_type="database"):
     return {"uploaded": True, "filename": filename, "size": _human_size(len(content))}
 
 
+# ─── build & restart ──────────────────────────────────────────────────────────
+@frappe.whitelist()
+def build_assets(app_name=""):
+    """Run bench build, optionally for a specific app."""
+    cmd = ["bench", "build"]
+    if app_name:
+        cmd += ["--app", app_name]
+    return _result("Build assets", _run(cmd, timeout=600))
+
+
+@frappe.whitelist()
+def restart_workers():
+    """Run bench restart."""
+    return _result("Restart workers", _run(["bench", "restart"], timeout=120))
+
+
 # ─── utils ────────────────────────────────────────────────────────────────────
 def _human_size(n):
     for unit in ["B", "KB", "MB", "GB"]:

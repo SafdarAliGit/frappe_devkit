@@ -162,6 +162,61 @@ def clear_cache(site=None):
             "stdout": result.stdout, "stderr": result.stderr}
 
 
+@frappe.whitelist()
+def list_fixture_files(app_name):
+    """List all fixture JSON files for an app with record counts."""
+    app_path = get_app_path(app_name)
+    fixtures_dir = os.path.join(app_path, app_name, "fixtures")
+    if not os.path.isdir(fixtures_dir):
+        return {"status": "success", "files": []}
+    files = []
+    for fname in sorted(os.listdir(fixtures_dir)):
+        if not fname.endswith(".json"):
+            continue
+        fpath = os.path.join(fixtures_dir, fname)
+        try:
+            records = read_json(fpath)
+            dt = records[0].get("doctype", "") if records else fname.replace(".json", "").replace("_", " ").title()
+            files.append({"filename": fname, "doctype": dt, "count": len(records), "path": fpath})
+        except Exception:
+            files.append({"filename": fname, "doctype": fname.replace(".json", ""), "count": 0, "path": fpath})
+    return {"status": "success", "files": files}
+
+
+@frappe.whitelist()
+def read_fixture_file(app_name, filename):
+    """Read records from a fixture JSON file."""
+    app_path = get_app_path(app_name)
+    fixtures_dir = os.path.join(app_path, app_name, "fixtures")
+    # Safety: only allow .json files in the fixtures directory
+    safe_name = os.path.basename(filename)
+    if not safe_name.endswith(".json"):
+        frappe.throw("Invalid filename")
+    fpath = os.path.join(fixtures_dir, safe_name)
+    if not os.path.realpath(fpath).startswith(os.path.realpath(fixtures_dir)):
+        frappe.throw("Invalid path")
+    records = read_json(fpath) if os.path.exists(fpath) else []
+    return {"status": "success", "records": records, "count": len(records)}
+
+
+@frappe.whitelist()
+def delete_fixture_record(app_name, filename, record_name):
+    """Remove a record by name from a fixture JSON file."""
+    app_path = get_app_path(app_name)
+    fixtures_dir = os.path.join(app_path, app_name, "fixtures")
+    safe_name = os.path.basename(filename)
+    if not safe_name.endswith(".json"):
+        frappe.throw("Invalid filename")
+    fpath = os.path.join(fixtures_dir, safe_name)
+    if not os.path.realpath(fpath).startswith(os.path.realpath(fixtures_dir)):
+        frappe.throw("Invalid path")
+    records = read_json(fpath) if os.path.exists(fpath) else []
+    before = len(records)
+    records = [r for r in records if r.get("name") != record_name]
+    write_json(fpath, records, overwrite=True)
+    return {"status": "success", "removed": before - len(records), "remaining": len(records)}
+
+
 def _log(action, name, app, path):
     try:
         _valid_actions = [

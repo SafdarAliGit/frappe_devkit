@@ -111,37 +111,230 @@ def hourly_long():
 
 @frappe.whitelist()
 def scaffold_permissions_file(app_name):
-    """Scaffold permissions.py with query conditions and has_permission stubs."""
+    """Scaffold permissions.py with comprehensive commented patterns for all permission scenarios."""
     app_pkg          = os.path.join(get_app_path(app_name), app_name)
     permissions_path = os.path.join(app_pkg, "permissions.py")
-    content = f"""import frappe
+    content = f'''"""
+{app_name} — permissions.py
+================================
+Centralised permission logic for all DocTypes in this app.
 
+Register hooks in hooks.py
+──────────────────────────
+    # Restrict which records appear in List View / reports
+    permission_query_conditions = {{
+        "Sales Invoice": "{app_name}.permissions.get_permission_query_conditions",
+        # "Purchase Order": "{app_name}.permissions.get_po_conditions",
+    }}
+
+    # Fine-grained per-document access (read, write, submit, cancel …)
+    has_permission = {{
+        "Sales Invoice": "{app_name}.permissions.has_permission",
+        # "Purchase Order": "{app_name}.permissions.has_po_permission",
+    }}
+
+    # Called after a user logs in — useful for session-level guards
+    # on_login = "{app_name}.permissions.on_login"
+
+    # Restrict which roles can see each module in the sidebar
+    # get_setup_wizard_stages = "{app_name}.permissions.get_setup_wizard_stages"
+"""
+
+import frappe
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _get_user(user=None):
+    """Return the active user, defaulting to the session user."""
+    return user or frappe.session.user
+
+
+def _is_system_manager(user=None):
+    """True when the user has the System Manager role."""
+    return "System Manager" in frappe.get_roles(_get_user(user))
+
+
+def _has_role(role, user=None):
+    """True when the user has a specific role."""
+    return role in frappe.get_roles(_get_user(user))
+
+
+def _get_user_company(user=None):
+    """
+    Return the company linked to the Employee record for this user.
+    Returns None when no Employee record exists.
+    """
+    # return frappe.db.get_value("Employee", {{"user_id": _get_user(user)}}, "company")
+    return None
+
+
+# ── permission_query_conditions ───────────────────────────────────────────────
 
 def get_permission_query_conditions(user=None):
-    \"\"\"
-    Returns SQL WHERE condition string to restrict list view records.
+    """
+    Return a raw SQL WHERE clause fragment that Frappe appends to every
+    list / report query for this DocType.
+
+    Return "" (empty string) to allow unrestricted access.
+    Return a non-empty string to restrict visible rows.
+
     Register in hooks.py:
         permission_query_conditions = {{
-            "DocType": "{app_name}.permissions.get_permission_query_conditions"
+            "Sales Invoice": "{app_name}.permissions.get_permission_query_conditions"
         }}
-    \"\"\"
+
+    ── Common patterns (uncomment as needed) ────────────────────────────────
+
+    # 1. System Manager sees everything
+    # if _is_system_manager(user):
+    #     return ""
+
+    # 2. Restrict to documents owned by the current user
+    # return f"`tabSales Invoice`.`owner` = {{frappe.db.escape(user)}}"
+
+    # 3. Restrict by a company the user belongs to
+    # company = _get_user_company(user)
+    # if company:
+    #     return f"`tabSales Invoice`.`company` = {{frappe.db.escape(company)}}"
+    # return "1=0"   # deny all if no company found
+
+    # 4. Restrict by a role — users with the role see all, others see none
+    # if _has_role("Sales Manager", user):
+    #     return ""
+    # return "1=0"
+
+    # 5. Restrict by territory (field on the document)
+    # territory = frappe.db.get_value("Employee", {{"user_id": user}}, "territory")
+    # if territory:
+    #     return f"`tabSales Invoice`.`territory` = {{frappe.db.escape(territory)}}"
+
+    # 6. Restrict by a custom user-linked field (e.g. assigned_to = user)
+    # return f"`tabSales Invoice`.`assigned_to` = {{frappe.db.escape(user)}}"
+
+    # 7. Restrict by document status (e.g. show only submitted docs)
+    # return "`tabSales Invoice`.`docstatus` = 1"
+
+    # 8. Combine multiple conditions with AND / OR
+    # cond = []
+    # if _has_role("Sales Manager", user):
+    #     return ""
+    # cond.append(f"`tabSales Invoice`.`owner` = {{frappe.db.escape(user)}}")
+    # company = _get_user_company(user)
+    # if company:
+    #     cond.append(f"`tabSales Invoice`.`company` = {{frappe.db.escape(company)}}")
+    # return " AND ".join(cond) if cond else "1=0"
+    """
     if not user:
-        user = frappe.session.user
+        user = _get_user()
+
+    # System Manager bypass — sees all records
+    if _is_system_manager(user):
+        return ""
+
+    # Default: no row-level restriction
     return ""
 
 
+# ── has_permission ────────────────────────────────────────────────────────────
+
 def has_permission(doc, ptype, user=None):
-    \"\"\"
-    Returns True/False for per-document access.
+    """
+    Return True to ALLOW the action, False to DENY it.
+    Frappe falls back to standard role-based permissions when True is returned.
+
+    ptype values: "read", "write", "create", "delete",
+                  "submit", "cancel", "amend", "print",
+                  "email", "export", "share", "import"
+
     Register in hooks.py:
         has_permission = {{
-            "DocType": "{app_name}.permissions.has_permission"
+            "Sales Invoice": "{app_name}.permissions.has_permission"
         }}
-    \"\"\"
+
+    ── Common patterns (uncomment as needed) ────────────────────────────────
+
+    # 1. System Manager always allowed
+    # if _is_system_manager(user):
+    #     return True
+
+    # 2. Owner can do everything; others only read
+    # if doc.owner == user:
+    #     return True
+    # if ptype == "read":
+    #     return True
+    # return False
+
+    # 3. Role-based: Sales Manager can submit; others cannot
+    # if ptype == "submit":
+    #     return _has_role("Sales Manager", user)
+
+    # 4. Field-value guard (e.g. block delete if status is Submitted)
+    # if ptype == "delete" and doc.docstatus == 1:
+    #     return False
+
+    # 5. Linked record ownership (e.g. only the assigned user can write)
+    # if ptype in ("write", "submit"):
+    #     return doc.get("assigned_to") == user
+
+    # 6. Company-level isolation
+    # company = _get_user_company(user)
+    # if company and doc.get("company") != company:
+    #     return False
+
+    # 7. Lock document after a certain field value
+    # if ptype in ("write", "cancel") and doc.get("status") == "Closed":
+    #     return False
+
+    # 8. Allow read but block export
+    # if ptype == "export":
+    #     return _has_role("Data Export User", user)
+
+    # 9. Amend only if user created the original
+    # if ptype == "amend":
+    #     return doc.owner == user
+
+    # 10. Custom flag on the document itself
+    # if ptype == "write" and doc.get("is_locked"):
+    #     return False
+
+    # 11. Time-based: block edits after working hours
+    # from frappe.utils import now_datetime
+    # hour = now_datetime().hour
+    # if ptype == "write" and not (8 <= hour < 18):
+    #     return False
+
+    # 12. Threshold guard: only accounts team can approve above limit
+    # if ptype == "submit" and doc.get("grand_total", 0) > 100000:
+    #     return _has_role("Accounts Manager", user)
+    """
     if not user:
-        user = frappe.session.user
+        user = _get_user()
+
+    # System Manager bypass
+    if _is_system_manager(user):
+        return True
+
+    # Default: allow — Frappe applies standard role checks on top of this
     return True
-"""
+
+
+# ── on_login (optional) ───────────────────────────────────────────────────────
+# Uncomment and register in hooks.py as: on_login = "{app_name}.permissions.on_login"
+#
+# def on_login(login_manager):
+#     user = login_manager.user
+#
+#     # Block login for inactive employees
+#     # emp = frappe.db.get_value("Employee", {{"user_id": user}}, "status")
+#     # if emp and emp != "Active":
+#     #     frappe.throw("Your employee account is not active.")
+#
+#     # Enforce 2FA for System Managers (example)
+#     # if _is_system_manager(user):
+#     #     pass  # add your 2FA logic here
+#     pass
+'''
     write_file(permissions_path, content, overwrite=True)
     return {"status": "success", "message": f"permissions.py scaffolded at {permissions_path}", "path": permissions_path}
 
