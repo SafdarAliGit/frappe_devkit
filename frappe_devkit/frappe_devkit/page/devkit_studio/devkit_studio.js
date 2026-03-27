@@ -472,7 +472,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
   border: 1px solid #d0c8e8; background: #fff; color: #5c4da8; cursor: pointer;
 }
 .dkqe-export-btn:hover { background: #ede8ff; }
-.dkqe-results-scroll { flex: 1; overflow: auto; }
+.dkqe-results-scroll { flex: 1; overflow-x: auto; overflow-y: auto; min-width: 0; width: 100%; }
 .dkqe-res-tbl { border-collapse: collapse; width: 100%; min-width: max-content; font-size: 12.5px; }
 .dkqe-res-tbl thead { position: sticky; top: 0; z-index: 2; }
 .dkqe-res-tbl th {
@@ -6825,6 +6825,13 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 				{ id:"event_detail",   name:"Event Detail",       ico:"🎟️", color:"#9333ea", tag:"Events",    tagBg:"#f3e8ff", tagColor:"#581c87", desc:"Event header, schedule, speakers, register CTA." },
 				{ id:"knowledge_base", name:"Knowledge Base",     ico:"📚", color:"#0f766e", tag:"Support",   tagBg:"#ccfbf1", tagColor:"#134e4a", desc:"Searchable articles with breadcrumb + TOC sidebar." },
 				{ id:"coming_soon",    name:"Coming Soon",        ico:"⏳", color:"#7c3aed", tag:"Marketing", tagBg:"#ede9fe", tagColor:"#4c1d95", desc:"Countdown timer, email capture, social links." },
+				/* ── Advanced UI/UX — full-site layouts with all nav styles ── */
+				{ id:"topnav_multipage", name:"Multi-Page Top Nav",   ico:"🧭", color:"#1d4ed8", tag:"Full Site",  tagBg:"#dbeafe", tagColor:"#1e40af", desc:"Sticky responsive navbar + dropdowns + hero + features + testimonials + 4-col footer." },
+				{ id:"leftnav_sidebar",  name:"Left Sidebar Nav",     ico:"◧",  color:"#7c3aed", tag:"App Shell",  tagBg:"#ede9fe", tagColor:"#5b21b6", desc:"Fixed collapsible sidebar + top header + breadcrumb + KPI cards. Full app-shell." },
+				{ id:"spa_scrollnav",    name:"Single-Page App",      ico:"∞",  color:"#0891b2", tag:"SPA",        tagBg:"#cffafe", tagColor:"#155e75", desc:"Sticky scroll-spy nav, all sections one page, progress bar, back-to-top FAB." },
+				{ id:"saas_landing",     name:"SaaS Landing",         ico:"🛸", color:"#6d28d9", tag:"Marketing",  tagBg:"#ede9fe", tagColor:"#4c1d95", desc:"Announcement bar + hero + logos + alternating features + pricing + testimonials + FAQ." },
+				{ id:"agency_portfolio", name:"Agency / Portfolio",   ico:"🎨", color:"#be185d", tag:"Creative",   tagBg:"#fce7f3", tagColor:"#9d174d", desc:"Fullscreen hero + filterable work grid with hover overlay + services + team + contact." },
+				{ id:"docs_leftnav",     name:"Documentation",        ico:"📖", color:"#0f766e", tag:"Docs",       tagBg:"#ccfbf1", tagColor:"#134e4a", desc:"3-panel docs: sidebar nav tree + article with TOC + code blocks + prev/next nav." },
 			];
 
 			let _selPreset = 'blank';
@@ -7086,6 +7093,10 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 				{ id:"audit_trail",    name:"Audit Trail",       ico:"🔍", color:"#374151", tag:"Admin",     tagBg:"#f3f4f6", tagColor:"#111827", desc:"Filterable activity log with diff viewer." },
 				{ id:"notification_center",name:"Notification Hub",ico:"🔔", color:"#b45309", tag:"Admin",  tagBg:"#fef3c7", tagColor:"#92400e", desc:"Read/unread notifications with bulk mark + filter." },
 				{ id:"bulk_ops",       name:"Bulk Operations",   ico:"⚡", color:"#dc2626", tag:"Tools",     tagBg:"#fee2e2", tagColor:"#991b1b", desc:"Select records, choose action, run with progress bar." },
+				/* ── Advanced UI/UX desk layouts ── */
+				{ id:"app_shell_sidebar", name:"App Shell + Sidebar", ico:"◧",  color:"#1d4ed8", tag:"Advanced", tagBg:"#dbeafe", tagColor:"#1e40af", desc:"Fixed sidebar nav + top header + tabbed content. Full app-shell with CSS vars." },
+				{ id:"split_explorer",    name:"Split Explorer",      ico:"⫿",  color:"#0891b2", tag:"Advanced", tagBg:"#cffafe", tagColor:"#155e75", desc:"Resizable split pane: filterable list left, full detail view right with tabs." },
+				{ id:"adv_dashboard",     name:"Adv. Dashboard",      ico:"📊", color:"#6d28d9", tag:"Advanced", tagBg:"#ede9fe", tagColor:"#5b21b6", desc:"Chart.js area chart + KPI row with trends + activity feed + quick-action panel." },
 			];
 
 			let _selPreset = 'blank';
