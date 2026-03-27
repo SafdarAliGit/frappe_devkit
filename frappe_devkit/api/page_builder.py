@@ -64,43 +64,19 @@ def list_apps_with_www():
 
 @frappe.whitelist()
 def list_app_modules(app):
-    """List module directories inside the app package by scanning the filesystem.
-
-    Handles two common Frappe patterns:
-    1. App has module subdirectories: {inner}/{module}/page/{page_name}/
-    2. App puts pages directly under inner package: {inner}/page/{page_name}/
-       In this case the inner package name itself is returned as the module.
-    """
+    """Return modules for an app, reading modules.txt as the authoritative source."""
     root = _app_root(app)
     inner = app.replace("-", "_")
-    pkg_dir = None
-    for candidate in [os.path.join(root, inner), os.path.join(root, app)]:
-        if os.path.isdir(candidate):
-            pkg_dir = candidate
-            break
-    if not pkg_dir:
-        return {'modules': []}
 
-    _MODULE_MARKERS = {'doctype', 'page', 'report', 'workspace', 'module_def',
-                       'print_format', 'notification', 'dashboard_chart', 'number_card'}
-    _SKIP = {'__pycache__', 'templates', 'www', 'public', 'tests', 'patches', 'node_modules'}
+    # Try modules.txt in the inner package directory first, then the app root
+    for base in [os.path.join(root, inner), os.path.join(root, app), root]:
+        mtxt = os.path.join(base, 'modules.txt')
+        if os.path.isfile(mtxt):
+            with open(mtxt) as f:
+                modules = [l.strip() for l in f if l.strip()]
+            return {'modules': modules}
 
-    # Check if inner package itself directly contains module markers
-    # (e.g. erptheme/erptheme/page/ exists → inner package IS the module)
-    pkg_direct = {e for e in os.listdir(pkg_dir) if os.path.isdir(os.path.join(pkg_dir, e))}
-    if pkg_direct & _MODULE_MARKERS:
-        return {'modules': [inner]}
-
-    # Otherwise find subdirectories that contain module markers
-    modules = []
-    for name in sorted(os.listdir(pkg_dir)):
-        d = os.path.join(pkg_dir, name)
-        if not os.path.isdir(d) or name.startswith('.') or name in _SKIP:
-            continue
-        subdirs = {e for e in os.listdir(d) if os.path.isdir(os.path.join(d, e))}
-        if subdirs & _MODULE_MARKERS:
-            modules.append(name)
-    return {'modules': modules}
+    return {'modules': []}
 
 
 # ─────────────────────────── WWW Files ────────────────────────────────────────
