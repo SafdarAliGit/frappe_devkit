@@ -396,6 +396,22 @@ def list_app_fixture_records(app_name, fixture_file):
     return read_json(path)
 
 
+@frappe.whitelist()
+def delete_fixture_record(app_name, fixture_file, record_name):
+    """
+    Remove a record by name from an app's fixture JSON file.
+    fixture_file: bare filename, e.g. 'dashboard_chart' (with or without .json).
+    """
+    name = fixture_file.replace(".json", "")
+    path = os.path.join(get_app_path(app_name), app_name, "fixtures", f"{name}.json")
+    records = read_json(path)
+    updated = [r for r in records if r.get("name") != record_name]
+    if len(updated) == len(records):
+        frappe.throw(f"Record '{record_name}' not found in {name}.json")
+    with open(path, "w") as f:
+        json.dump(updated, f, indent="\t", default=str)
+
+
 # ─────────────────────────────────────────────────────────────────
 # SERVER SCRIPT
 # ─────────────────────────────────────────────────────────────────

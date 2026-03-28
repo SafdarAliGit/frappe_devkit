@@ -13,8 +13,13 @@ LAYOUT_FIELDTYPES = ("Section Break", "Column Break", "Tab Break", "Fold", "Head
 def scaffold_doctype(app_name, module_name, doctype_name, fields,
     is_child_table=0, is_submittable=0, is_single=0, is_tree=0,
     quick_entry=0, editable_grid=1, track_changes=1, track_seen=0,
+    track_views=0, allow_copy=0, allow_auto_repeat=0,
+    allow_events_in_timeline=0, show_preview_popup=0,
+    has_web_view=0, in_create=0,
+    allow_import=None, allow_rename=None,
     naming_rule="By fieldname", autoname="", title_field="",
     search_fields="", sort_field="modified", sort_order="DESC",
+    document_type="", icon="", description="", max_attachments=0, color="",
     permissions=None, overwrite=False):
     """
     Scaffold a complete Frappe DocType.
@@ -36,6 +41,16 @@ def scaffold_doctype(app_name, module_name, doctype_name, fields,
     is_single = int(is_single); is_tree = int(is_tree)
     quick_entry = int(quick_entry); editable_grid = int(editable_grid)
     track_changes = int(track_changes); track_seen = int(track_seen)
+    track_views = int(track_views); allow_copy = int(allow_copy)
+    allow_auto_repeat = int(allow_auto_repeat)
+    allow_events_in_timeline = int(allow_events_in_timeline)
+    show_preview_popup = int(show_preview_popup)
+    has_web_view = int(has_web_view); in_create = int(in_create)
+    max_attachments = int(max_attachments or 0)
+
+    # allow_import / allow_rename: use caller value if provided, else default based on type
+    _allow_import = int(allow_import) if allow_import is not None else (1 if not is_single and not is_child_table else 0)
+    _allow_rename = int(allow_rename) if allow_rename is not None else (1 if not is_single and not is_child_table else 0)
 
     dt_path = get_doctype_path(app_name, module_name, doctype_name)
     os.makedirs(dt_path, exist_ok=True)
@@ -52,22 +67,49 @@ def scaffold_doctype(app_name, module_name, doctype_name, fields,
     default_perms = permissions or _default_permissions(is_submittable)
 
     dt_json = {
-        "actions": [], "allow_import": 1 if not is_single and not is_child_table else 0,
-        "allow_rename": 1 if not is_single and not is_child_table else 0,
-        "autoname": autoname, "creation": str(now_datetime()), "doctype": "DocType",
-        "document_type": "", "editable_grid": editable_grid, "engine": "InnoDB",
-        "field_order": field_order, "fields": built_fields,
-        "hide_toolbar": 1 if is_single else 0, "in_create": 0,
-        "is_submittable": is_submittable, "issingle": is_single,
-        "istable": is_child_table, "is_tree": is_tree, "links": [],
-        "max_attachments": 0, "modified": str(now_datetime()),
-        "modified_by": "Administrator", "module": module_name,
-        "name": doctype_name, "naming_rule": naming_rule,
-        "owner": "Administrator", "permissions": default_perms,
-        "quick_entry": quick_entry, "search_fields": search_fields,
-        "sort_field": sort_field, "sort_order": sort_order, "states": [],
-        "title_field": title_field, "track_changes": track_changes,
-        "track_seen": track_seen, "track_views": 0,
+        "actions": [],
+        "allow_copy": allow_copy,
+        "allow_import": _allow_import,
+        "allow_rename": _allow_rename,
+        "allow_auto_repeat": allow_auto_repeat,
+        "allow_events_in_timeline": allow_events_in_timeline,
+        "autoname": autoname,
+        "color": color or "",
+        "creation": str(now_datetime()),
+        "description": description or "",
+        "doctype": "DocType",
+        "document_type": document_type or "",
+        "editable_grid": editable_grid,
+        "engine": "InnoDB",
+        "field_order": field_order,
+        "fields": built_fields,
+        "has_web_view": has_web_view,
+        "hide_toolbar": 1 if is_single else 0,
+        "icon": icon or "",
+        "in_create": in_create,
+        "is_submittable": is_submittable,
+        "issingle": is_single,
+        "istable": is_child_table,
+        "is_tree": is_tree,
+        "links": [],
+        "max_attachments": max_attachments,
+        "modified": str(now_datetime()),
+        "modified_by": "Administrator",
+        "module": module_name,
+        "name": doctype_name,
+        "naming_rule": naming_rule,
+        "owner": "Administrator",
+        "permissions": default_perms,
+        "quick_entry": quick_entry,
+        "search_fields": search_fields,
+        "show_preview_popup": show_preview_popup,
+        "sort_field": sort_field,
+        "sort_order": sort_order,
+        "states": [],
+        "title_field": title_field,
+        "track_changes": track_changes,
+        "track_seen": track_seen,
+        "track_views": track_views,
     }
     if is_tree:
         dt_json["nsm_parent_field"] = "parent_" + dt_folder_name
@@ -102,11 +144,16 @@ def _build_fields(fields):
         if f.get("options") is not None: field["options"] = f["options"]
         for flag in ["reqd","bold","in_list_view","in_standard_filter","in_global_search",
                      "no_copy","allow_on_submit","read_only","hidden","print_hide","report_hide",
-                     "search_index","unique","fetch_if_empty","translatable","collapsible","columns"]:
+                     "search_index","unique","fetch_if_empty","translatable","collapsible","columns",
+                     "ignore_user_permissions","allow_in_quick_entry","remember_last_selected_value",
+                     "ignore_xss_filter","in_preview"]:
             if flag in f: field[flag] = int(f[flag])
         for prop in ["default","depends_on","mandatory_depends_on","read_only_depends_on",
-                     "description","precision","fetch_from","max_height","collapsible_depends_on","link_filters"]:
+                     "hidden_depends_on","description","precision","width","fetch_from",
+                     "max_height","collapsible_depends_on","link_filters"]:
             if f.get(prop): field[prop] = f[prop]
+        if f.get("permlevel") is not None and int(f.get("permlevel",0)) > 0:
+            field["permlevel"] = int(f["permlevel"])
         if f.get("length"): field["length"] = int(f["length"])
         built.append(field)
     return built

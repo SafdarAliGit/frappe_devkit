@@ -457,13 +457,13 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 .dkqe-editor:focus { outline: none; box-shadow: none !important; }
 .dkqe-editor-footer {
   display: flex; align-items: center; gap: 12px; padding: 4px 12px;
-  background: #2a2440; border-top: 1px solid #3a2e5e;
-  font-size: 11px; color: #7a6aa8; flex-shrink: 0;
+  background: #fdfcff; border-top: 1px solid #e8e4f4;
+  font-size: 11px; color: #9080b8; flex-shrink: 0;
 }
 .dkqe-results-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; background: #fff; }
 .dkqe-results-hdr {
   display: flex; align-items: center; gap: 10px; padding: 8px 14px;
-  background: #f7f4ff; border-bottom: 1px solid #e8e0f8; flex-shrink: 0; flex-wrap: wrap;
+  background: #fdfcff; border-bottom: 1px solid #e8e0f8; flex-shrink: 0; flex-wrap: wrap;
 }
 .dkqe-results-title { font-size: 12px; font-weight: 700; color: #3a2e5e; }
 .dkqe-results-meta { font-size: 11px; color: #9080b8; }
@@ -501,7 +501,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 .dkqe-history-item:hover { background: #f0eaff; }
 .dkqe-col-num { background: #3a2e5e !important; color: #7a6aa8 !important; width: 40px; text-align: right !important; user-select: none; font-size: 11px; }
 .dkqe-td-expand { cursor: pointer; }
-.dkqe-tab-bar { display: flex; gap: 0; border-bottom: 1px solid #e8e0f8; background: #f7f4ff; flex-shrink: 0; }
+.dkqe-tab-bar { display: flex; gap: 0; border-bottom: 1px solid #e8e0f8; background: #fdfcff; flex-shrink: 0; }
 .dkqe-tab { font-size: 12px; padding: 7px 16px; cursor: pointer; color: #7a70a8; border-bottom: 2px solid transparent; font-weight: 500; }
 .dkqe-tab.active { color: #5c4da8; border-bottom-color: #7a5cc0; font-weight: 700; background: #fff; }
 
@@ -547,10 +547,11 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 /* ── Snippet categories ── */
 .dkqe-sn-group-hdr {
   font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .10em;
-  color: #9b7de0; padding: 6px 12px 2px; border-top: 1px solid #e8e0f8;
-  background: #f7f4ff; cursor: default; user-select: none;
+  color: #7a5cc0; padding: 7px 12px 3px; border-top: 1px solid #ede8ff;
+  background: #faf8ff; cursor: default; user-select: none; position: sticky; top: 0; z-index: 1;
 }
 .dkqe-sn-group-hdr:first-child { border-top: none; }
+#qe-sn-search:focus { border-color: #9b7de0; box-shadow: 0 0 0 2px #ede8ff; }
 
 /* ═══ WEB & PAGE BUILDER ═══ */
 .dkpb-root { display:flex;flex-direction:column;height:100%;overflow:hidden;padding:0 }
@@ -1700,6 +1701,12 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 					$("#dt_tf").val(d.title_field || "");
 					$("#dt_sf").val(d.search_fields || "");
 					$("#dt_so").val(d.sort_field || "modified");
+					$("#dt_dtype").val(d.document_type || "");
+					$("#dt_icon").val(d.icon || "");
+					$("#dt_desc").val(d.description || "");
+					$("#dt_maxatt").val(d.max_attachments || 0);
+					$("#dt_srt_ord").val(d.sort_order || "DESC");
+					$("#dt_color").val(d.color || "");
 
 					// ── Populate Flags ────────────────────────────
 					$("#dt_sub").prop("checked", !!d.is_submittable);
@@ -1709,23 +1716,59 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 					$("#dt_qe").prop("checked",  !!d.quick_entry);
 					$("#dt_trk").prop("checked", !!d.track_changes);
 					$("#dt_trs").prop("checked", !!d.track_seen);
+					$("#dt_tvw").prop("checked", !!d.track_views);
 					$("#dt_ai").prop("checked",  !!d.allow_import);
 					$("#dt_ar").prop("checked",  !!d.allow_rename);
+					$("#dt_cpy").prop("checked", !!d.allow_copy);
+					$("#dt_arr").prop("checked", !!d.allow_auto_repeat);
+					$("#dt_aet").prop("checked", !!d.allow_events_in_timeline);
+					$("#dt_pvw").prop("checked", !!d.show_preview_popup);
+					$("#dt_hwv").prop("checked", !!d.has_web_view);
+					$("#dt_ifc").prop("checked", !!d.in_create);
 
 					// ── Populate Fields table ─────────────────────
 					$("#dt-rows").empty();
 					(d.fields || []).forEach(f => {
 						addRow({
-							fn   : f.fieldname,
-							ft   : f.fieldtype,
-							lbl  : f.label || "",
-							op   : f.options || (f.default || ""),
-							dep  : f.depends_on || "",
-							req  : f.reqd,
-							list : f.in_list_view,
-							ro   : f.read_only,
-							bold : f.bold,
-							ph   : f.print_hide,
+							fn    : f.fieldname,
+							ft    : f.fieldtype,
+							lbl   : f.label || "",
+							op    : f.options || (f.default || ""),
+							dep   : f.depends_on || "",
+							req   : f.reqd,
+							list  : f.in_list_view,
+							ro    : f.read_only,
+							bold  : f.bold,
+							ph    : f.print_hide,
+							hidden: f.hidden,
+							unique: f.unique,
+							search: f.in_global_search,
+							nocopy: f.no_copy,
+							trans : f.translatable,
+							// advanced
+							desc  : f.description || "",
+							ffrom : f.fetch_from || "",
+							wid   : f.width || "",
+							prec  : f.precision || "",
+							len   : f.length || "",
+							perm  : f.permlevel || 0,
+							mdep  : f.mandatory_depends_on || "",
+							rodep : f.read_only_depends_on || "",
+							hdep  : f.hidden_depends_on || "",
+							cdep  : f.collapsible_depends_on || "",
+							cols  : f.columns || "",
+							lflt  : f.link_filters || "",
+							stdf  : f.in_standard_filter,
+							prev  : f.in_preview,
+							aos   : f.allow_on_submit,
+							rph   : f.report_hide,
+							sidx  : f.search_index,
+							coll  : f.collapsible,
+							fife  : f.fetch_if_empty,
+							iup   : f.ignore_user_permissions,
+							aqe   : f.allow_in_quick_entry,
+							rls   : f.remember_last_selected_value,
+							ixss  : f.ignore_xss_filter,
 						});
 					});
 
@@ -1771,6 +1814,12 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			${F("dt_tf","Title Field","text","name")}
 			${F("dt_sf","Search Fields","text","name,status")}
 			${F("dt_so","Sort Field","text","modified")}
+			${F("dt_dtype","Document Type","select","","",["","Transaction","Master","Setup","Other"])}
+			${F("dt_icon","Icon","text","fa fa-file")}
+			${F("dt_desc","Description","text","Brief description of this DocType")}
+			${F("dt_maxatt","Max Attachments","number","0")}
+			${F("dt_srt_ord","Sort Order","select","","",["DESC","ASC"])}
+			${F("dt_color","Color","text","#e2e8f0","","hint: hex color for list view badge")}
 		</div>`);
 		wireAMD($c1,"dt_app","dt_mod",null);
 
@@ -1856,26 +1905,42 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			${mode!=="single"? CHK("dt_qe","Quick Entry") : ""}
 			${CHK("dt_trk","Track Changes",1)}
 			${CHK("dt_trs","Track Seen")}
+			${CHK("dt_tvw","Track Views")}
 			${CHK("dt_ai","Allow Import",1)}
 			${CHK("dt_ar","Allow Rename",mode==="normal"?1:0)}
+			${CHK("dt_cpy","Allow Copy")}
+			${CHK("dt_arr","Allow Auto Repeat")}
+			${CHK("dt_aet","Allow Events in Timeline")}
+			${CHK("dt_pvw","Show Preview Popup")}
+			${mode!=="single"&&mode!=="child"? CHK("dt_hwv","Has Web View") : ""}
+			${CHK("dt_ifc","In Create",0)}
 			${CHK("dt_ow","Overwrite Existing Files")}
 		</div>`);
 
 		const $c3=card($p,"Fields");
-		$c3.append(`<div class="dkst-tbl-wrap">
-		<table class="dkst-tbl">
+		$c3.append(`<div style="display:flex;align-items:center;gap:8px;padding:6px 2px 8px">
+			<input id="dt-field-search" class="dkst-inp" placeholder="Search by name, type or label…" style="flex:1;max-width:360px">
+			<span id="dt-field-count" style="font-size:11px;color:#9080b8"></span>
+		</div>`);
+		$c3.append(`<div class="dkst-tbl-wrap" style="overflow-x:auto">
+		<table class="dkst-tbl" style="min-width:900px">
 			<thead><tr>
-				<th style="width:14%">Fieldname</th>
-				<th style="width:15%">Fieldtype</th>
-				<th style="width:14%">Label</th>
-				<th style="width:16%">Options / Default</th>
-				<th style="width:11%">Depends On</th>
-				<th style="width:6%" title="Required">Req</th>
-				<th style="width:6%" title="In List View">List</th>
-				<th style="width:6%" title="Read Only">RO</th>
-				<th style="width:6%" title="Bold">Bld</th>
-				<th style="width:6%" title="Print Hide">PH</th>
-				<th style="width:20px"></th>
+				<th style="width:130px">Fieldname</th>
+				<th style="width:130px">Fieldtype</th>
+				<th style="width:120px">Label</th>
+				<th style="width:140px">Options / Default</th>
+				<th style="width:110px">Depends On</th>
+				<th style="width:72px" title="Field must be filled before saving">Required</th>
+				<th style="width:72px" title="Show in list view columns">In List View</th>
+				<th style="width:72px" title="Field cannot be edited by user">Read Only</th>
+				<th style="width:72px" title="Display label in bold">Bold</th>
+				<th style="width:72px" title="Hide field from print formats">Print Hide</th>
+				<th style="width:72px" title="Hide field from form view">Hidden</th>
+				<th style="width:72px" title="Value must be unique across all records">Unique</th>
+				<th style="width:72px" title="Include in global / full-text search">In Global Search</th>
+				<th style="width:72px" title="Do not copy value when duplicating document">No Copy</th>
+				<th style="width:72px" title="Allow translation of field value">Translatable</th>
+				<th style="width:44px"></th>
 			</tr></thead>
 			<tbody id="dt-rows"></tbody>
 		</table></div>`);
@@ -1923,16 +1988,116 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				<td><input class="dkst-inp f-lbl" value="${d.lbl||""}" placeholder="Label"></td>
 				<td><input class="dkst-inp f-op"  value="${d.op||""}"  placeholder="options/default"></td>
 				<td><input class="dkst-inp f-dep" value="${d.dep||""}" placeholder="eval:doc.x=='y'"></td>
-				<td style="text-align:center"><input type="checkbox" class="f-req"  ${d.req?"checked":""}></td>
-				<td style="text-align:center"><input type="checkbox" class="f-list" ${d.list?"checked":""}></td>
-				<td style="text-align:center"><input type="checkbox" class="f-ro"   ${d.ro?"checked":""}></td>
-				<td style="text-align:center"><input type="checkbox" class="f-bold" ${d.bold?"checked":""}></td>
-				<td style="text-align:center"><input type="checkbox" class="f-ph"   ${d.ph?"checked":""}></td>
-				<td><button class="dkst-del-btn">×</button></td>
+				<td style="text-align:center"><input type="checkbox" class="f-req"       ${d.req?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-list"      ${d.list?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-ro"        ${d.ro?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-bold"      ${d.bold?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-ph"        ${d.ph?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-hidden"    ${d.hidden?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-unique"    ${d.unique?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-search"    ${d.search?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-nocopy"    ${d.nocopy?"checked":""}></td>
+				<td style="text-align:center"><input type="checkbox" class="f-trans"     ${d.trans?"checked":""}></td>
+				<td style="white-space:nowrap">
+					<button class="dkst-adv-btn" title="Advanced options" style="background:none;border:1px solid #c0b8e0;border-radius:4px;cursor:pointer;padding:1px 5px;font-size:12px;color:#7a6aa8;margin-right:2px">⚙</button>
+					<button class="dkst-del-btn">×</button>
+				</td>
 			</tr>`);
-			$tr.find(".dkst-del-btn").on("click",()=>$tr.remove());
-			$("#dt-rows").append($tr);
+			// Advanced expansion row
+			const $adv=$(`<tr class="dt-adv-row" style="display:none">
+				<td colspan="16" style="padding:10px 14px 12px;background:#faf8ff;border-top:1px dashed #e0d8f0">
+					<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;font-size:12px">
+						<div style="grid-column:1/-1">
+							<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9080b8;margin-bottom:6px">Advanced Field Options</div>
+						</div>
+						<div style="grid-column:1/-1">
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Description</label>
+							<input class="dkst-inp f-desc" value="${d.desc||""}" placeholder="Shown below the field in the form" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Fetch From</label>
+							<input class="dkst-inp f-ffrom" value="${d.ffrom||""}" placeholder="link_field.field_name" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Width</label>
+							<input class="dkst-inp f-wid" value="${d.wid||""}" placeholder="150px or 20%" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Precision</label>
+							<input class="dkst-inp f-prec" value="${d.prec||""}" placeholder="2" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Length</label>
+							<input class="dkst-inp f-len" value="${d.len||""}" placeholder="140" type="number" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Permission Level</label>
+							<input class="dkst-inp f-perm" value="${d.perm||"0"}" placeholder="0" type="number" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Mandatory Depends On</label>
+							<input class="dkst-inp f-mdep" value="${d.mdep||""}" placeholder="eval:doc.x==1" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Read Only Depends On</label>
+							<input class="dkst-inp f-rodep" value="${d.rodep||""}" placeholder="eval:doc.x==1" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Hidden Depends On</label>
+							<input class="dkst-inp f-hdep" value="${d.hdep||""}" placeholder="eval:doc.x==1" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Collapsible Depends On</label>
+							<input class="dkst-inp f-cdep" value="${d.cdep||""}" placeholder="eval:doc.x==1 (Section Break)" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Columns (Column Break)</label>
+							<input class="dkst-inp f-cols" value="${d.cols||""}" placeholder="1 – 12" type="number" style="width:100%;margin-top:2px">
+						</div>
+						<div>
+							<label style="font-size:11px;color:#6b7280;font-weight:600">Link Filters (JSON)</label>
+							<input class="dkst-inp f-lflt" value="${d.lflt||""}" placeholder='[["fieldname","=","value"]]' style="width:100%;margin-top:2px">
+						</div>
+						<div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:4px;align-items:center">
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-stdf"  ${d.stdf?"checked":""}> In Standard Filter</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-prev"  ${d.prev?"checked":""}> In Preview</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-aos"   ${d.aos?"checked":""}> Allow on Submit</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-rph"   ${d.rph?"checked":""}> Report Hide</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-sidx"  ${d.sidx?"checked":""}> Search Index</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-coll"  ${d.coll?"checked":""}> Collapsible</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-fife"  ${d.fife?"checked":""}> Fetch if Empty</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-iup"   ${d.iup?"checked":""}> Ignore User Permissions</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-aqe"   ${d.aqe?"checked":""}> Allow in Quick Entry</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-rls"   ${d.rls?"checked":""}> Remember Last Selected</label>
+							<label style="font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" class="f-ixss"  ${d.ixss?"checked":""}> Ignore XSS Filter</label>
+						</div>
+					</div>
+				</td>
+			</tr>`);
+			$tr.find(".dkst-adv-btn").on("click",()=>$adv.toggle());
+			$tr.find(".dkst-del-btn").on("click",()=>{ $adv.remove(); $tr.remove(); });
+			$("#dt-rows").append($tr).append($adv);
+			_dtFieldSearchFilter();
 		}
+
+		function _dtFieldSearchFilter() {
+			const q = ($('#dt-field-search').val() || '').trim().toLowerCase();
+			let visible = 0;
+			$('#dt-rows tr:not(.dt-adv-row)').each(function() {
+				const fn  = $(this).find('.f-fn').val().toLowerCase();
+				const ft  = $(this).find('.f-ft').val().toLowerCase();
+				const lbl = $(this).find('.f-lbl').val().toLowerCase();
+				const match = !q || fn.includes(q) || ft.includes(q) || lbl.includes(q);
+				$(this).toggle(match);
+				// keep adv row in sync with its parent
+				$(this).next('.dt-adv-row').toggle(match && $(this).next('.dt-adv-row').is(':visible'));
+				if (match) visible++;
+			});
+			const total = $('#dt-rows tr:not(.dt-adv-row)').length;
+			$('#dt-field-count').text(q ? `${visible} / ${total} fields` : `${total} fields`);
+		}
+
+		$c3.on('input', '#dt-field-search', _dtFieldSearchFilter);
 
 		const $c4=card($p,"Permissions");
 		$c4.append(info("System Manager and All roles are added by default. Select or type extra roles below."));
@@ -1998,11 +2163,41 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 					if(lbl) row.label=lbl;
 					if(op)  { if(ft==="Date"&&op.toLowerCase()==="today") row.default="Today"; else row.options=op; }
 					if(dep) row.depends_on=dep;
-					if($(this).find(".f-req").is(":checked"))  row.reqd=1;
-					if($(this).find(".f-list").is(":checked")) row.in_list_view=1;
-					if($(this).find(".f-ro").is(":checked"))   row.read_only=1;
-					if($(this).find(".f-bold").is(":checked")) row.bold=1;
-					if($(this).find(".f-ph").is(":checked"))   row.print_hide=1;
+					if($(this).find(".f-req").is(":checked"))    row.reqd=1;
+					if($(this).find(".f-list").is(":checked"))   row.in_list_view=1;
+					if($(this).find(".f-ro").is(":checked"))     row.read_only=1;
+					if($(this).find(".f-bold").is(":checked"))   row.bold=1;
+					if($(this).find(".f-ph").is(":checked"))     row.print_hide=1;
+					if($(this).find(".f-hidden").is(":checked")) row.hidden=1;
+					if($(this).find(".f-unique").is(":checked")) row.unique=1;
+					if($(this).find(".f-search").is(":checked")) row.in_global_search=1;
+					if($(this).find(".f-nocopy").is(":checked")) row.no_copy=1;
+					if($(this).find(".f-trans").is(":checked"))  row.translatable=1;
+					// Advanced options (from expansion row)
+					const $adv=$(this).next(".dt-adv-row");
+					const desc=$adv.find(".f-desc").val().trim();   if(desc) row.description=desc;
+					const ffrom=$adv.find(".f-ffrom").val().trim(); if(ffrom) row.fetch_from=ffrom;
+					const wid=$adv.find(".f-wid").val().trim();     if(wid) row.width=wid;
+					const prec=$adv.find(".f-prec").val().trim();   if(prec) row.precision=prec;
+					const len=$adv.find(".f-len").val().trim();     if(len) row.length=parseInt(len)||0;
+					const perm=$adv.find(".f-perm").val().trim();   if(perm&&perm!=="0") row.permlevel=parseInt(perm)||0;
+					const mdep=$adv.find(".f-mdep").val().trim();   if(mdep) row.mandatory_depends_on=mdep;
+					const rodep=$adv.find(".f-rodep").val().trim(); if(rodep) row.read_only_depends_on=rodep;
+					const hdep=$adv.find(".f-hdep").val().trim();   if(hdep) row.hidden_depends_on=hdep;
+					const cdep=$adv.find(".f-cdep").val().trim();   if(cdep) row.collapsible_depends_on=cdep;
+					const cols=$adv.find(".f-cols").val().trim();   if(cols) row.columns=parseInt(cols)||0;
+					const lflt=$adv.find(".f-lflt").val().trim();   if(lflt) row.link_filters=lflt;
+					if($adv.find(".f-stdf").is(":checked"))  row.in_standard_filter=1;
+					if($adv.find(".f-prev").is(":checked"))  row.in_preview=1;
+					if($adv.find(".f-aos").is(":checked"))   row.allow_on_submit=1;
+					if($adv.find(".f-rph").is(":checked"))   row.report_hide=1;
+					if($adv.find(".f-sidx").is(":checked"))  row.search_index=1;
+					if($adv.find(".f-coll").is(":checked"))  row.collapsible=1;
+					if($adv.find(".f-fife").is(":checked"))  row.fetch_if_empty=1;
+					if($adv.find(".f-iup").is(":checked"))   row.ignore_user_permissions=1;
+					if($adv.find(".f-aqe").is(":checked"))   row.allow_in_quick_entry=1;
+					if($adv.find(".f-rls").is(":checked"))   row.remember_last_selected_value=1;
+					if($adv.find(".f-ixss").is(":checked"))  row.ignore_xss_filter=1;
 					fields.push(row);
 				});
 				if(!fields.length){frappe.throw("Add at least one field");return;}
@@ -2023,6 +2218,21 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 					editable_grid:gc("dt_edg")?1:0,
 					track_changes:gc("dt_trk")?1:0,
 					track_seen:gc("dt_trs")?1:0,
+					track_views:gc("dt_tvw")?1:0,
+					allow_copy:gc("dt_cpy")?1:0,
+					allow_auto_repeat:gc("dt_arr")?1:0,
+					allow_events_in_timeline:gc("dt_aet")?1:0,
+					show_preview_popup:gc("dt_pvw")?1:0,
+					has_web_view:gc("dt_hwv")?1:0,
+					in_create:gc("dt_ifc")?1:0,
+					document_type:gv("dt_dtype")||"",
+					icon:gv("dt_icon")||"",
+					description:gv("dt_desc")||"",
+					max_attachments:parseInt(gv("dt_maxatt")||0)||0,
+					sort_order:gv("dt_srt_ord")||"DESC",
+					color:gv("dt_color")||"",
+					allow_import:gc("dt_ai")?1:0,
+					allow_rename:gc("dt_ar")?1:0,
 					naming_rule:gv("dt_nr")||"By fieldname",
 					autoname:gv("dt_au"),title_field:gv("dt_tf"),
 					search_fields:gv("dt_sf"),sort_field:gv("dt_so")||"modified",
@@ -3282,6 +3492,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				extra_where,order_by,group_by,having,limit_rows,
 			},$t);
 		}}]);
+		_filePanel($p, ["**/report/**/*.py", "**/report/**/*.js", "**/report/**/*.json"], "rp_app");
 	};
 
 	/* ── Custom Field ── */
@@ -3404,11 +3615,22 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			<textarea id="cs_sc" style="display:none"></textarea>
 			<div id="cs_sc_mc" style="height:260px;border:1px solid #d0c8e8;border-radius:4px"></div>
 		</div>`);
+		let _csMcRef = null;
 		_mcLoad(mc => {
-			const _csMc = _mcCreate($c.find('#cs_sc_mc'), 'javascript',
+			_csMcRef = _mcCreate($c.find('#cs_sc_mc'), 'javascript',
 				'frappe.ui.form.on("MyDocType", {\n  setup(frm) {\n    // runs once on form init\n  },\n  refresh(frm) {\n    // runs on every load\n  },\n  validate(frm) {\n    // runs before save\n  }\n});');
-			_csMc.onDidChangeModelContent(() => { $('#cs_sc').val(_csMc.getValue()); });
-			$('#cs_sc').val(_csMc.getValue());
+			_csMcRef.onDidChangeModelContent(() => { $('#cs_sc').val(_csMcRef.getValue()); });
+			$('#cs_sc').val(_csMcRef.getValue());
+		});
+		$c.on('change', '#cs_dt', function() {
+			if (!_csMcRef) return;
+			const dt = $(this).val() || 'MyDocType';
+			const current = _csMcRef.getValue();
+			const updated = current.replace(/frappe\.ui\.form\.on\("[^"]*"/, `frappe.ui.form.on("${dt}"`);
+			if (updated !== current) {
+				_csMcRef.setValue(updated);
+				$('#cs_sc').val(updated);
+			}
 		});
 		wireAMD($c,"cs_app","cs_mod","cs_dt");
 		const $t=term($p);
@@ -3492,10 +3714,18 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		});
 		const $body = d.$wrapper.find('.modal-body').css({ padding: '0', overflow: 'hidden' });
 		const $mcDiv = $('<div style="height:520px;width:100%"></div>').appendTo($body);
-		const $status = $('<div style="font-size:11.5px;padding:6px 14px;color:#7a70a8;background:#f9f7ff;border-top:1px solid #e0d8f8"></div>').appendTo($body);
+		// Status + AI toggle bar
+		const $statusBar = $('<div style="display:flex;align-items:center;gap:8px;padding:5px 14px;background:#fdfcff;border-top:1px solid #e8e4f4;flex-shrink:0"></div>').appendTo($body);
+		const $status = $('<span style="font-size:11.5px;color:#7a70a8;flex:1"></span>').appendTo($statusBar);
+		const $aiBtn  = $('<button style="font-size:11px;padding:2px 9px;border-radius:4px;border:1px solid #d0c8e8;background:#f5f0ff;color:#5c4da8;cursor:pointer;flex-shrink:0" title="Toggle AI inline completions (ghost text)">✨ AI hints: ON</button>').appendTo($statusBar);
 		$status.text('Loading…');
 
-		let _editor = null;
+		let _editor = null, _aiOn = true;
+		$aiBtn.on('click', () => {
+			_aiOn = !_aiOn;
+			$aiBtn.text(`✨ AI hints: ${_aiOn ? 'ON' : 'OFF'}`).css('background', _aiOn ? '#f5f0ff' : '#f5f5f5').css('color', _aiOn ? '#5c4da8' : '#999');
+			if (_mcInstance?.__dkAiEnabled) _mcInstance.__dkAiEnabled(_aiOn);
+		});
 
 		d.set_primary_action('💾 Save', () => {
 			if (!_editor) return;
@@ -3512,6 +3742,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			});
 		});
 		d.set_secondary_action_label('Close');
+		d.set_secondary_action(() => d.hide());
 
 		d.show();
 
@@ -4139,19 +4370,16 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				<div><span style="color:#9080b8">Timespan</span><br><b>${frappe.utils.escape_html(r.timespan||'—')}</b></div>
 			</div>
 			<div style="display:flex;flex-wrap:wrap;gap:8px">
-				<button class="dkst-btn dkst-btn-p" id="dcm-open">📂 Open Form</button>
-				<button class="dkst-btn dkst-btn-s" id="dcm-preview">👁 Preview Chart</button>
+				<button class="dkst-btn dkst-btn-s" id="dcm-edit-json">📝 Edit JSON</button>
 				<button class="dkst-btn dkst-btn-s" id="dcm-copy">📋 Copy Name</button>
 				<button class="dkst-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:12.5px;cursor:pointer" id="dcm-del">🗑 Delete</button>
 			</div>
 			<div id="dcm-status" style="margin-top:10px;font-size:12px;min-height:18px"></div>`);
-			$b.find('#dcm-open').on('click', () => {
+			$b.find('#dcm-edit-json').on('click', () => {
+				const app = $('#dc_ap').val();
+				if (!app) { frappe.throw('Select an app first'); return; }
 				d.hide();
-				setTimeout(() => frappe.set_route('Form', 'Dashboard Chart', r.name), 300);
-			});
-			$b.find('#dcm-preview').on('click', () => {
-				d.hide();
-				setTimeout(() => frappe.set_route('dashboard-chart', r.name), 300);
+				_openFileEditor(app, { name: 'dashboard_chart.json', path: `${app}/fixtures/dashboard_chart.json` });
 			});
 			$b.find('#dcm-copy').on('click', () => {
 				frappe.utils.copy_to_clipboard(r.name);
@@ -4159,9 +4387,10 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			});
 			$b.find('#dcm-del').on('click', () => {
 				frappe.confirm(`Delete Dashboard Chart <b>${frappe.utils.escape_html(r.name)}</b>? This cannot be undone.`, () => {
+					const app = $('#dc_ap').val();
 					frappe.call({
-						method: 'frappe.client.delete',
-						args: { doctype: 'Dashboard Chart', name: r.name },
+						method: 'frappe_devkit.api.advanced_builder.delete_fixture_record',
+						args: { app_name: app, fixture_file: 'dashboard_chart', record_name: r.name },
 						callback: () => {
 							d.hide();
 							frappe.show_alert({ message: `Deleted: ${r.name}`, indicator: 'green' });
@@ -4575,14 +4804,16 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				</div>
 			</div>
 			<div style="display:flex;flex-wrap:wrap;gap:8px">
-				<button class="dkst-btn dkst-btn-p" id="ncm-open">📂 Open Form</button>
+				<button class="dkst-btn dkst-btn-s" id="ncm-edit-json">📝 Edit JSON</button>
 				<button class="dkst-btn dkst-btn-s" id="ncm-copy">📋 Copy Name</button>
 				<button class="dkst-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:12.5px;cursor:pointer" id="ncm-del">🗑 Delete</button>
 			</div>
 			<div id="ncm-status" style="margin-top:10px;font-size:12px;min-height:18px"></div>`);
-			$b.find('#ncm-open').on('click', () => {
+			$b.find('#ncm-edit-json').on('click', () => {
+				const app = $('#nc_ap').val();
+				if (!app) { frappe.throw('Select an app first'); return; }
 				d.hide();
-				setTimeout(() => frappe.set_route('Form', 'Number Card', r.name), 300);
+				_openFileEditor(app, { name: 'number_card.json', path: `${app}/fixtures/number_card.json` });
 			});
 			$b.find('#ncm-copy').on('click', () => {
 				frappe.utils.copy_to_clipboard(r.name);
@@ -4590,9 +4821,10 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			});
 			$b.find('#ncm-del').on('click', () => {
 				frappe.confirm(`Delete Number Card <b>${frappe.utils.escape_html(r.name)}</b>? This cannot be undone.`, () => {
+					const app = $('#nc_ap').val();
 					frappe.call({
-						method: 'frappe.client.delete',
-						args: { doctype: 'Number Card', name: r.name },
+						method: 'frappe_devkit.api.advanced_builder.delete_fixture_record',
+						args: { app_name: app, fixture_file: 'number_card', record_name: r.name },
 						callback: () => {
 							d.hide();
 							frappe.show_alert({ message: `Deleted: ${r.name}`, indicator: 'green' });
@@ -4821,14 +5053,16 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				<div><span style="color:#9080b8">Channel</span><br><b>${frappe.utils.escape_html(r.channel||'—')}</b></div>
 			</div>
 			<div style="display:flex;flex-wrap:wrap;gap:8px">
-				<button class="dkst-btn dkst-btn-p" id="ntm-open">📂 Open Form</button>
+				<button class="dkst-btn dkst-btn-s" id="ntm-edit-json">📝 Edit JSON</button>
 				<button class="dkst-btn dkst-btn-s" id="ntm-copy">📋 Copy Name</button>
 				<button class="dkst-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:12.5px;cursor:pointer" id="ntm-del">🗑 Delete</button>
 			</div>
 			<div id="ntm-status" style="margin-top:10px;font-size:12px;min-height:18px"></div>`);
-			$b.find('#ntm-open').on('click', () => {
+			$b.find('#ntm-edit-json').on('click', () => {
+				const app = $('#nt_ap').val();
+				if (!app) { frappe.throw('Select an app first'); return; }
 				d.hide();
-				setTimeout(() => frappe.set_route('Form', 'Notification', r.name), 300);
+				_openFileEditor(app, { name: 'notification.json', path: `${app}/fixtures/notification.json` });
 			});
 			$b.find('#ntm-copy').on('click', () => {
 				frappe.utils.copy_to_clipboard(r.name);
@@ -4836,9 +5070,10 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			});
 			$b.find('#ntm-del').on('click', () => {
 				frappe.confirm(`Delete Notification <b>${frappe.utils.escape_html(r.name)}</b>? This cannot be undone.`, () => {
+					const app = $('#nt_ap').val();
 					frappe.call({
-						method: 'frappe.client.delete',
-						args: { doctype: 'Notification', name: r.name },
+						method: 'frappe_devkit.api.advanced_builder.delete_fixture_record',
+						args: { app_name: app, fixture_file: 'notification', record_name: r.name },
 						callback: () => {
 							d.hide();
 							frappe.show_alert({ message: `Deleted: ${r.name}`, indicator: 'green' });
@@ -4969,14 +5204,16 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				<div><span style="color:#9080b8">Event</span><br><b>${frappe.utils.escape_html(r.doctype_event||'—')}</b></div>
 			</div>
 			<div style="display:flex;flex-wrap:wrap;gap:8px">
-				<button class="dkst-btn dkst-btn-p" id="ssm-open">📂 Open Form</button>
+				<button class="dkst-btn dkst-btn-s" id="ssm-edit-json">📝 Edit JSON</button>
 				<button class="dkst-btn dkst-btn-s" id="ssm-copy">📋 Copy Name</button>
 				<button class="dkst-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:12.5px;cursor:pointer" id="ssm-del">🗑 Delete</button>
 			</div>
 			<div id="ssm-status" style="margin-top:10px;font-size:12px;min-height:18px"></div>`);
-			$b.find('#ssm-open').on('click', () => {
+			$b.find('#ssm-edit-json').on('click', () => {
+				const app = $('#ss_ap').val();
+				if (!app) { frappe.throw('Select an app first'); return; }
 				d.hide();
-				setTimeout(() => frappe.set_route('Form', 'Server Script', r.name), 300);
+				_openFileEditor(app, { name: 'server_script.json', path: `${app}/fixtures/server_script.json` });
 			});
 			$b.find('#ssm-copy').on('click', () => {
 				frappe.utils.copy_to_clipboard(r.name);
@@ -4984,9 +5221,10 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			});
 			$b.find('#ssm-del').on('click', () => {
 				frappe.confirm(`Delete Server Script <b>${frappe.utils.escape_html(r.name)}</b>? This cannot be undone.`, () => {
+					const app = $('#ss_ap').val();
 					frappe.call({
-						method: 'frappe.client.delete',
-						args: { doctype: 'Server Script', name: r.name },
+						method: 'frappe_devkit.api.advanced_builder.delete_fixture_record',
+						args: { app_name: app, fixture_file: 'server_script', record_name: r.name },
 						callback: () => {
 							d.hide();
 							frappe.show_alert({ message: `Deleted: ${r.name}`, indicator: 'green' });
@@ -6916,66 +7154,154 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 
 		/* ── SQL Snippets (grouped) ── */
 		const SNIPPET_GROUPS = [
-			{ label: '⚡ Basic', items: {
-				'SELECT *':              (t) => `SELECT * FROM \`${t||'tabDocType'}\` LIMIT 50`,
-				'SELECT fields':         (t) => `SELECT name, creation, modified, owner, modified_by\nFROM \`${t||'tabDocType'}\`\nWHERE 1=1\nORDER BY creation DESC\nLIMIT 50`,
-				'COUNT rows':            (t) => `SELECT COUNT(*) AS total FROM \`${t||'tabDocType'}\``,
-				'DESCRIBE table':        (t) => `DESCRIBE \`${t||'tabDocType'}\``,
-				'SHOW TABLES':           ()  => `SHOW TABLES`,
-				'SHOW FULL TABLES':      ()  => `SHOW FULL TABLES`,
-				'SHOW INDEXES':          (t) => `SHOW INDEXES FROM \`${t||'tabDocType'}\``,
-				'SHOW CREATE TABLE':     (t) => `SHOW CREATE TABLE \`${t||'tabDocType'}\``,
+			{ label: '⚡ Basic Queries', color: '#6c3fc5', items: {
+				'SELECT *':                    (t) => `SELECT *\nFROM \`${t||'tabDocType'}\`\nLIMIT 50`,
+				'SELECT common fields':        (t) => `SELECT name, creation, modified, owner, modified_by, docstatus\nFROM \`${t||'tabDocType'}\`\nWHERE docstatus != 2\nORDER BY creation DESC\nLIMIT 50`,
+				'COUNT rows':                  (t) => `SELECT COUNT(*) AS total_rows\nFROM \`${t||'tabDocType'}\``,
+				'COUNT by status':             (t) => `SELECT docstatus,\n  CASE docstatus WHEN 0 THEN 'Draft' WHEN 1 THEN 'Submitted' WHEN 2 THEN 'Cancelled' END AS status_label,\n  COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY docstatus`,
+				'DESCRIBE table':              (t) => `DESCRIBE \`${t||'tabDocType'}\``,
+				'SHOW TABLES':                 ()  => `SHOW TABLES`,
+				'SHOW FULL TABLES':            ()  => `SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'`,
+				'SHOW INDEXES':                (t) => `SHOW INDEXES FROM \`${t||'tabDocType'}\``,
+				'SHOW CREATE TABLE':           (t) => `SHOW CREATE TABLE \`${t||'tabDocType'}\``,
+				'SHOW COLUMNS':                (t) => `SHOW COLUMNS FROM \`${t||'tabDocType'}\``,
+				'SELECT with alias':           (t) => `SELECT\n  t.name        AS id,\n  t.owner       AS created_by,\n  t.creation    AS created_at,\n  t.modified    AS updated_at,\n  t.docstatus   AS status\nFROM \`${t||'tabDocType'}\` t\nORDER BY t.creation DESC\nLIMIT 50`,
+				'LIMIT + OFFSET (paging)':     (t) => `SELECT name, creation, owner\nFROM \`${t||'tabDocType'}\`\nORDER BY creation DESC\nLIMIT 20 OFFSET 0   -- change OFFSET for pages`,
 			}},
-			{ label: '🔗 Joins & Filters', items: {
-				'INNER JOIN':            ()  => `SELECT a.name, b.fieldname, b.fieldtype\nFROM \`tabDocType\` a\nINNER JOIN \`tabDocField\` b ON b.parent = a.name\nWHERE 1=1\nLIMIT 50`,
-				'LEFT JOIN':             ()  => `SELECT a.name, b.name AS child\nFROM \`tabDocType\` a\nLEFT JOIN \`tabDocField\` b ON b.parent = a.name\nLIMIT 50`,
-				'WHERE + LIKE':          (t) => `SELECT * FROM \`${t||'tabDocType'}\`\nWHERE name LIKE '%keyword%'\nLIMIT 50`,
-				'WHERE date range':      (t) => `SELECT * FROM \`${t||'tabDocType'}\`\nWHERE creation BETWEEN '2024-01-01' AND '2024-12-31'\nORDER BY creation DESC`,
-				'WHERE IN list':         (t) => `SELECT * FROM \`${t||'tabDocType'}\`\nWHERE name IN ('val1','val2','val3')`,
-				'CASE expression':       ()  => `SELECT name,\n  CASE docstatus\n    WHEN 0 THEN 'Draft'\n    WHEN 1 THEN 'Submitted'\n    WHEN 2 THEN 'Cancelled'\n    ELSE 'Unknown'\n  END AS status_label\nFROM \`tabSales Invoice\`\nLIMIT 50`,
+			{ label: '🔗 Joins & Relations', color: '#0369a1', items: {
+				'INNER JOIN':                  ()  => `SELECT a.name, b.fieldname, b.label, b.fieldtype\nFROM \`tabDocType\` a\nINNER JOIN \`tabDocField\` b ON b.parent = a.name\nWHERE a.custom = 0\nORDER BY a.name, b.idx\nLIMIT 100`,
+				'LEFT JOIN':                   ()  => `SELECT a.name, a.module, b.name AS child_name\nFROM \`tabDocType\` a\nLEFT JOIN \`tabDocField\` b ON b.parent = a.name AND b.fieldtype = 'Link'\nLIMIT 100`,
+				'Multi-table JOIN':            ()  => `SELECT\n  si.name        AS invoice,\n  si.customer,\n  c.customer_group,\n  si.grand_total,\n  si.status\nFROM \`tabSales Invoice\` si\nJOIN \`tabCustomer\` c      ON c.name = si.customer\nWHERE si.docstatus = 1\nORDER BY si.creation DESC\nLIMIT 50`,
+				'Self JOIN':                   ()  => `SELECT a.name, a.owner, b.full_name AS owner_name\nFROM \`tabDocType\` a\nJOIN \`tabUser\` b ON b.name = a.owner\nLIMIT 50`,
+				'WHERE + LIKE':                (t) => `SELECT name, owner, creation\nFROM \`${t||'tabDocType'}\`\nWHERE name LIKE '%keyword%'\n   OR owner LIKE '%keyword%'\nLIMIT 50`,
+				'WHERE date range':            (t) => `SELECT name, creation, owner\nFROM \`${t||'tabDocType'}\`\nWHERE creation BETWEEN '2024-01-01 00:00:00' AND '2024-12-31 23:59:59'\nORDER BY creation DESC`,
+				'WHERE IN list':               (t) => `SELECT name, docstatus, owner\nFROM \`${t||'tabDocType'}\`\nWHERE name IN ('val1', 'val2', 'val3')\nORDER BY name`,
+				'WHERE NOT EXISTS':            (t) => `SELECT name\nFROM \`${t||'tabDocType'}\` a\nWHERE NOT EXISTS (\n  SELECT 1 FROM \`tabAnother\` b WHERE b.reference = a.name\n)\nLIMIT 50`,
+				'CASE expression':             ()  => `SELECT name,\n  CASE docstatus\n    WHEN 0 THEN 'Draft'\n    WHEN 1 THEN 'Submitted'\n    WHEN 2 THEN 'Cancelled'\n    ELSE 'Unknown'\n  END AS status_label\nFROM \`tabSales Invoice\`\nLIMIT 50`,
+				'NULL / NOT NULL check':       (t) => `SELECT name, owner\nFROM \`${t||'tabDocType'}\`\nWHERE owner IS NOT NULL\n  AND modified IS NOT NULL\nLIMIT 50`,
+				'COALESCE fallback':           (t) => `SELECT name,\n  COALESCE(customer_name, customer, 'N/A') AS display_name\nFROM \`${t||'tabSales Invoice'}\`\nLIMIT 50`,
 			}},
-			{ label: '📊 Aggregation', items: {
-				'GROUP BY count':        (t) => `SELECT owner, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY owner\nORDER BY cnt DESC\nLIMIT 20`,
-				'SUM by field':          (t) => `SELECT owner, SUM(grand_total) AS total\nFROM \`${t||'tabSales Invoice'}\`\nGROUP BY owner\nORDER BY total DESC`,
-				'Date histogram':        (t) => `SELECT DATE(creation) AS day, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY day\nORDER BY day DESC\nLIMIT 30`,
-				'Monthly summary':       (t) => `SELECT DATE_FORMAT(creation,'%Y-%m') AS month, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY month\nORDER BY month DESC`,
-				'HAVING filter':         (t) => `SELECT owner, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY owner\nHAVING cnt > 10\nORDER BY cnt DESC`,
-				'DISTINCT values':       (t) => `SELECT DISTINCT owner FROM \`${t||'tabDocType'}\`\nORDER BY owner`,
+			{ label: '📊 Aggregation & Analytics', color: '#7c3aed', items: {
+				'GROUP BY count':              (t) => `SELECT owner, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY owner\nORDER BY cnt DESC\nLIMIT 20`,
+				'SUM + AVG + MIN + MAX':       (t) => `SELECT\n  COUNT(*)          AS total_rows,\n  SUM(grand_total)  AS total_amount,\n  AVG(grand_total)  AS avg_amount,\n  MIN(grand_total)  AS min_amount,\n  MAX(grand_total)  AS max_amount\nFROM \`${t||'tabSales Invoice'}\`\nWHERE docstatus = 1`,
+				'Daily histogram':             (t) => `SELECT DATE(creation) AS day, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY day\nORDER BY day DESC\nLIMIT 90`,
+				'Weekly summary':              (t) => `SELECT YEARWEEK(creation,1) AS week, COUNT(*) AS cnt, SUM(grand_total) AS total\nFROM \`${t||'tabSales Invoice'}\`\nWHERE docstatus=1\nGROUP BY week\nORDER BY week DESC\nLIMIT 52`,
+				'Monthly summary':             (t) => `SELECT DATE_FORMAT(creation,'%Y-%m') AS month, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY month\nORDER BY month DESC`,
+				'Yearly rollup':               (t) => `SELECT YEAR(creation) AS yr, COUNT(*) AS cnt, SUM(grand_total) AS revenue\nFROM \`${t||'tabSales Invoice'}\`\nWHERE docstatus=1\nGROUP BY yr\nORDER BY yr DESC`,
+				'HAVING filter':               (t) => `SELECT owner, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY owner\nHAVING cnt > 10\nORDER BY cnt DESC`,
+				'ROLLUP totals':               ()  => `SELECT\n  COALESCE(DATE_FORMAT(creation,'%Y-%m'),'Grand Total') AS period,\n  COUNT(*) AS cnt,\n  SUM(grand_total) AS revenue\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\nGROUP BY period WITH ROLLUP`,
+				'DISTINCT values':             (t) => `SELECT DISTINCT owner\nFROM \`${t||'tabDocType'}\`\nORDER BY owner`,
+				'Percentile / RANK':           ()  => `SELECT name, grand_total,\n  RANK() OVER (ORDER BY grand_total DESC) AS rank_pos,\n  ROUND(100.0 * RANK() OVER (ORDER BY grand_total DESC) / COUNT(*) OVER (), 1) AS percentile\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\nLIMIT 50`,
+				'Running total':               ()  => `SELECT\n  posting_date,\n  grand_total,\n  SUM(grand_total) OVER (ORDER BY posting_date ROWS UNBOUNDED PRECEDING) AS running_total\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\nORDER BY posting_date\nLIMIT 100`,
 			}},
-			{ label: '🌿 Frappe Core', items: {
-				'DocType fields':        (t) => `SELECT fieldname, label, fieldtype, options, reqd, in_list_view\nFROM \`tabDocField\`\nWHERE parent='${t||'Sales Invoice'}'\nORDER BY idx`,
-				'Recent docs':           (t) => `SELECT name, creation, owner, docstatus, modified_by\nFROM \`tab${t||'Sales Invoice'}\`\nORDER BY creation DESC\nLIMIT 20`,
-				'Custom fields':         (t) => `SELECT name, dt, fieldname, label, fieldtype, insert_after\nFROM \`tabCustom Field\`\nWHERE dt='${t||'Sales Invoice'}'\nORDER BY idx`,
-				'Print formats':         (t) => `SELECT name, doc_type, module, disabled, standard\nFROM \`tabPrint Format\`\nWHERE doc_type='${t||'Sales Invoice'}'`,
-				'DocType list':          ()  => `SELECT name, module, issingle, istable, is_submittable, custom\nFROM \`tabDocType\`\nORDER BY name\nLIMIT 100`,
-				'Error log':             ()  => `SELECT name, creation, method, error\nFROM \`tabError Log\`\nORDER BY creation DESC\nLIMIT 30`,
-				'Activity log':          ()  => `SELECT creation, owner, subject, reference_doctype, reference_name\nFROM \`tabActivity Log\`\nORDER BY creation DESC\nLIMIT 30`,
-				'Email queue':           ()  => `SELECT name, sender, recipients, status, creation, error\nFROM \`tabEmail Queue\`\nORDER BY creation DESC\nLIMIT 30`,
-				'Scheduled jobs':        ()  => `SELECT name, method, status, scheduled_time, creation\nFROM \`tabScheduled Job Log\`\nORDER BY creation DESC\nLIMIT 30`,
-				'Users & last login':    ()  => `SELECT name, full_name, email, enabled, last_login\nFROM \`tabUser\`\nWHERE name NOT IN ('Administrator','Guest')\nORDER BY last_login DESC`,
-				'User roles':            ()  => `SELECT parent AS user, role\nFROM \`tabHas Role\`\nWHERE parenttype='User'\nORDER BY parent, role`,
-				'Workflows':             ()  => `SELECT name, document_type, is_active\nFROM \`tabWorkflow\`\nORDER BY document_type`,
-				'Version/audit log':     ()  => `SELECT name, ref_doctype, docname, creation, owner\nFROM \`tabVersion\`\nORDER BY creation DESC\nLIMIT 30`,
-				'DocType permissions':   (t) => `SELECT role, permlevel, \`read\`, \`write\`, \`create\`, \`delete\`, submit, cancel\nFROM \`tabDocPerm\`\nWHERE parent='${t||'Sales Invoice'}'`,
+			{ label: '📅 Date & Time', color: '#0891b2', items: {
+				'Created today':               (t) => `SELECT name, creation, owner\nFROM \`${t||'tabDocType'}\`\nWHERE DATE(creation) = CURDATE()\nORDER BY creation DESC`,
+				'Created this week':           (t) => `SELECT name, creation, owner\nFROM \`${t||'tabDocType'}\`\nWHERE YEARWEEK(creation,1) = YEARWEEK(CURDATE(),1)\nORDER BY creation DESC`,
+				'Created this month':          (t) => `SELECT name, creation, owner\nFROM \`${t||'tabDocType'}\`\nWHERE YEAR(creation)=YEAR(CURDATE()) AND MONTH(creation)=MONTH(CURDATE())\nORDER BY creation DESC`,
+				'Created last N days':         (t) => `SELECT name, creation, owner\nFROM \`${t||'tabDocType'}\`\nWHERE creation >= DATE_SUB(NOW(), INTERVAL 30 DAY)\nORDER BY creation DESC`,
+				'Date diff (age in days)':     (t) => `SELECT name,\n  creation,\n  DATEDIFF(NOW(), creation) AS age_days\nFROM \`${t||'tabDocType'}\`\nORDER BY age_days DESC\nLIMIT 50`,
+				'Extract year/month/day':      (t) => `SELECT\n  name,\n  YEAR(creation)   AS yr,\n  MONTH(creation)  AS mo,\n  DAY(creation)    AS dy,\n  HOUR(creation)   AS hr\nFROM \`${t||'tabDocType'}\`\nLIMIT 50`,
+				'Overdue (past due_date)':     (t) => `SELECT name, due_date, DATEDIFF(CURDATE(), due_date) AS days_overdue\nFROM \`${t||'tabSales Invoice'}\`\nWHERE docstatus=1 AND outstanding_amount > 0\n  AND due_date < CURDATE()\nORDER BY days_overdue DESC\nLIMIT 50`,
+				'Modified recently':           (t) => `SELECT name, modified, modified_by\nFROM \`${t||'tabDocType'}\`\nWHERE modified >= DATE_SUB(NOW(), INTERVAL 7 DAY)\nORDER BY modified DESC\nLIMIT 50`,
 			}},
-			{ label: '💼 ERPNext', items: {
-				'Open Sales Orders':     ()  => `SELECT name, customer, transaction_date, grand_total, status\nFROM \`tabSales Order\`\nWHERE status NOT IN ('Cancelled','Closed')\nORDER BY creation DESC\nLIMIT 50`,
-				'Overdue invoices':      ()  => `SELECT name, customer, due_date, outstanding_amount\nFROM \`tabSales Invoice\`\nWHERE docstatus=1 AND outstanding_amount > 0 AND due_date < CURDATE()\nORDER BY due_date\nLIMIT 50`,
-				'Pending POs':           ()  => `SELECT name, supplier, transaction_date, grand_total, status\nFROM \`tabPurchase Order\`\nWHERE status NOT IN ('Cancelled','Closed')\nORDER BY creation DESC\nLIMIT 30`,
-				'Stock summary':         ()  => `SELECT item_code, warehouse, actual_qty, valuation_rate,\n  actual_qty*valuation_rate AS stock_value\nFROM \`tabBin\`\nWHERE actual_qty != 0\nORDER BY stock_value DESC\nLIMIT 50`,
-				'Item prices':           ()  => `SELECT item_code, price_list, price_list_rate, currency\nFROM \`tabItem Price\`\nWHERE price_list='Standard Selling'\nORDER BY item_code\nLIMIT 50`,
-				'GL entries':            ()  => `SELECT posting_date, account, debit, credit, voucher_type, voucher_no\nFROM \`tabGL Entry\`\nWHERE is_cancelled=0\nORDER BY posting_date DESC\nLIMIT 50`,
-				'Customer balances':     ()  => `SELECT party, SUM(debit-credit) AS balance\nFROM \`tabGL Entry\`\nWHERE party_type='Customer' AND is_cancelled=0\nGROUP BY party\nHAVING balance != 0\nORDER BY balance DESC\nLIMIT 50`,
-				'Top customers':         ()  => `SELECT customer, SUM(grand_total) AS revenue\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\nGROUP BY customer\nORDER BY revenue DESC\nLIMIT 20`,
+			{ label: '🌿 Frappe Framework', color: '#15803d', items: {
+				'All DocTypes':                ()  => `SELECT name, module, issingle, istable, is_submittable, custom, track_changes\nFROM \`tabDocType\`\nWHERE ifnull(is_virtual,0)=0\nORDER BY module, name`,
+				'DocType fields':              (t) => `SELECT fieldname, label, fieldtype, options, reqd, in_list_view, search_index, bold, hidden\nFROM \`tabDocField\`\nWHERE parent='${t||'Sales Invoice'}'\nORDER BY idx`,
+				'DocType permissions':         (t) => `SELECT role, permlevel, \`read\`, \`write\`, \`create\`, \`delete\`, submit, cancel, amend, \`print\`, email\nFROM \`tabDocPerm\`\nWHERE parent='${t||'Sales Invoice'}'\nORDER BY role, permlevel`,
+				'Custom fields':               (t) => `SELECT name, dt, module, fieldname, label, fieldtype, options, insert_after, reqd, hidden\nFROM \`tabCustom Field\`\nWHERE dt='${t||'Sales Invoice'}'\nORDER BY idx`,
+				'All custom fields':           ()  => `SELECT dt, fieldname, label, fieldtype, options\nFROM \`tabCustom Field\`\nORDER BY dt, idx\nLIMIT 200`,
+				'Property setters':            (t) => `SELECT doc_type, field_name, property, value, property_type\nFROM \`tabProperty Setter\`\nWHERE doc_type='${t||'Sales Invoice'}'\nORDER BY field_name, property`,
+				'Client scripts':              (t) => `SELECT name, dt, view, enabled\nFROM \`tabClient Script\`\nWHERE dt='${t||'Sales Invoice'}'`,
+				'Server scripts':              ()  => `SELECT name, script_type, reference_doctype, doctype_event, enabled\nFROM \`tabServer Script\`\nORDER BY reference_doctype, script_type`,
+				'Notifications':               ()  => `SELECT name, document_type, event, channel, enabled\nFROM \`tabNotification\`\nORDER BY document_type`,
+				'Print formats':               (t) => `SELECT name, doc_type, module, disabled, standard, default_print_format\nFROM \`tabPrint Format\`\nWHERE doc_type='${t||'Sales Invoice'}'\nORDER BY name`,
+				'Users & last login':          ()  => `SELECT name, full_name, email, enabled, last_login, creation\nFROM \`tabUser\`\nWHERE name NOT IN ('Administrator','Guest')\nORDER BY last_login DESC`,
+				'User roles':                  ()  => `SELECT parent AS user, role\nFROM \`tabHas Role\`\nWHERE parenttype='User'\nORDER BY parent, role`,
+				'Roles list':                  ()  => `SELECT name, disabled, desk_access, home_page\nFROM \`tabRole\`\nWHERE name NOT IN ('Guest','All','Administrator')\nORDER BY name`,
+				'Workflows':                   ()  => `SELECT w.name, w.document_type, w.is_active,\n  ws.name AS state, ws.style\nFROM \`tabWorkflow\` w\nJOIN \`tabWorkflow Document State\` ws ON ws.parent=w.name\nORDER BY w.document_type, ws.idx`,
+				'Translation overrides':       ()  => `SELECT name, language, source_text, translated_text, context\nFROM \`tabTranslation\`\nORDER BY language, source_text\nLIMIT 100`,
+				'Error log (recent)':          ()  => `SELECT name, creation, method, SUBSTRING(error,1,200) AS error_snippet\nFROM \`tabError Log\`\nORDER BY creation DESC\nLIMIT 30`,
+				'Email queue':                 ()  => `SELECT name, sender, recipients, status, creation, send_after,\n  SUBSTRING(error,1,100) AS err\nFROM \`tabEmail Queue\`\nORDER BY creation DESC\nLIMIT 30`,
+				'Scheduled job log':           ()  => `SELECT name, method, status, scheduled_time, creation\nFROM \`tabScheduled Job Log\`\nWHERE status IN ('Failed','Timeout')\nORDER BY creation DESC\nLIMIT 30`,
+				'Activity log':                ()  => `SELECT creation, owner, subject, reference_doctype, reference_name, full_name\nFROM \`tabActivity Log\`\nORDER BY creation DESC\nLIMIT 30`,
+				'Version / audit trail':       ()  => `SELECT name, ref_doctype, docname, creation, owner\nFROM \`tabVersion\`\nORDER BY creation DESC\nLIMIT 30`,
+				'Communication log':           ()  => `SELECT name, reference_doctype, reference_name, sender, recipients, status, creation\nFROM \`tabCommunication\`\nWHERE sent_or_received='Sent'\nORDER BY creation DESC\nLIMIT 30`,
 			}},
-			{ label: '⚙️ Performance & Info', items: {
-				'Table sizes':           ()  => `SELECT table_name,\n  ROUND(data_length/1024/1024,2) AS data_mb,\n  ROUND(index_length/1024/1024,2) AS index_mb,\n  table_rows\nFROM information_schema.TABLES\nWHERE table_schema = DATABASE()\nORDER BY data_length DESC\nLIMIT 30`,
-				'EXPLAIN query':         (t) => `EXPLAIN SELECT * FROM \`${t||'tabDocType'}\` WHERE name = 'test'`,
-				'Show processlist':      ()  => `SHOW PROCESSLIST`,
-				'Show status':           ()  => `SHOW STATUS WHERE Variable_name IN\n('Uptime','Questions','Threads_connected','Slow_queries','Open_tables')`,
-				'Character set':         ()  => `SHOW VARIABLES LIKE '%character%'`,
-				'InnoDB status':         ()  => `SHOW VARIABLES LIKE 'innodb%'`,
-				'Max connections':       ()  => `SHOW VARIABLES LIKE '%max_connections%'`,
+			{ label: '💰 Accounting & Finance', color: '#b45309', items: {
+				'GL entries':                  ()  => `SELECT posting_date, account, debit, credit, voucher_type, voucher_no, party, remarks\nFROM \`tabGL Entry\`\nWHERE is_cancelled=0\n  AND posting_date BETWEEN '2024-01-01' AND '2024-12-31'\nORDER BY posting_date DESC\nLIMIT 100`,
+				'Account balance':             ()  => `SELECT account,\n  SUM(debit)  AS total_debit,\n  SUM(credit) AS total_credit,\n  SUM(debit-credit) AS balance\nFROM \`tabGL Entry\`\nWHERE is_cancelled=0\n  AND posting_date <= CURDATE()\nGROUP BY account\nHAVING balance != 0\nORDER BY ABS(balance) DESC`,
+				'Customer balances':           ()  => `SELECT party,\n  SUM(debit-credit) AS outstanding\nFROM \`tabGL Entry\`\nWHERE party_type='Customer'\n  AND is_cancelled=0\nGROUP BY party\nHAVING outstanding != 0\nORDER BY outstanding DESC\nLIMIT 50`,
+				'Supplier balances':           ()  => `SELECT party,\n  SUM(credit-debit) AS payable\nFROM \`tabGL Entry\`\nWHERE party_type='Supplier'\n  AND is_cancelled=0\nGROUP BY party\nHAVING payable != 0\nORDER BY payable DESC\nLIMIT 50`,
+				'Overdue invoices':            ()  => `SELECT name, customer, posting_date, due_date,\n  grand_total, outstanding_amount,\n  DATEDIFF(CURDATE(),due_date) AS days_overdue\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\n  AND outstanding_amount > 0\n  AND due_date < CURDATE()\nORDER BY days_overdue DESC\nLIMIT 50`,
+				'Payment entries':             ()  => `SELECT name, payment_type, party_type, party, posting_date, paid_amount, mode_of_payment\nFROM \`tabPayment Entry\`\nWHERE docstatus=1\nORDER BY posting_date DESC\nLIMIT 50`,
+				'Journal entries':             ()  => `SELECT name, voucher_type, posting_date, total_debit, user_remark\nFROM \`tabJournal Entry\`\nWHERE docstatus=1\nORDER BY posting_date DESC\nLIMIT 50`,
+				'Cost centre spending':        ()  => `SELECT cost_center,\n  SUM(debit)  AS total_debit,\n  SUM(credit) AS total_credit\nFROM \`tabGL Entry\`\nWHERE is_cancelled=0\n  AND YEAR(posting_date)=YEAR(CURDATE())\nGROUP BY cost_center\nORDER BY total_debit DESC\nLIMIT 30`,
+				'Tax summary':                 ()  => `SELECT si.name, si.customer, si.grand_total,\n  st.charge_type, st.description, st.tax_amount\nFROM \`tabSales Invoice\` si\nJOIN \`tabSales Taxes and Charges\` st ON st.parent=si.name\nWHERE si.docstatus=1\nORDER BY si.creation DESC\nLIMIT 50`,
+				'Monthly revenue':             ()  => `SELECT DATE_FORMAT(posting_date,'%Y-%m') AS month,\n  SUM(grand_total) AS revenue,\n  COUNT(*) AS invoices\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\nGROUP BY month\nORDER BY month DESC`,
+			}},
+			{ label: '🛒 Sales & CRM', color: '#0369a1', items: {
+				'Open sales orders':           ()  => `SELECT name, customer, customer_name, transaction_date, delivery_date,\n  grand_total, per_delivered, per_billed, status\nFROM \`tabSales Order\`\nWHERE status NOT IN ('Cancelled','Closed','Completed')\nORDER BY delivery_date ASC\nLIMIT 50`,
+				'Top customers by revenue':    ()  => `SELECT si.customer, c.customer_name, c.customer_group,\n  COUNT(*) AS invoices,\n  SUM(si.grand_total) AS revenue\nFROM \`tabSales Invoice\` si\nJOIN \`tabCustomer\` c ON c.name=si.customer\nWHERE si.docstatus=1\n  AND YEAR(si.posting_date)=YEAR(CURDATE())\nGROUP BY si.customer\nORDER BY revenue DESC\nLIMIT 20`,
+				'Quotation pipeline':          ()  => `SELECT name, party_name, transaction_date, valid_till,\n  grand_total, status\nFROM \`tabQuotation\`\nWHERE status IN ('Open','Draft')\nORDER BY valid_till ASC\nLIMIT 50`,
+				'Lead summary':                ()  => `SELECT lead_name, lead_owner, status, lead_type, city, country, creation\nFROM \`tabLead\`\nWHERE status NOT IN ('Converted','Do Not Contact')\nORDER BY creation DESC\nLIMIT 50`,
+				'Opportunity pipeline':        ()  => `SELECT name, opportunity_from, party_name, opportunity_type,\n  expected_closing, opportunity_amount, probability, status\nFROM \`tabOpportunity\`\nWHERE status NOT IN ('Lost','Closed')\nORDER BY expected_closing ASC\nLIMIT 50`,
+				'Sales by item':               ()  => `SELECT sii.item_code, sii.item_name,\n  SUM(sii.qty) AS qty_sold,\n  SUM(sii.amount) AS amount\nFROM \`tabSales Invoice Item\` sii\nJOIN \`tabSales Invoice\` si ON si.name=sii.parent\nWHERE si.docstatus=1\n  AND YEAR(si.posting_date)=YEAR(CURDATE())\nGROUP BY sii.item_code\nORDER BY amount DESC\nLIMIT 30`,
+				'Delivery notes pending':      ()  => `SELECT name, customer, posting_date, status\nFROM \`tabDelivery Note\`\nWHERE docstatus=0\nORDER BY creation DESC\nLIMIT 30`,
+				'Sales return (credit notes)': ()  => `SELECT name, customer, posting_date, grand_total, return_against\nFROM \`tabSales Invoice\`\nWHERE is_return=1 AND docstatus=1\nORDER BY posting_date DESC\nLIMIT 30`,
+			}},
+			{ label: '📦 Inventory & Purchasing', color: '#166534', items: {
+				'Current stock':               ()  => `SELECT b.item_code, i.item_name, i.item_group,\n  b.warehouse, b.actual_qty, b.reserved_qty,\n  b.valuation_rate,\n  ROUND(b.actual_qty*b.valuation_rate,2) AS stock_value\nFROM \`tabBin\` b\nJOIN \`tabItem\` i ON i.name=b.item_code\nWHERE b.actual_qty != 0\nORDER BY stock_value DESC\nLIMIT 100`,
+				'Items below reorder':         ()  => `SELECT b.item_code, i.item_name, b.warehouse,\n  b.actual_qty, b.reorder_level\nFROM \`tabBin\` b\nJOIN \`tabItem\` i ON i.name=b.item_code\nWHERE b.actual_qty <= b.reorder_level\n  AND b.reorder_level > 0\nORDER BY (b.reorder_level - b.actual_qty) DESC`,
+				'Item prices':                 ()  => `SELECT ip.item_code, i.item_name, ip.price_list,\n  ip.price_list_rate, ip.currency, ip.valid_from, ip.valid_upto\nFROM \`tabItem Price\` ip\nJOIN \`tabItem\` i ON i.name=ip.item_code\nWHERE ip.price_list='Standard Selling'\n  AND ip.selling=1\nORDER BY ip.item_code\nLIMIT 100`,
+				'Open purchase orders':        ()  => `SELECT name, supplier, transaction_date, schedule_date,\n  grand_total, per_received, status\nFROM \`tabPurchase Order\`\nWHERE status NOT IN ('Cancelled','Closed','Completed')\nORDER BY schedule_date ASC\nLIMIT 50`,
+				'Stock movements':             ()  => `SELECT posting_date, item_code, warehouse,\n  actual_qty, qty_after_transaction, voucher_type, voucher_no\nFROM \`tabStock Ledger Entry\`\nWHERE is_cancelled=0\nORDER BY posting_date DESC, posting_time DESC\nLIMIT 100`,
+				'Pending GRN':                 ()  => `SELECT name, supplier, posting_date, status\nFROM \`tabPurchase Receipt\`\nWHERE docstatus=0\nORDER BY creation DESC\nLIMIT 30`,
+				'Batch expiry':                ()  => `SELECT b.name AS batch, b.item, b.batch_qty, b.expiry_date,\n  DATEDIFF(b.expiry_date, CURDATE()) AS days_left\nFROM \`tabBatch\` b\nWHERE b.disabled=0 AND b.batch_qty > 0\n  AND b.expiry_date IS NOT NULL\nORDER BY days_left\nLIMIT 50`,
+				'Item valuation':              ()  => `SELECT item_code, valuation_method, last_purchase_rate, standard_rate\nFROM \`tabItem\`\nWHERE disabled=0 AND is_stock_item=1\nORDER BY item_code\nLIMIT 100`,
+			}},
+			{ label: '👥 HR & Payroll', color: '#7e22ce', items: {
+				'Active employees':            ()  => `SELECT name, employee_name, department, designation,\n  date_of_joining, employment_type, company\nFROM \`tabEmployee\`\nWHERE status='Active'\nORDER BY department, employee_name`,
+				'Headcount by department':     ()  => `SELECT department, COUNT(*) AS headcount\nFROM \`tabEmployee\`\nWHERE status='Active'\nGROUP BY department\nORDER BY headcount DESC`,
+				'Leave balance':               ()  => `SELECT e.employee_name, e.department,\n  la.leave_type, la.new_leaves_allocated, la.leaves_taken,\n  (la.new_leaves_allocated - la.leaves_taken) AS balance\nFROM \`tabLeave Allocation\` la\nJOIN \`tabEmployee\` e ON e.name=la.employee\nWHERE la.docstatus=1\n  AND la.from_date <= CURDATE() AND la.to_date >= CURDATE()\nORDER BY e.department, e.employee_name`,
+				'Leave applications':          ()  => `SELECT la.employee_name, la.leave_type, la.from_date,\n  la.to_date, la.total_leave_days, la.status\nFROM \`tabLeave Application\` la\nWHERE la.docstatus < 2\n  AND la.from_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)\nORDER BY la.from_date DESC`,
+				'Salary slips':                ()  => `SELECT ss.employee_name, ss.department, ss.posting_date,\n  ss.gross_pay, ss.total_deduction, ss.net_pay\nFROM \`tabSalary Slip\` ss\nWHERE ss.docstatus=1\n  AND ss.month=MONTH(CURDATE())\n  AND ss.fiscal_year=YEAR(CURDATE())\nORDER BY ss.department, ss.employee_name`,
+				'Attendance summary':          ()  => `SELECT employee_name, status, COUNT(*) AS cnt\nFROM \`tabAttendance\`\nWHERE docstatus=1\n  AND MONTH(attendance_date)=MONTH(CURDATE())\nGROUP BY employee_name, status\nORDER BY employee_name`,
+				'Appraisals':                  ()  => `SELECT employee_name, appraisal_template, status,\n  total_score, creation\nFROM \`tabAppraisal\`\nWHERE docstatus < 2\nORDER BY creation DESC\nLIMIT 50`,
+				'Job openings':                ()  => `SELECT designation, department, status,\n  planned_vacancies, filled_vacancies\nFROM \`tabJob Opening\`\nWHERE status='Open'\nORDER BY creation DESC`,
+			}},
+			{ label: '🏭 Manufacturing & Projects', color: '#1d4ed8', items: {
+				'Work orders':                 ()  => `SELECT name, production_item, qty, produced_qty,\n  planned_start_date, planned_end_date, status\nFROM \`tabWork Order\`\nWHERE status NOT IN ('Cancelled','Completed')\nORDER BY planned_start_date ASC\nLIMIT 50`,
+				'Active BOMs':                 ()  => `SELECT name, item, quantity, is_default, is_active, total_cost\nFROM \`tabBOM\`\nWHERE is_active=1 AND docstatus=1\nORDER BY item\nLIMIT 100`,
+				'BOM items':                   ()  => `SELECT bi.item_code, bi.item_name, bi.qty, bi.rate, bi.amount\nFROM \`tabBOM Item\` bi\nJOIN \`tabBOM\` b ON b.name=bi.parent\nWHERE b.is_active=1 AND b.is_default=1\n  AND bi.parent='BOM-00001'  -- change BOM name\nORDER BY bi.idx`,
+				'Job cards':                   ()  => `SELECT name, production_item, for_quantity, workstation,\n  status, scheduled_time_in_mins, time_in_mins\nFROM \`tabJob Card\`\nWHERE docstatus < 2\n  AND status NOT IN ('Completed','Cancelled')\nORDER BY creation DESC\nLIMIT 50`,
+				'Open projects':               ()  => `SELECT name, project_name, status, expected_start_date,\n  expected_end_date, percent_complete, customer\nFROM \`tabProject\`\nWHERE status='Open'\nORDER BY expected_end_date ASC`,
+				'Tasks by project':            ()  => `SELECT t.subject, t.project, t.status, t.priority,\n  t.exp_start_date, t.exp_end_date, t.assigned_to\nFROM \`tabTask\` t\nWHERE t.status NOT IN ('Cancelled','Completed')\nORDER BY t.priority DESC, t.exp_end_date ASC\nLIMIT 50`,
+				'Timesheets':                  ()  => `SELECT ts.employee_name, tsd.project, tsd.task,\n  tsd.from_time, tsd.to_time, tsd.hours, tsd.billing_hours\nFROM \`tabTimesheet Detail\` tsd\nJOIN \`tabTimesheet\` ts ON ts.name=tsd.parent\nWHERE ts.docstatus=1\n  AND tsd.from_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)\nORDER BY tsd.from_time DESC\nLIMIT 50`,
+			}},
+			{ label: '🛠️ Subqueries & CTEs', color: '#be185d', items: {
+				'Subquery in WHERE':           (t) => `SELECT name, owner, creation\nFROM \`${t||'tabDocType'}\`\nWHERE name IN (\n  SELECT DISTINCT parent\n  FROM \`tabAnother\`\n  WHERE status = 'Active'\n)\nLIMIT 50`,
+				'Correlated subquery':         ()  => `SELECT si.name, si.customer, si.grand_total,\n  (SELECT COUNT(*) FROM \`tabSales Invoice\` x\n   WHERE x.customer=si.customer AND x.docstatus=1) AS customer_invoice_count\nFROM \`tabSales Invoice\` si\nWHERE si.docstatus=1\nLIMIT 50`,
+				'EXISTS check':                ()  => `SELECT name, customer\nFROM \`tabSales Order\`\nWHERE docstatus=1\n  AND EXISTS (\n    SELECT 1\n    FROM \`tabDelivery Note Item\` dn\n    WHERE dn.against_sales_order = \`tabSales Order\`.name\n  )\nLIMIT 50`,
+				'UNION two tables':            ()  => `SELECT name, 'Sales Invoice' AS source, customer AS party, grand_total, creation\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\nUNION ALL\nSELECT name, 'Purchase Invoice' AS source, supplier AS party, grand_total, creation\nFROM \`tabPurchase Invoice\`\nWHERE docstatus=1\nORDER BY creation DESC\nLIMIT 100`,
+				'CTE (WITH clause)':           ()  => `WITH monthly AS (\n  SELECT\n    DATE_FORMAT(posting_date,'%Y-%m') AS month,\n    SUM(grand_total) AS revenue\n  FROM \`tabSales Invoice\`\n  WHERE docstatus=1\n  GROUP BY month\n)\nSELECT\n  month,\n  revenue,\n  LAG(revenue) OVER (ORDER BY month) AS prev_revenue,\n  ROUND((revenue - LAG(revenue) OVER (ORDER BY month))\n    / NULLIF(LAG(revenue) OVER (ORDER BY month),0) * 100, 1) AS growth_pct\nFROM monthly\nORDER BY month DESC`,
+				'Pivot simulation':            ()  => `SELECT\n  DATE_FORMAT(posting_date,'%Y-%m') AS month,\n  SUM(CASE WHEN status='Paid'     THEN grand_total ELSE 0 END) AS paid,\n  SUM(CASE WHEN status='Unpaid'   THEN grand_total ELSE 0 END) AS unpaid,\n  SUM(CASE WHEN status='Overdue'  THEN grand_total ELSE 0 END) AS overdue\nFROM \`tabSales Invoice\`\nWHERE docstatus=1\nGROUP BY month\nORDER BY month DESC`,
+				'Recursive hierarchy':         ()  => `WITH RECURSIVE hier AS (\n  SELECT name, parent_account, account_name, 0 AS depth\n  FROM \`tabAccount\`\n  WHERE parent_account IS NULL OR parent_account=''\n  UNION ALL\n  SELECT a.name, a.parent_account, a.account_name, h.depth+1\n  FROM \`tabAccount\` a\n  JOIN hier h ON h.name=a.parent_account\n  WHERE h.depth < 10\n)\nSELECT REPEAT('  ',depth) || account_name AS tree, name\nFROM hier\nORDER BY name\nLIMIT 200`,
+			}},
+			{ label: '🔍 Diagnostics & Performance', color: '#b91c1c', items: {
+				'Table sizes':                 ()  => `SELECT\n  table_name,\n  table_rows,\n  ROUND(data_length   /1024/1024, 2) AS data_mb,\n  ROUND(index_length  /1024/1024, 2) AS index_mb,\n  ROUND((data_length+index_length)/1024/1024, 2) AS total_mb\nFROM information_schema.TABLES\nWHERE table_schema = DATABASE()\nORDER BY (data_length+index_length) DESC\nLIMIT 30`,
+				'Index usage':                 (t) => `SELECT\n  index_name, column_name, non_unique, cardinality, index_type\nFROM information_schema.STATISTICS\nWHERE table_schema=DATABASE()\n  AND table_name='${t||'tabSales Invoice'}'\nORDER BY index_name, seq_in_index`,
+				'Missing indexes (no PK)':     ()  => `SELECT table_name\nFROM information_schema.TABLES\nWHERE table_schema=DATABASE()\n  AND table_name NOT IN (\n    SELECT DISTINCT table_name\n    FROM information_schema.KEY_COLUMN_USAGE\n    WHERE table_schema=DATABASE()\n      AND constraint_name='PRIMARY'\n  )\nORDER BY table_name`,
+				'EXPLAIN query':               (t) => `EXPLAIN SELECT * FROM \`${t||'tabDocType'}\` WHERE name = 'test'`,
+				'EXPLAIN ANALYZE':             (t) => `EXPLAIN ANALYZE SELECT * FROM \`${t||'tabDocType'}\` WHERE name = 'test'`,
+				'Show processlist':            ()  => `SHOW FULL PROCESSLIST`,
+				'Long running queries':        ()  => `SELECT id, user, host, db, command, time, state,\n  SUBSTRING(info,1,100) AS query_snippet\nFROM information_schema.PROCESSLIST\nWHERE command != 'Sleep' AND time > 5\nORDER BY time DESC`,
+				'Show status':                 ()  => `SHOW STATUS WHERE Variable_name IN\n  ('Uptime','Questions','Slow_queries','Threads_connected',\n   'Open_tables','Bytes_sent','Bytes_received')`,
+				'InnoDB buffer pool':          ()  => `SHOW VARIABLES LIKE 'innodb_buffer_pool%'`,
+				'Slow query threshold':        ()  => `SHOW VARIABLES LIKE '%slow%'`,
+				'Character set':               ()  => `SHOW VARIABLES LIKE '%character%'`,
+				'Max connections':             ()  => `SHOW VARIABLES LIKE '%max_connections%'`,
+				'DB version & engine':         ()  => `SELECT VERSION() AS mysql_version, DATABASE() AS current_db`,
+				'Duplicate values':            (t) => `SELECT name, COUNT(*) AS cnt\nFROM \`${t||'tabDocType'}\`\nGROUP BY name\nHAVING cnt > 1\nORDER BY cnt DESC`,
 			}},
 		];
 
@@ -7018,32 +7344,70 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		$toolbar.append(`<div class="dkqe-tb-sep"></div>`);
 
 		// Snippets dropdown (grouped)
+		const _snTotal = SNIPPET_GROUPS.reduce((s,g) => s + Object.keys(g.items).length, 0);
 		const $snippetBtn = $(`<div style="position:relative;display:inline-block">
-			<button class="dkqe-snippet-btn" id="qe-snippets">⚡ Snippets ▾</button>
-			<div id="qe-snippet-menu" style="display:none;position:absolute;top:100%;left:0;z-index:999;background:#fff;border:1px solid #d0c8e8;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:260px;padding:4px 0;max-height:480px;overflow-y:auto;scrollbar-width:thin"></div>
+			<button class="dkqe-snippet-btn" id="qe-snippets">⚡ Snippets <span style="font-size:10px;background:#7a5cc0;color:#fff;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:2px">${_snTotal}</span> ▾</button>
+			<div id="qe-snippet-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:9999;background:#fff;border:1px solid #d0c8e8;border-radius:8px;box-shadow:0 8px 32px rgba(80,50,160,.18);min-width:320px;max-width:400px;padding:0;max-height:520px;display:none;flex-direction:column">
+				<div style="padding:8px 10px;border-bottom:1px solid #ede8ff;flex-shrink:0">
+					<input id="qe-sn-search" type="text" placeholder="Search snippets…" style="width:100%;box-sizing:border-box;font-size:12px;padding:5px 10px;border:1px solid #d0c8e8;border-radius:5px;outline:none;color:#1e1a2e;background:#fdfcff">
+				</div>
+				<div id="qe-sn-list" style="overflow-y:auto;flex:1;max-height:460px;scrollbar-width:thin"></div>
+			</div>
 		</div>`).appendTo($toolbar);
-		const $snMenu = $snippetBtn.find('#qe-snippet-menu');
+		const $snMenu   = $snippetBtn.find('#qe-snippet-menu');
+		const $snList   = $snMenu.find('#qe-sn-list');
+		const $snSearch = $snMenu.find('#qe-sn-search');
 
-		// Build grouped snippet menu
+		// Build all snippet rows (once), store for search
+		const _snRows = [];
 		SNIPPET_GROUPS.forEach(group => {
-			$(`<div class="dkqe-sn-group-hdr">${group.label}</div>`).appendTo($snMenu);
+			const $hdr = $(`<div class="dkqe-sn-group-hdr" data-group="${group.label}">${group.label}<span style="float:right;font-weight:400;font-size:9px;opacity:.7">${Object.keys(group.items).length}</span></div>`).appendTo($snList);
 			Object.keys(group.items).forEach(k => {
 				const fn = group.items[k];
-				$(`<div class="dkqe-history-item" style="padding:6px 14px;font-size:12px">${k}</div>`)
-					.appendTo($snMenu)
+				const $row = $(`<div class="dkqe-sn-item" data-key="${k.toLowerCase()}" data-group="${group.label.toLowerCase()}"
+					style="padding:6px 16px;font-size:12px;cursor:pointer;color:#2a1f5e;border-left:3px solid transparent;transition:background .1s"
+					title="${k}">${k}</div>`)
+					.appendTo($snList)
+					.on('mouseenter', function(){ $(this).css({'background':'#f0eaff','border-left-color':group.color||'#7a5cc0'}); })
+					.on('mouseleave', function(){ $(this).css({'background':'','border-left-color':'transparent'}); })
 					.on('click', () => {
 						const active = $p.find('.dkqe-tbl-item.active').data('tbl') || '';
 						const sql = fn(active);
 						$editor.val(sql);
 						_updateFooter();
-						$snMenu.hide();
+						$snMenu.hide().css('display','none');
 						$editor.focus();
 					});
+				_snRows.push({ $row, $hdr, key: k.toLowerCase(), group: group.label.toLowerCase() });
 			});
 		});
 
-		$('#qe-snippets').on('click', (e) => { e.stopPropagation(); $snMenu.toggle(); });
-		$(document).on('click.qe', () => $snMenu.hide());
+		// Search filtering
+		$snSearch.on('input', function() {
+			const q = $(this).val().trim().toLowerCase();
+			const groupHasVis = {};
+			_snRows.forEach(({ $row, $hdr, key, group }) => {
+				const vis = !q || key.includes(q) || group.includes(q);
+				$row.toggle(vis);
+				if (vis) groupHasVis[group] = true;
+			});
+			$snList.find('.dkqe-sn-group-hdr').each(function() {
+				$(this).toggle(!!groupHasVis[$(this).data('group').toLowerCase()]);
+			});
+		});
+
+		$('#qe-snippets').on('click', (e) => {
+			e.stopPropagation();
+			const visible = $snMenu.css('display') !== 'none';
+			if (visible) {
+				$snMenu.css('display','none');
+			} else {
+				$snMenu.css('display','flex');
+				$snSearch.val('').trigger('input').focus();
+				$snList.scrollTop(0);
+			}
+		});
+		$(document).on('click.qe', () => $snMenu.css('display','none'));
 
 		/* ── main area ── */
 		const $area = $(`<div class="dkqe-editor-area"></div>`).appendTo($p);
@@ -7090,7 +7454,7 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			<span class="dkqe-tb-sep"></span>
 			<span id="qe-char-count">0 chars</span>
 			<span class="dkqe-tb-sep"></span>
-			<span style="color:#5c4da8">MariaDB / SQL</span>
+			<span style="color:#9080b8">MariaDB / SQL</span>
 		</div>`).appendTo($edWrap);
 
 		// Shim: $editor.val() / $editor.val(v) work via Monaco
@@ -7430,55 +7794,389 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 	}
 
 	function _mcRegisterCompletions(mc) {
+		const K = mc.languages.CompletionItemKind;
+		const R = mc.languages.CompletionItemInsertTextRule;
+
+		function _range(model, position) {
+			const w = model.getWordUntilPosition(position);
+			return { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
+			         startColumn: w.startColumn, endColumn: w.endColumn };
+		}
+
+		/* ── Python / Frappe backend ── */
 		mc.languages.registerCompletionItemProvider('python', {
-			triggerCharacters: ['.'],
+			triggerCharacters: ['.', '(', '"', "'"],
 			provideCompletionItems(model, position) {
-				const word = model.getWordUntilPosition(position);
-				const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
-				                startColumn: word.startColumn, endColumn: word.endColumn };
-				const methods = [
-					'frappe.get_doc','frappe.new_doc','frappe.get_list','frappe.get_all',
-					'frappe.get_value','frappe.set_value','frappe.db.get_value','frappe.db.set_value',
-					'frappe.db.get_list','frappe.db.get_all','frappe.db.insert','frappe.db.delete',
-					'frappe.db.exists','frappe.db.count','frappe.db.sql','frappe.throw',
-					'frappe.msgprint','frappe.log_error','frappe.get_cached_doc',
-					'frappe.session.user','frappe.local.site','frappe.utils.now',
-					'frappe.utils.now_datetime','frappe.utils.today','frappe.utils.get_url',
-					'frappe.has_permission','frappe.only_for','frappe.whitelist',
-					'frappe.response','context.title','context.no_cache',
+				const range = _range(model, position);
+				const line  = model.getLineContent(position.lineNumber);
+
+				const items = [];
+
+				// ── frappe.db.* ──
+				const dbMethods = [
+					['get_value',   'frappe.db.get_value("${1:DocType}", "${2:name}", "${3:fieldname}")',           'Get a single field value'],
+					['get_list',    'frappe.db.get_list("${1:DocType}", filters=${2:{}}, fields=${3:["name"]}, limit=${4:20})', 'Get list of docs'],
+					['get_all',     'frappe.db.get_all("${1:DocType}", filters=${2:{}}, fields=${3:["name"]})',     'Get all docs (no limit)'],
+					['get_doc',     'frappe.db.get_doc("${1:DocType}", "${2:name}")',                              'Get full document'],
+					['set_value',   'frappe.db.set_value("${1:DocType}", "${2:name}", "${3:fieldname}", ${4:value})', 'Set field value'],
+					['insert',      'frappe.db.insert({"doctype": "${1:DocType}", "${2:field}": ${3:value}})',      'Insert a new doc'],
+					['delete',      'frappe.db.delete("${1:DocType}", {"${2:field}": "${3:value}"})',              'Delete matching docs'],
+					['exists',      'frappe.db.exists("${1:DocType}", "${2:name}")',                              'Check doc exists'],
+					['count',       'frappe.db.count("${1:DocType}", filters=${2:{}})',                           'Count matching docs'],
+					['sql',         'frappe.db.sql("""SELECT * FROM `tab${1:DocType}` WHERE 1=1 LIMIT 50""", as_dict=True)', 'Raw SQL query'],
+					['multisql',    'frappe.db.multisql({"mariadb": "${1:sql}", "postgres": "${2:sql}"})',        'DB-specific SQL'],
+					['get_single_value', 'frappe.db.get_single_value("${1:DocType}", "${2:fieldname}")',          'Get single doctype field'],
+					['set_single_value', 'frappe.db.set_single_value("${1:DocType}", "${2:fieldname}", ${3:value})', 'Set single doctype field'],
+					['rename_doc',  'frappe.rename_doc("${1:DocType}", "${2:old}", "${3:new}")',                  'Rename a document'],
+					['commit',      'frappe.db.commit()',                                                         'Commit transaction'],
+					['rollback',    'frappe.db.rollback()',                                                       'Rollback transaction'],
 				];
-				return { suggestions: methods.map(m => ({
-					label: m, kind: mc.languages.CompletionItemKind.Function,
-					insertText: m.split('.').pop(), range, detail: 'Frappe API',
-				})) };
+				dbMethods.forEach(([label, insert, detail]) => items.push(
+					{ label: `db.${label}`, kind: K.Method, insertText: insert,
+					  insertTextRules: R.InsertAsSnippet, range, detail: `frappe.${detail}` }
+				));
+
+				// ── frappe.utils.* ──
+				const utilMethods = [
+					['now',               'frappe.utils.now()',                                    'Current datetime string'],
+					['now_datetime',      'frappe.utils.now_datetime()',                           'Current datetime object'],
+					['today',             'frappe.utils.today()',                                  'Today date string'],
+					['add_days',          'frappe.utils.add_days(${1:date}, ${2:days})',            'Add N days to date'],
+					['add_months',        'frappe.utils.add_months(${1:date}, ${2:months})',        'Add N months to date'],
+					['date_diff',         'frappe.utils.date_diff(${1:date1}, ${2:date2})',         'Diff between two dates'],
+					['get_datetime',      'frappe.utils.get_datetime("${1:date_str}")',             'Parse to datetime'],
+					['format_date',       'frappe.utils.format_date(${1:date})',                   'Format date to string'],
+					['money_in_words',    'frappe.utils.money_in_words(${1:amount})',               'Amount to words'],
+					['flt',               'frappe.utils.flt(${1:value}, ${2:precision})',           'Float with precision'],
+					['cint',              'frappe.utils.cint(${1:value})',                          'Convert to int'],
+					['cstr',              'frappe.utils.cstr(${1:value})',                          'Convert to string'],
+					['get_url',           'frappe.utils.get_url()',                                 'Get site URL'],
+					['get_link_to_form',  'frappe.utils.get_link_to_form("${1:DocType}", "${2:name}")', 'Link to form'],
+					['strip_html',        'frappe.utils.strip_html("${1:html}")',                   'Strip HTML tags'],
+					['random_string',     'frappe.utils.random_string(${1:length})',               'Random string'],
+					['get_gravatar',      'frappe.utils.get_gravatar("${1:email}")',               'Gravatar URL'],
+				];
+				utilMethods.forEach(([label, insert, detail]) => items.push(
+					{ label: `utils.${label}`, kind: K.Function, insertText: insert,
+					  insertTextRules: R.InsertAsSnippet, range, detail: `frappe.${detail}` }
+				));
+
+				// ── frappe top-level ──
+				const topLevel = [
+					['get_doc',           'frappe.get_doc("${1:DocType}", "${2:name}")',            'K.Function', 'Load full document'],
+					['new_doc',           'frappe.new_doc("${1:DocType}")',                         'K.Constructor', 'Create unsaved doc'],
+					['get_cached_doc',    'frappe.get_cached_doc("${1:DocType}", "${2:name}")',     'K.Function', 'Get from cache'],
+					['copy_doc',          'frappe.copy_doc(${1:doc})',                              'K.Function', 'Deep-copy a document'],
+					['get_meta',          'frappe.get_meta("${1:DocType}")',                        'K.Function', 'Get DocType meta'],
+					['has_permission',    'frappe.has_permission("${1:DocType}", "${2:ptype}", doc=${3:None})', 'K.Function', 'Check permission'],
+					['only_for',          'frappe.only_for("${1:role}")',                           'K.Function', 'Restrict to role'],
+					['throw',             'frappe.throw(_("${1:message}"))',                        'K.Function', 'Raise FrappeError'],
+					['msgprint',          'frappe.msgprint("${1:message}")',                        'K.Function', 'Show message'],
+					['log_error',         'frappe.log_error("${1:message}", "${2:reference}")',     'K.Function', 'Log to Error Log'],
+					['publish_realtime',  'frappe.publish_realtime("${1:event}", {"${2:key}": "${3:value}"}, user=frappe.session.user)', 'K.Function', 'Emit realtime event'],
+					['enqueue',           'frappe.enqueue("${1:method}", queue="${2:default}", timeout=${3:300}, ${4:kwargs})', 'K.Function', 'Background job'],
+					['sendmail',          'frappe.sendmail(recipients=["${1:email}"], subject="${2:Subject}", message="${3:Body}")', 'K.Function', 'Send email'],
+					['whitelist',         '@frappe.whitelist()\ndef ${1:my_method}(${2:args}):\n\t${3:pass}', 'K.Decorator', 'Whitelist API method'],
+					['_',                 '_("${1:Translatable string}")',                          'K.Function', 'Translation'],
+				];
+				topLevel.forEach(([label, insert, , detail]) => items.push(
+					{ label, kind: K.Function, insertText: insert,
+					  insertTextRules: R.InsertAsSnippet, range, detail: `frappe.${detail}` }
+				));
+
+				// ── Document / self methods ──
+				const docMethods = [
+					['self.save',         'self.save()',                              'Save document'],
+					['self.submit',       'self.submit()',                            'Submit document'],
+					['self.cancel',       'self.cancel()',                            'Cancel document'],
+					['self.reload',       'self.reload()',                            'Reload from DB'],
+					['self.get_doc_before_save', 'self.get_doc_before_save()',        'Previous state'],
+					['self.append',       'self.append("${1:table_field}", {"${2:fieldname}": ${3:value}})', 'Append child row'],
+					['self.get',          'self.get("${1:table_field}")',             'Get child table rows'],
+					['self.set',          'self.set("${1:fieldname}", ${2:value})',   'Set field value'],
+					['self.get_value',    'self.get_value("${1:fieldname}")',         'Get field value'],
+					['self.flags',        'self.flags.${1:flag_name}',               'Runtime flags'],
+					['self.meta',         'self.meta.get_field("${1:fieldname}")',    'Get field meta'],
+					['self.as_dict',      'self.as_dict()',                           'Convert to dict'],
+				];
+				docMethods.forEach(([label, insert, detail]) => items.push(
+					{ label, kind: K.Method, insertText: insert,
+					  insertTextRules: R.InsertAsSnippet, range, detail }
+				));
+
+				// ── Python snippets ──
+				const pySnippets = [
+					['def method',        'def ${1:method_name}(self, *args, **kwargs):\n\t"""${2:Docstring}"""\n\t${3:pass}', 'Method definition'],
+					['try/except',        'try:\n\t${1:pass}\nexcept Exception as e:\n\tfrappe.log_error(str(e))\n\traise', 'Try/except block'],
+					['if docstatus',      'if self.docstatus == 1:\n\t${1:pass}  # Submitted', 'Check submitted'],
+					['validate required', 'if not self.${1:fieldname}:\n\tfrappe.throw(_("${2:Field} is required"))', 'Required check'],
+					['frappe.whitelist',  '@frappe.whitelist()\ndef ${1:api_method}(${2:args}):\n\t${3:pass}', 'Whitelisted API'],
+					['on_submit hook',    'def on_submit(self):\n\t${1:pass}', 'on_submit hook'],
+					['validate hook',     'def validate(self):\n\t${1:pass}', 'validate hook'],
+					['before_save hook',  'def before_save(self):\n\t${1:pass}', 'before_save hook'],
+					['after_insert hook', 'def after_insert(self):\n\t${1:pass}', 'after_insert hook'],
+					['get_list pattern',  'docs = frappe.get_all(\n\t"${1:DocType}",\n\tfilters={"${2:field}": "${3:value}"},\n\tfields=["name", "${4:field}"],\n\torder_by="creation desc",\n\tlimit=50\n)', 'get_all pattern'],
+				];
+				pySnippets.forEach(([label, insert, detail]) => items.push(
+					{ label, kind: K.Snippet, insertText: insert,
+					  insertTextRules: R.InsertAsSnippet, range, detail }
+				));
+
+				return { suggestions: items };
 			}
 		});
+
+		/* ── JavaScript / Frappe frontend ── */
+		mc.languages.registerCompletionItemProvider('javascript', {
+			triggerCharacters: ['.', '(', '"', "'"],
+			provideCompletionItems(model, position) {
+				const range = _range(model, position);
+				const items = [];
+
+				// frappe.call
+				items.push({ label: 'frappe.call', kind: K.Function, range,
+					detail: 'Call whitelisted Python method',
+					insertText: 'frappe.call({\n\tmethod: "${1:app.module.method}",\n\targs: { ${2:key}: ${3:value} },\n\tcallback(r) {\n\t\tconsole.log(r.message);\n\t},\n});',
+					insertTextRules: R.InsertAsSnippet });
+				items.push({ label: 'frappe.xcall', kind: K.Function, range,
+					detail: 'Promise-based API call',
+					insertText: 'frappe.xcall("${1:app.module.method}", { ${2:args} }).then(r => {\n\t${3}\n});',
+					insertTextRules: R.InsertAsSnippet });
+
+				// frappe.ui.form
+				const frmMethods = [
+					['frm.set_value',     'frm.set_value("${1:fieldname}", ${2:value})',           'Set field value'],
+					['frm.get_value',     'frm.get_value("${1:fieldname}")',                       'Get field value'],
+					['frm.set_df_property', 'frm.set_df_property("${1:fieldname}", "${2:reqd}", ${3:1})', 'Set field property'],
+					['frm.toggle_display', 'frm.toggle_display("${1:fieldname}", ${2:true})',     'Show/hide field'],
+					['frm.toggle_reqd',   'frm.toggle_reqd("${1:fieldname}", ${2:true})',         'Toggle required'],
+					['frm.toggle_enable', 'frm.toggle_enable("${1:fieldname}", ${2:false})',      'Enable/disable field'],
+					['frm.add_custom_button', 'frm.add_custom_button(__("${1:Label}"), () => {\n\t${2}\n}, "${3:Group}")', 'Custom button'],
+					['frm.remove_custom_button', 'frm.remove_custom_button("${1:Label}")',        'Remove custom button'],
+					['frm.save',          'frm.save()',                                            'Save document'],
+					['frm.refresh',       'frm.refresh()',                                        'Refresh form'],
+					['frm.refresh_field', 'frm.refresh_field("${1:fieldname}")',                  'Refresh one field'],
+					['frm.dirty',         'frm.dirty()',                                          'Mark form dirty'],
+					['frm.add_fetch',     'frm.add_fetch("${1:link_field}", "${2:src_field}", "${3:target_field}")', 'Auto-fetch from link'],
+					['frm.set_query',     'frm.set_query("${1:link_field}", () => ({ filters: { "${2:field}": "${3:val}" } }))', 'Filter link field'],
+					['frm.get_doc',       'frm.get_doc()',                                        'Get current doc object'],
+					['frm.timeline',      'frm.timeline.refresh()',                               'Refresh timeline'],
+					['frm.sidebar',       'frm.sidebar.reload_docinfo()',                         'Reload docinfo'],
+				];
+				frmMethods.forEach(([label, insert, detail]) => items.push(
+					{ label, kind: K.Method, insertText: insert,
+					  insertTextRules: R.InsertAsSnippet, range, detail: `Frappe - ${detail}` }
+				));
+
+				// frappe global helpers
+				const frappeGlobals = [
+					['frappe.msgprint',      'frappe.msgprint({ title: __("${1:Title}"), message: __("${2:Message}"), indicator: "${3:blue}" })', 'Show dialog message'],
+					['frappe.show_alert',    'frappe.show_alert({ message: __("${1:Message}"), indicator: "${2:green}" }, ${3:5})', 'Show toast alert'],
+					['frappe.confirm',       'frappe.confirm(__("${1:Are you sure?}"), () => {\n\t${2:// confirmed}\n})', 'Confirmation dialog'],
+					['frappe.prompt',        'frappe.prompt([{ fieldname: "${1:name}", fieldtype: "Data", label: __("${2:Label}"), reqd: 1 }],\n\t(values) => { ${3} }, __("${4:Title}")', 'Prompt dialog'],
+					['frappe.set_route',     'frappe.set_route("${1:Form}", "${2:DocType}", "${3:name}")', 'Navigate to route'],
+					['frappe.get_route',     'frappe.get_route()',                           'Get current route array'],
+					['frappe.model.set_value', 'frappe.model.set_value("${1:DocType}", "${2:name}", "${3:field}", ${4:value})', 'Set model value'],
+					['frappe.model.get_value', 'frappe.model.get_value("${1:DocType}", "${2:name}", "${3:field}")', 'Get model value'],
+					['frappe.db.get_value',  'frappe.db.get_value("${1:DocType}", "${2:name}", "${3:field}").then(r => {\n\t${4}\n})', 'Client-side DB get'],
+					['frappe.db.set_value',  'frappe.db.set_value("${1:DocType}", "${2:name}", "${3:field}", ${4:value})', 'Client-side DB set'],
+					['frappe.db.get_list',   'frappe.db.get_list("${1:DocType}", { filters: { "${2:field}": "${3:val}" }, fields: ["name"] }).then(r => {\n\t${4}\n})', 'Client-side get_list'],
+					['frappe.db.exists',     'frappe.db.exists("${1:DocType}", "${2:name}").then(exists => {\n\t${3}\n})', 'Check doc exists'],
+					['frappe.realtime.on',   'frappe.realtime.on("${1:event}", (data) => {\n\t${2}\n})', 'Listen for realtime event'],
+					['frappe.datetime.now_datetime', 'frappe.datetime.now_datetime()', 'Current datetime'],
+					['frappe.datetime.get_today', 'frappe.datetime.get_today()', 'Today date string'],
+					['frappe.session.user',  'frappe.session.user', 'Current user'],
+					['frappe.has_role',      'frappe.user.has_role("${1:Role}")', 'Check user role'],
+					['__(',                  '__("${1:Translatable string}")', 'Translate string'],
+					['cur_frm',              'cur_frm', 'Current form reference'],
+				];
+				frappeGlobals.forEach(([label, insert, detail]) => items.push(
+					{ label, kind: K.Function, insertText: insert,
+					  insertTextRules: R.InsertAsSnippet, range, detail: `Frappe JS - ${detail}` }
+				));
+
+				// JS event hooks scaffold
+				const jsHooks = [
+					['form.on scaffold',    'frappe.ui.form.on("${1:DocType}", {\n\tsetup(frm) {\n\t\t${2:// runs once on load}\n\t},\n\trefresh(frm) {\n\t\t${3:// runs on every refresh}\n\t},\n\tvalidate(frm) {\n\t\t${4:// before save}\n\t},\n\t${5:fieldname}(frm) {\n\t\t${6:// field change}\n\t},\n});', 'Full form.on scaffold'],
+					['before_save hook',    'before_save(frm) {\n\t${1:}\n}', 'before_save event'],
+					['after_save hook',     'after_save(frm) {\n\t${1:}\n}', 'after_save event'],
+					['on_submit hook',      'on_submit(frm) {\n\t${1:}\n}', 'on_submit event'],
+					['onload hook',         'onload(frm) {\n\t${1:}\n}', 'onload event'],
+					['child_table onChange','${1:child_table}.${2:fieldname}(frm, cdt, cdn) {\n\tconst row = locals[cdt][cdn];\n\t${3:}\n}', 'Child field change'],
+				];
+				jsHooks.forEach(([label, insert, detail]) => items.push(
+					{ label, kind: K.Snippet, insertText: insert,
+					  insertTextRules: R.InsertAsSnippet, range, detail: `Frappe JS - ${detail}` }
+				));
+
+				return { suggestions: items };
+			}
+		});
+
+		/* ── HTML / Jinja2 ── */
 		mc.languages.registerCompletionItemProvider('html', {
-			triggerCharacters: ['{', '%'],
+			triggerCharacters: ['{', '%', '<'],
 			provideCompletionItems(model, position) {
-				const word = model.getWordUntilPosition(position);
-				const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
-				                startColumn: word.startColumn, endColumn: word.endColumn };
-				const snippets = [
-					{ label:'extends',            insert:'{% extends "templates/web.html" %}' },
-					{ label:'block title',         insert:'{% block title %}${1:Title}{% endblock %}' },
-					{ label:'block page_content',  insert:'{% block page_content %}\n${1}\n{% endblock %}' },
-					{ label:'if',                  insert:'{% if ${1:condition} %}\n${2}\n{% endif %}' },
-					{ label:'for',                 insert:'{% for ${1:item} in ${2:items} %}\n${3}\n{% endfor %}' },
-					{ label:'include',             insert:'{%' + ' include "${1:template.html}" %}' },
-					{ label:'macro',               insert:'{% macro ${1:name}(${2:args}) %}\n${3}\n{% endmacro %}' },
-					{ label:'var',                 insert:'{{ ${1:variable} }}' },
-					{ label:'trans',               insert:'{% trans %}${1:text}{% endtrans %}' },
-					{ label:'set',                 insert:'{% set ${1:var} = ${2:value} %}' },
+				const range = _range(model, position);
+				const items = [
+					['extends',            '{% extends "${1:templates/web.html}" %}',                 'Jinja2'],
+					['block page_content', '{% block page_content %}\n${1}\n{% endblock %}',          'Jinja2'],
+					['block title',        '{% block title %}${1:Title}{% endblock %}',               'Jinja2'],
+					['block style',        '{% block style %}\n<style>\n${1}\n</style>\n{% endblock %}', 'Jinja2'],
+					['block script',       '{% block script %}\n<script>\n${1}\n</script>\n{% endblock %}', 'Jinja2'],
+					['if',                 '{% if ${1:condition} %}\n${2}\n{% endif %}',              'Jinja2'],
+					['if/else',            '{% if ${1:condition} %}\n${2}\n{% else %}\n${3}\n{% endif %}', 'Jinja2'],
+					['for loop',           '{% for ${1:item} in ${2:items} %}\n${3}\n{% endfor %}',   'Jinja2'],
+					['include',            '{%' + ' include "${1:template.html}" %}',                 'Jinja2'],
+					['import macro',       '{%' + ' from "${1:macros.html}" import ${2:macro_name} %}', 'Jinja2'],
+					['macro def',          '{% macro ${1:name}(${2:args}) %}\n${3}\n{% endmacro %}',  'Jinja2'],
+					['variable',           '{{ ${1:variable} }}',                                    'Jinja2'],
+					['variable | filter',  '{{ ${1:variable} | ${2:e} }}',                           'Jinja2 filter'],
+					['set',                '{% set ${1:var} = ${2:value} %}',                        'Jinja2'],
+					['trans',              '{% trans %}${1:Translatable text}{% endtrans %}',         'Jinja2 i18n'],
+					['comment',            '{# ${1:comment} #}',                                     'Jinja2'],
+					['frappe.get_doc',     '{{ frappe.get_doc("${1:DocType}", "${2:name}") }}',       'Frappe'],
+					['frappe.session.user','{{ frappe.session.user }}',                              'Frappe'],
+					['doc field',          '{{ doc.${1:fieldname} }}',                               'Frappe doc'],
+					['Bootstrap row/col',  '<div class="row">\n\t<div class="col-md-${1:6}">\n\t\t${2}\n\t</div>\n</div>', 'Bootstrap'],
+					['Bootstrap card',     '<div class="card">\n\t<div class="card-body">\n\t\t<h5 class="card-title">${1:Title}</h5>\n\t\t${2}\n\t</div>\n</div>', 'Bootstrap'],
 				];
-				return { suggestions: snippets.map(s => ({
-					label: s.label, kind: mc.languages.CompletionItemKind.Snippet,
-					insertText: s.insert,
-					insertTextRules: mc.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					range, detail: 'Jinja2/Frappe',
+				return { suggestions: items.map(([label, insert, detail]) => ({
+					label, kind: K.Snippet, insertText: insert,
+					insertTextRules: R.InsertAsSnippet, range, detail,
 				})) };
 			}
 		});
+
+		/* ── JSON (Frappe fixtures) ── */
+		mc.languages.registerCompletionItemProvider('json', {
+			triggerCharacters: ['"', ':'],
+			provideCompletionItems(model, position) {
+				const range = _range(model, position);
+				const fields = [
+					'name','doctype','docstatus','modified','modified_by','owner','creation',
+					'naming_rule','autoname','module','custom','is_submittable','istable',
+					'issingle','track_changes','title_field','search_fields','fields',
+					'permissions','actions','links','states','fieldname','fieldtype',
+					'label','options','reqd','in_list_view','in_standard_filter',
+					'bold','hidden','read_only','depends_on','mandatory_depends_on',
+					'default','description','precision','fetch_from','fetch_if_empty',
+					'allow_on_submit','no_copy','search_index','unique','translatable',
+					'document_type','event','channel','condition','message','subject',
+					'recipients','send_to_all_assignees','script_type','reference_doctype',
+					'doctype_event','script','enabled','is_return','return_against',
+					'company','customer','supplier','item_code','qty','rate','amount',
+					'grand_total','net_total','tax_amount','discount_percentage',
+					'posting_date','due_date','transaction_date','delivery_date',
+				];
+				return { suggestions: fields.map(f => ({
+					label: `"${f}"`, kind: K.Field,
+					insertText: `"${f}": `, range, detail: 'Frappe field',
+				})) };
+			}
+		});
+
+		/* ── SQL ── */
+		mc.languages.registerCompletionItemProvider('sql', {
+			triggerCharacters: ['`', ' ', '.'],
+			provideCompletionItems(model, position) {
+				const range = _range(model, position);
+				const keywords = [
+					'SELECT','FROM','WHERE','JOIN','LEFT JOIN','INNER JOIN','RIGHT JOIN',
+					'GROUP BY','ORDER BY','HAVING','LIMIT','OFFSET','UNION','UNION ALL',
+					'INSERT INTO','UPDATE','DELETE FROM','CREATE TABLE','DROP TABLE',
+					'ALTER TABLE','TRUNCATE TABLE','DESCRIBE','EXPLAIN','SHOW TABLES',
+					'DISTINCT','AS','ON','AND','OR','NOT','IN','NOT IN','IS NULL',
+					'IS NOT NULL','BETWEEN','LIKE','CASE','WHEN','THEN','ELSE','END',
+					'COUNT','SUM','AVG','MIN','MAX','COALESCE','IFNULL','IF',
+					'DATE_FORMAT','DATE_ADD','DATE_SUB','DATEDIFF','CURDATE','NOW',
+					'YEAR','MONTH','DAY','HOUR','MINUTE','STR_TO_DATE',
+					'SUBSTRING','CONCAT','LENGTH','TRIM','LOWER','UPPER','REPLACE',
+					'CAST','CONVERT','ROUND','FLOOR','CEIL','ABS','MOD',
+					'WITH','RECURSIVE','RANK() OVER','ROW_NUMBER() OVER','LAG','LEAD',
+					'SUM() OVER','PARTITION BY','ROWS UNBOUNDED PRECEDING',
+				];
+				const tables = [
+					'tabDocType','tabDocField','tabCustom Field','tabProperty Setter',
+					'tabUser','tabHas Role','tabRole','tabWorkflow','tabVersion',
+					'tabError Log','tabActivity Log','tabEmail Queue','tabScheduled Job Log',
+					'tabCommunication','tabNotification Log','tabPrint Format',
+					'tabServer Script','tabClient Script','tabTranslation',
+					'tabSales Invoice','tabSales Invoice Item','tabSales Order','tabSales Order Item',
+					'tabPurchase Invoice','tabPurchase Order','tabDelivery Note',
+					'tabCustomer','tabSupplier','tabItem','tabItem Price','tabBin',
+					'tabStock Ledger Entry','tabGL Entry','tabPayment Entry','tabJournal Entry',
+					'tabEmployee','tabSalary Slip','tabLeave Application','tabAttendance',
+					'tabProject','tabTask','tabTimesheet','tabTimesheet Detail',
+					'tabWork Order','tabBOM','tabBOM Item','tabJob Card',
+					'tabQuotation','tabLead','tabOpportunity','tabCRM Deal',
+					'tabAccount','tabCost Center','tabBudget',
+				];
+				const kSuggs = keywords.map(k => ({
+					label: k, kind: K.Keyword,
+					insertText: k + ' ', range, detail: 'SQL keyword',
+				}));
+				const tSuggs = tables.map(t => ({
+					label: t, kind: K.Module,
+					insertText: `\`${t}\``, range, detail: 'Frappe table',
+				}));
+				return { suggestions: [...kSuggs, ...tSuggs] };
+			}
+		});
+
+		/* ── AI Inline Completions (ghost text — like Copilot) ── */
+		let _aiDebounce = null, _aiEnabled = true;
+
+		const _aiLangs = ['python','javascript','sql','html','json'];
+		_aiLangs.forEach(lang => {
+			mc.languages.registerInlineCompletionsProvider({ language: lang }, {
+				provideInlineCompletions(model, position, _ctx, token) {
+					if (!_aiEnabled) return { items: [] };
+
+					return new Promise(resolve => {
+						clearTimeout(_aiDebounce);
+						_aiDebounce = setTimeout(() => {
+							if (token.isCancellationRequested) { resolve({ items: [] }); return; }
+
+							const allText  = model.getValue();
+							const offset   = model.getOffsetAt(position);
+							const prefix   = allText.slice(0, offset).slice(-2000);
+							const suffix   = allText.slice(offset, offset + 500);
+
+							// Skip if prefix ends in whitespace-only line (user paused)
+							if (/\n\s*$/.test(prefix)) { resolve({ items: [] }); return; }
+
+							frappe.call({
+								method: 'frappe_devkit.api.ai_complete.get_completion',
+								args: { prefix, suffix, lang },
+								callback(r) {
+									if (token.isCancellationRequested) { resolve({ items: [] }); return; }
+									const text = r.message?.completion || '';
+									if (!text.trim()) { resolve({ items: [] }); return; }
+									resolve({
+										items: [{
+											insertText: text,
+											range: {
+												startLineNumber: position.lineNumber,
+												startColumn: position.column,
+												endLineNumber: position.lineNumber,
+												endColumn: position.column,
+											},
+										}],
+										enableForwardStability: true,
+									});
+								},
+								error() { resolve({ items: [] }); },
+							});
+						}, 700); // 700ms debounce — avoids calling on every keystroke
+					});
+				},
+				freeInlineCompletions() {},
+			});
+		});
+
+		// Expose toggle so toolbar can enable/disable AI hints
+		mc.__dkAiEnabled = (val) => { _aiEnabled = val; };
 	}
 
 	function _mcCreate($container, lang, value) {
@@ -7488,17 +8186,67 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			theme: 'vs',
 			fontSize: 13,
 			lineHeight: 20,
-			fontFamily: "'Consolas','Monaco','Courier New',monospace",
+			fontFamily: "'Consolas','Monaco','Fira Code','Courier New',monospace",
+			fontLigatures: true,
 			minimap: { enabled: false },
 			scrollBeyondLastLine: false,
 			wordWrap: 'on',
 			automaticLayout: true,
 			tabSize: 4,
-			renderLineHighlight: 'line',
+			insertSpaces: false,
+			renderLineHighlight: 'all',
+			// ── IntelliSense / completions ──
 			suggestOnTriggerCharacters: true,
-			quickSuggestions: { other: true, comments: false, strings: false },
+			quickSuggestions: { other: true, comments: true, strings: true },
+			quickSuggestionsDelay: 80,
+			acceptSuggestionOnEnter: 'smart',
+			acceptSuggestionOnCommitCharacter: true,
+			snippetSuggestions: 'top',
+			suggest: {
+				showKeywords: true,
+				showSnippets: true,
+				showFunctions: true,
+				showVariables: true,
+				showClasses: true,
+				showModules: true,
+				showMethods: true,
+				showProperties: true,
+				showFields: true,
+				showConstructors: true,
+				showValues: true,
+				filterGraceful: true,
+				insertMode: 'replace',
+				preview: true,
+				previewMode: 'subwordSmart',
+				localityBonus: true,
+			},
+			// ── Parameter hints (signature help) ──
+			parameterHints: { enabled: true, cycle: true },
+			// ── Hover docs ──
+			hover: { enabled: true, delay: 300 },
+			// ── Inline suggestions (ghost text) ──
+			inlineSuggest: { enabled: true },
+			// ── Bracket & delimiter helpers ──
+			autoClosingBrackets: 'always',
+			autoClosingQuotes: 'always',
+			autoClosingOvertype: 'always',
+			autoSurround: 'languageDefined',
+			matchBrackets: 'always',
+			bracketPairColorization: { enabled: true },
+			// ── Code quality ──
+			formatOnPaste: true,
+			detectIndentation: true,
+			trimAutoWhitespace: true,
+			// ── Visuals ──
+			renderWhitespace: 'selection',
+			rulers: [],
+			folding: true,
+			foldingHighlight: true,
+			showFoldingControls: 'mouseover',
+			lineNumbers: 'on',
+			glyphMargin: true,
 			padding: { top: 8, bottom: 8 },
-			scrollbar: { vertical: 'auto', horizontal: 'auto' },
+			scrollbar: { vertical: 'auto', horizontal: 'auto', useShadows: true },
 		});
 	}
 
