@@ -6942,9 +6942,9 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		}});
 		$tb.append('<button class="dkst-ce-link" data-app-sel="desk-app-sel" title="Edit this app in Code Editor">⌨ Edit in Editor</button>');
 		$tb.append('<div class="dkpb-tsep"></div>');
-		const $saveBtn = $('<button class="dkpb-btn dkpb-btn-accent" disabled>💾 Save <kbd style="font-size:9px;opacity:.7">Ctrl+S</kbd></button>').appendTo($tb);
-		$tb.append('<div class="dkpb-tsep"></div>');
 		const $newDeskBtn  = $('<button class="dkpb-btn">＋ New Page</button>').appendTo($tb);
+		$tb.append('<div class="dkpb-tsep"></div>');
+		const $saveBtn = $('<button class="dkpb-btn dkpb-btn-accent" disabled>💾 Save <kbd style="font-size:9px;opacity:.7">Ctrl+S</kbd></button>').appendTo($tb);
 		const $editDeskBtn = $('<button class="dkpb-btn" disabled>✏ Edit Page</button>').appendTo($tb);
 		const $delDeskBtn  = $('<button class="dkpb-btn" style="color:#c0392b" disabled>🗑 Delete Page</button>').appendTo($tb);
 

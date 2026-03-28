@@ -821,7 +821,7 @@ def get_context(context):
     # frappe.local.flags.redirect_location = "/other-page"
     # raise frappe.Redirect
 
-    """
+    # """
     context.title = "{title}"
 '''
 
@@ -3647,11 +3647,13 @@ def create_desk_page(app, module, page_name, title, preset='blank'):
     tpl_dir = os.path.join(page_dir, "templates")
     os.makedirs(tpl_dir, exist_ok=True)
 
-    # relative template path used in render_template (from app inner package root)
+    # relative template path used in render_template (relative to inner package dir)
+    # e.g. my_dev/page/app_shell_sidebar/templates/app_shell_sidebar.html
     rel_from_inner = os.path.relpath(page_dir, os.path.join(root, inner)).replace("\\", "/")
-    tpl_path = f"{inner}/{rel_from_inner}/templates/{page_name}.html"
+    tpl_path = f"{rel_from_inner}/templates/{page_name}.html"
 
-    # Python module path from apps/ (sys.path root): {app}.{path_from_app_root}.{page_name}
+    # Python module path importable from app root (sys.path entry): inner.module.page.name.name
+    # e.g. my_dev.my_dev.page.app_shell_sidebar.app_shell_sidebar.get_app_shell_sidebar
     rel_from_root = os.path.relpath(page_dir, root).replace("\\", "/")
 
     fn_name = page_name.replace("-", "_")
@@ -3671,7 +3673,7 @@ def create_desk_page(app, module, page_name, title, preset='blank'):
         f.write(py_body)
 
     # .js
-    method_path = f"{app}.{rel_from_root.replace('/', '.')}.{fn_name}.get_{fn_name}"
+    method_path = f"{rel_from_root.replace('/', '.')}.{fn_name}.get_{fn_name}"
     js_body = _desk_js_template(page_name, title, method_path, app, preset)
     with open(os.path.join(page_dir, page_name + ".js"), "w") as f:
         f.write(js_body)
@@ -3784,6 +3786,584 @@ function bind_events(page) {{
 '''
 
 
+def _desk_py_preset_block(preset, tpl_path, page_name):
+    """Return a preset-specific commented Python snippet appended after the generic boilerplate."""
+    _PRESET_BLOCKS = {
+        'dashboard': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # DASHBOARD preset — suggested queries
+    # ════════════════════════════════════════════════════════════════════════
+    # company   = kwargs.get("company") or frappe.defaults.get_global_default("company")
+    # from_date = kwargs.get("from_date") or frappe.utils.add_months(frappe.utils.today(), -1)
+    # to_date   = kwargs.get("to_date")   or frappe.utils.today()
+    #
+    # # KPI: Total Revenue (submitted Sales Invoices)
+    # total_revenue = frappe.db.sql("""
+    #     SELECT IFNULL(SUM(grand_total), 0) AS val
+    #     FROM `tabSales Invoice`
+    #     WHERE docstatus = 1 AND company = %(company)s
+    #       AND posting_date BETWEEN %(from_date)s AND %(to_date)s
+    # """, {{"company": company, "from_date": from_date, "to_date": to_date}}, as_dict=1)[0].val
+    #
+    # # KPI: Total Expenses (submitted Purchase Invoices)
+    # total_expenses = frappe.db.sql("""
+    #     SELECT IFNULL(SUM(grand_total), 0) AS val
+    #     FROM `tabPurchase Invoice`
+    #     WHERE docstatus = 1 AND company = %(company)s
+    #       AND posting_date BETWEEN %(from_date)s AND %(to_date)s
+    # """, {{"company": company, "from_date": from_date, "to_date": to_date}}, as_dict=1)[0].val
+    #
+    # # KPI: Open Orders (Sales Orders not fully delivered+billed)
+    # open_orders = frappe.db.count("Sales Order", {{
+    #     "company": company, "docstatus": 1,
+    #     "status": ["in", ["To Deliver and Bill", "To Deliver", "To Bill"]],
+    # }})
+    #
+    # # KPI: Open Issues
+    # open_issues = frappe.db.count("Issue", {{"status": ["in", ["Open", "Replied"]]}})
+    #
+    # # Recent Sales Invoices
+    # recent_invoices = frappe.get_all(
+    #     "Sales Invoice",
+    #     filters={{"company": company, "docstatus": 1}},
+    #     fields=["name", "customer", "grand_total", "posting_date", "status", "outstanding_amount"],
+    #     order_by="posting_date desc", limit=20,
+    # )
+    #
+    # # Top Customers by revenue
+    # top_customers = frappe.db.sql("""
+    #     SELECT customer, SUM(grand_total) AS total
+    #     FROM `tabSales Invoice`
+    #     WHERE docstatus = 1 AND company = %(company)s
+    #     GROUP BY customer ORDER BY total DESC LIMIT 10
+    # """, {{"company": company}}, as_dict=1)
+    #
+    # # Activity Feed
+    # activity = frappe.get_all(
+    #     "Activity Log",
+    #     fields=["subject", "full_name AS user", "creation AS time"],
+    #     order_by="creation desc", limit=15,
+    # )
+    #
+    # context = {{
+    #     "title":          "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "total_revenue":  total_revenue,
+    #     "total_expenses": total_expenses,
+    #     "open_orders":    open_orders,
+    #     "open_issues":    open_issues,
+    #     "recent_invoices": recent_invoices,
+    #     "top_customers":  top_customers,
+    #     "activity":       activity,
+    # }}
+''',
+        'list_tool': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # LIST TOOL preset — suggested queries
+    # ════════════════════════════════════════════════════════════════════════
+    # doctype    = kwargs.get("doctype", "Sales Invoice")
+    # page_no    = int(kwargs.get("page_no", 1))
+    # page_size  = int(kwargs.get("page_size", 20))
+    # status     = kwargs.get("status")
+    # from_date  = kwargs.get("from_date")
+    # to_date    = kwargs.get("to_date")
+    # search_txt = kwargs.get("search_txt", "")
+    #
+    # filters = {{"docstatus": ["!=", 2]}}
+    # if status:    filters["status"] = status
+    # if from_date: filters["posting_date"] = [">=", from_date]
+    # if to_date:   filters["posting_date"] = ["<=", to_date]
+    # if search_txt:
+    #     filters["name"] = ["like", f"%{{search_txt}}%"]
+    #
+    # total_count = frappe.db.count(doctype, filters)
+    # records = frappe.get_all(
+    #     doctype,
+    #     filters=filters,
+    #     fields=["name", "customer", "posting_date", "grand_total", "status", "owner"],
+    #     order_by="posting_date desc",
+    #     limit_start=(page_no - 1) * page_size,
+    #     limit_page_length=page_size,
+    # )
+    # context = {{
+    #     "title":       "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "records":     records,
+    #     "total_count": total_count,
+    #     "page_no":     page_no,
+    #     "page_size":   page_size,
+    # }}
+''',
+        'form_tool': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # FORM TOOL preset — load/save a single document
+    # ════════════════════════════════════════════════════════════════════════
+    # docname = kwargs.get("docname")   # None = new record
+    #
+    # if docname:
+    #     doc = frappe.get_doc("Sales Invoice", docname)
+    #     doc.check_permission("read")
+    #     context = {{
+    #         "title":   "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #         "docname": docname,
+    #         "doc":     doc.as_dict(),
+    #     }}
+    # else:
+    #     context = {{
+    #         "title":   "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #         "docname": None,
+    #         "doc":     {{}},
+    #     }}
+    #
+    # # --- Save handler (separate whitelisted function) ---
+    # # @frappe.whitelist()
+    # # def save_{page_name.replace("-","_")}(**kwargs):
+    # #     data = frappe.parse_json(kwargs.get("data", "{{}}"))
+    # #     if data.get("name"):
+    # #         doc = frappe.get_doc("Sales Invoice", data["name"])
+    # #         doc.update(data); doc.save()
+    # #     else:
+    # #         doc = frappe.get_doc({{"doctype": "Sales Invoice", **data}})
+    # #         doc.insert()
+    # #     frappe.db.commit()
+    # #     return doc.name
+''',
+        'analytics': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # ANALYTICS preset — metrics + trend data
+    # ════════════════════════════════════════════════════════════════════════
+    # company   = kwargs.get("company") or frappe.defaults.get_global_default("company")
+    # from_date = kwargs.get("from_date") or frappe.utils.add_months(frappe.utils.today(), -12)
+    # to_date   = kwargs.get("to_date")   or frappe.utils.today()
+    # group_by  = kwargs.get("group_by", "month")   # month | quarter | year
+    #
+    # # Top-level metrics
+    # revenue = frappe.db.sql("""SELECT IFNULL(SUM(grand_total),0) v FROM `tabSales Invoice`
+    #     WHERE docstatus=1 AND company=%(co)s AND posting_date BETWEEN %(fd)s AND %(td)s
+    # """, {{"co": company, "fd": from_date, "td": to_date}}, as_dict=1)[0].v
+    #
+    # cost = frappe.db.sql("""SELECT IFNULL(SUM(grand_total),0) v FROM `tabPurchase Invoice`
+    #     WHERE docstatus=1 AND company=%(co)s AND posting_date BETWEEN %(fd)s AND %(td)s
+    # """, {{"co": company, "fd": from_date, "td": to_date}}, as_dict=1)[0].v
+    #
+    # # Monthly trend
+    # trend_data = frappe.db.sql("""
+    #     SELECT DATE_FORMAT(posting_date,'%Y-%m') AS month,
+    #            SUM(grand_total) AS revenue, COUNT(*) AS count
+    #     FROM `tabSales Invoice`
+    #     WHERE docstatus=1 AND company=%(co)s
+    #       AND posting_date BETWEEN %(fd)s AND %(td)s
+    #     GROUP BY month ORDER BY month
+    # """, {{"co": company, "fd": from_date, "td": to_date}}, as_dict=1)
+    #
+    # # Top 10 customers
+    # top_customers = frappe.db.sql("""
+    #     SELECT customer, SUM(grand_total) AS total, COUNT(*) AS invoice_count
+    #     FROM `tabSales Invoice`
+    #     WHERE docstatus=1 AND company=%(co)s
+    #       AND posting_date BETWEEN %(fd)s AND %(td)s
+    #     GROUP BY customer ORDER BY total DESC LIMIT 10
+    # """, {{"co": company, "fd": from_date, "td": to_date}}, as_dict=1)
+    #
+    # context = {{
+    #     "title":         "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "metrics":       {{"revenue": revenue, "cost": cost, "profit": revenue - cost,
+    #                        "margin": round((revenue - cost) / revenue * 100, 1) if revenue else 0}},
+    #     "trend_data":    trend_data,
+    #     "top_customers": top_customers,
+    # }}
+''',
+        'settings': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # SETTINGS preset — read/write frappe.db.get/set_single_value
+    # ════════════════════════════════════════════════════════════════════════
+    # # Load settings from a Single DocType (e.g. "My App Settings")
+    # settings_doc = frappe.get_single("My App Settings")
+    # context = {{
+    #     "title": "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "settings": settings_doc.as_dict(),
+    #     "timezones": frappe.utils.get_time_zone_abbr(),
+    #     "companies":  [c.name for c in frappe.get_all("Company", fields=["name"])],
+    # }}
+    #
+    # # --- Save handler ---
+    # # @frappe.whitelist()
+    # # def save_{page_name.replace("-","_")}(**kwargs):
+    # #     data = frappe.parse_json(kwargs.get("data", "{{}}"))
+    # #     doc  = frappe.get_single("My App Settings")
+    # #     for key, val in data.items():
+    # #         doc.set(key, val)
+    # #     doc.save(ignore_permissions=True)
+    # #     frappe.db.commit()
+    # #     return "Saved"
+''',
+        'wizard': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # WIZARD preset — multi-step form context
+    # ════════════════════════════════════════════════════════════════════════
+    # # Doctypes for dropdowns
+    # users     = frappe.get_all("User", filters={{"enabled": 1}}, fields=["name", "full_name"])
+    # doctypes  = frappe.get_all("DocType", filters={{"istable": 0}}, fields=["name"], limit=50)
+    # priorities = ["Low", "Medium", "High", "Urgent"]
+    #
+    # context = {{
+    #     "title":      "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "users":      users,
+    #     "doctypes":   doctypes,
+    #     "priorities": priorities,
+    # }}
+    #
+    # # --- Submit handler ---
+    # # @frappe.whitelist()
+    # # def submit_{page_name.replace("-","_")}(**kwargs):
+    # #     data = frappe.parse_json(kwargs.get("data"))
+    # #     # data = {{ "step1": {{...}}, "step2": {{...}} }}
+    # #     doc = frappe.get_doc({{
+    # #         "doctype":      data["step1"]["doctype"],
+    # #         "subject":      data["step1"]["name"],
+    # #         "description":  data["step1"]["description"],
+    # #         "priority":     data["step1"]["priority"],
+    # #         "assigned_to":  data["step2"]["assigned_to"],
+    # #         "due_date":     data["step2"]["due_date"],
+    # #     }})
+    # #     doc.insert()
+    # #     frappe.db.commit()
+    # #     return {{"docname": doc.name}}
+''',
+        'kanban': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # KANBAN preset — group Tasks or Issues by status
+    # ════════════════════════════════════════════════════════════════════════
+    # COLUMN_MAP = {{
+    #     "todo":        "Open",
+    #     "in_progress": "Working",
+    #     "in_review":   "Pending Review",
+    #     "done":        "Completed",
+    # }}
+    #
+    # all_tasks = frappe.get_all(
+    #     "Task",
+    #     fields=["name", "subject AS title", "status", "priority",
+    #             "_assign AS assignee", "exp_end_date AS due_date",
+    #             "description", "tags"],
+    #     order_by="modified desc",
+    # )
+    #
+    # columns = {{col: [] for col in COLUMN_MAP}}
+    # for task in all_tasks:
+    #     for col_key, status_val in COLUMN_MAP.items():
+    #         if task.status == status_val:
+    #             columns[col_key].append(task)
+    #
+    # context = {{
+    #     "title":   "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "columns": columns,
+    # }}
+''',
+        'import_export': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # IMPORT/EXPORT preset — doctype fields + import history
+    # ════════════════════════════════════════════════════════════════════════
+    # selected_doctype = kwargs.get("doctype", "Sales Invoice")
+    # meta = frappe.get_meta(selected_doctype)
+    # doctype_fields = [
+    #     {{"fieldname": f.fieldname, "label": f.label, "fieldtype": f.fieldtype}}
+    #     for f in meta.fields
+    #     if f.fieldtype not in ("Section Break", "Column Break", "HTML", "Tab Break")
+    # ]
+    #
+    # import_history = frappe.get_all(
+    #     "Data Import",
+    #     filters={{"reference_doctype": selected_doctype}},
+    #     fields=["name", "reference_doctype", "import_type", "status",
+    #             "total_records", "failed_records", "creation"],
+    #     order_by="creation desc", limit=10,
+    # )
+    #
+    # context = {{
+    #     "title":            "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "doctype_fields":   doctype_fields,
+    #     "import_history":   import_history,
+    #     "selected_doctype": selected_doctype,
+    # }}
+''',
+        'approval_inbox': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # APPROVAL INBOX preset — approval requests from Workflow Action
+    # ════════════════════════════════════════════════════════════════════════
+    # status_filter = kwargs.get("status", "Open")   # Open | Approved | Rejected
+    # from_date     = kwargs.get("from_date")
+    # to_date       = kwargs.get("to_date")
+    # submitted_by  = kwargs.get("submitted_by")
+    #
+    # filters = {{"status": status_filter}}
+    # if from_date: filters["creation"] = [">=", from_date]
+    # if to_date:   filters["creation"] = ["<=", to_date]
+    # if submitted_by: filters["owner"] = submitted_by
+    #
+    # requests = frappe.get_all(
+    #     "Workflow Action",
+    #     filters=filters,
+    #     fields=["name", "reference_doctype AS doctype", "reference_name AS document_name",
+    #             "owner AS submitted_by", "creation", "status", "workflow_state"],
+    #     order_by="creation desc",
+    # )
+    #
+    # # Enrich each request with doc-level data
+    # for req in requests:
+    #     try:
+    #         doc = frappe.get_doc(req.doctype, req.document_name)
+    #         req.amount      = getattr(doc, "grand_total", None)
+    #         req.description = getattr(doc, "title", None) or getattr(doc, "subject", None)
+    #         req.priority    = getattr(doc, "priority", None)
+    #         from frappe.utils import pretty_date
+    #         req.pending_since = pretty_date(req.creation)
+    #     except Exception:
+    #         pass
+    #
+    # context = {{
+    #     "title":    "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "requests": requests,
+    #     "counts":   {{
+    #         "all":     frappe.db.count("Workflow Action"),
+    #         "pending": frappe.db.count("Workflow Action", {{"status": "Open"}}),
+    #         "approved":frappe.db.count("Workflow Action", {{"status": "Approved"}}),
+    #         "rejected":frappe.db.count("Workflow Action", {{"status": "Rejected"}}),
+    #     }},
+    # }}
+''',
+        'report_viewer': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # REPORT VIEWER preset — dynamic query builder
+    # ════════════════════════════════════════════════════════════════════════
+    # doctype   = kwargs.get("doctype", "Sales Invoice")
+    # filters_j = frappe.parse_json(kwargs.get("filters", "[]"))
+    # sort_by   = kwargs.get("sort_by", "name")
+    # sort_ord  = kwargs.get("sort_order", "desc")
+    # limit     = int(kwargs.get("limit", 50))
+    # page_no   = int(kwargs.get("page_no", 1))
+    #
+    # meta = frappe.get_meta(doctype)
+    # columns = [
+    #     {{"fieldname": f.fieldname, "label": f.label, "fieldtype": f.fieldtype}}
+    #     for f in meta.fields
+    #     if f.in_list_view and f.fieldtype not in ("Section Break", "Column Break")
+    # ]
+    # if not columns:
+    #     columns = [{{"fieldname": "name", "label": "Name", "fieldtype": "Data"}}]
+    #
+    # # Convert filter list [[fieldname, op, value], ...] to frappe filter dict
+    # built_filters = {{}}
+    # for fltr in filters_j:
+    #     if len(fltr) == 3:
+    #         built_filters[fltr[0]] = [fltr[1], fltr[2]]
+    #
+    # fieldnames = [c["fieldname"] for c in columns] + ["name"]
+    # total_count = frappe.db.count(doctype, built_filters)
+    # data = frappe.get_all(
+    #     doctype,
+    #     filters=built_filters,
+    #     fields=list(set(fieldnames)),
+    #     order_by=f"{{sort_by}} {{sort_ord}}",
+    #     limit_start=(page_no - 1) * limit,
+    #     limit_page_length=limit,
+    # )
+    #
+    # context = {{
+    #     "title":        "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "report_title": doctype,
+    #     "columns":      columns,
+    #     "data":         data,
+    #     "total_count":  total_count,
+    #     "page_no":      page_no,
+    #     "limit":        limit,
+    # }}
+''',
+        'calendar_view': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # CALENDAR VIEW preset — build calendar weeks with events
+    # ════════════════════════════════════════════════════════════════════════
+    # import calendar as pycal
+    # from frappe.utils import getdate, today, add_days
+    #
+    # year  = int(kwargs.get("year",  frappe.utils.getdate().year))
+    # month = int(kwargs.get("month", frappe.utils.getdate().month))
+    #
+    # # Fetch events from multiple sources
+    # tasks = frappe.get_all("Task",
+    #     filters={{"exp_end_date": ["between", [f"{{year}}-{{month:02d}}-01",
+    #                                            f"{{year}}-{{month:02d}}-31"]]}},
+    #     fields=["name", "subject AS title", "exp_end_date AS date", "priority"],
+    # )
+    # for t in tasks: t["color"] = "yellow"; t["category"] = "Task"
+    #
+    # events_raw = tasks  # add meetings, holidays etc. the same way
+    # events_by_date = {{}}
+    # for ev in events_raw:
+    #     d = str(ev.get("date", ""))[:10]
+    #     events_by_date.setdefault(d, []).append(ev)
+    #
+    # # Build week matrix
+    # cal_weeks = []
+    # for week in pycal.monthcalendar(year, month):
+    #     row = []
+    #     for day_num in week:
+    #         if day_num == 0:
+    #             row.append({{"day": None, "events": []}})
+    #         else:
+    #             key = f"{{year}}-{{month:02d}}-{{day_num:02d}}"
+    #             row.append({{"day": day_num, "date": key,
+    #                          "events": events_by_date.get(key, [])}})
+    #     cal_weeks.append(row)
+    #
+    # month_names = ["", "January","February","March","April","May","June",
+    #                "July","August","September","October","November","December"]
+    # context = {{
+    #     "title":             "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "current_month_name": month_names[month],
+    #     "current_year":      year,
+    #     "current_month":     month,
+    #     "calendar_weeks":    cal_weeks,
+    # }}
+''',
+        'audit_trail': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # AUDIT TRAIL preset — query Version / Activity Log
+    # ════════════════════════════════════════════════════════════════════════
+    # user      = kwargs.get("user")
+    # doctype   = kwargs.get("doctype")
+    # from_date = kwargs.get("from_date")
+    # to_date   = kwargs.get("to_date")
+    # action    = kwargs.get("action")   # Create | Update | Delete | Submit
+    #
+    # filters = {{}}
+    # if user:      filters["owner"] = user
+    # if doctype:   filters["ref_doctype"] = doctype
+    # if from_date: filters["creation"]    = [">=", from_date]
+    # if to_date:   filters["creation"]    = ["<=", to_date]
+    # if action:    filters["data"]        = ["like", f"%{{action}}%"]
+    #
+    # raw_logs = frappe.get_all(
+    #     "Version",
+    #     filters=filters,
+    #     fields=["name", "ref_doctype AS doctype", "docname",
+    #             "owner AS user", "creation AS timestamp", "data"],
+    #     order_by="creation desc", limit=50,
+    # )
+    #
+    # import json as _json
+    # audit_logs = []
+    # for log in raw_logs:
+    #     try:
+    #         diff = _json.loads(log.get("data") or "{{}}") or {{}}
+    #     except Exception:
+    #         diff = {{}}
+    #     changed = diff.get("changed", [])
+    #     log["action"]  = "Update" if changed else "Create"
+    #     log["changes"] = [
+    #         {{"field": c[0], "old": c[1], "new": c[2]}} for c in changed
+    #     ] if changed else []
+    #     audit_logs.append(log)
+    #
+    # context = {{
+    #     "title":      "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "audit_logs": audit_logs,
+    # }}
+''',
+        'notification_center': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # NOTIFICATION CENTER preset — Notification Log grouped by date
+    # ════════════════════════════════════════════════════════════════════════
+    # tab_filter = kwargs.get("tab", "all")   # all | unread | mentions | system | workflow
+    # user = frappe.session.user
+    #
+    # filters = {{"for_user": user}}
+    # if tab_filter == "unread":   filters["read"] = 0
+    # if tab_filter == "mentions": filters["type"] = "Mention"
+    # if tab_filter == "system":   filters["type"] = "Alert"
+    # if tab_filter == "workflow": filters["type"] = "Workflow Action"
+    #
+    # notifs = frappe.get_all(
+    #     "Notification Log",
+    #     filters=filters,
+    #     fields=["name", "subject", "type", "read AS is_read",
+    #             "from_user", "creation", "document_type", "document_name"],
+    #     order_by="creation desc", limit=60,
+    # )
+    #
+    # from frappe.utils import pretty_date, getdate, today, add_days
+    # from collections import OrderedDict
+    # today_d = getdate(today())
+    # yesterday_d = add_days(today_d, -1)
+    #
+    # groups = OrderedDict()
+    # for n in notifs:
+    #     d = getdate(n.creation)
+    #     if d == today_d:          label = "Today"
+    #     elif d == yesterday_d:    label = "Yesterday"
+    #     else:                     label = "This Week"
+    #     n["age"] = pretty_date(n.creation)
+    #     groups.setdefault(label, []).append(n)
+    #
+    # notification_groups = [
+    #     {{"date_label": lbl, "items": items}} for lbl, items in groups.items()
+    # ]
+    # unread_count = sum(1 for n in notifs if not n.is_read)
+    #
+    # context = {{
+    #     "title":               "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "notification_groups": notification_groups,
+    #     "unread_count":        unread_count,
+    # }}
+''',
+        'bulk_ops': f'''
+    # ════════════════════════════════════════════════════════════════════════
+    # BULK OPS preset — load records + bulk action handler
+    # ════════════════════════════════════════════════════════════════════════
+    # doctype   = kwargs.get("doctype", "Sales Invoice")
+    # status    = kwargs.get("status")
+    # from_date = kwargs.get("from_date")
+    # to_date   = kwargs.get("to_date")
+    #
+    # filters = {{"docstatus": ["!=", 2]}}
+    # if status:    filters["status"]       = status
+    # if from_date: filters["posting_date"] = [">=", from_date]
+    # if to_date:   filters["posting_date"] = ["<=", to_date]
+    #
+    # records = frappe.get_all(
+    #     doctype,
+    #     filters=filters,
+    #     fields=["name", "status", "owner", "creation", "grand_total"],
+    #     order_by="creation desc", limit=200,
+    # )
+    # context = {{
+    #     "title":   "{page_name.replace("-", " ").replace("_", " ").title()}",
+    #     "records": records,
+    # }}
+    #
+    # # --- Bulk action handler (separate whitelisted fn) ---
+    # # @frappe.whitelist()
+    # # def bulk_action_{page_name.replace("-","_")}(**kwargs):
+    # #     names  = frappe.parse_json(kwargs.get("names", "[]"))
+    # #     action = kwargs.get("action")   # approve | submit | cancel | delete | assign
+    # #     results = {{"success": [], "failed": []}}
+    # #     for name in names:
+    # #         try:
+    # #             doc = frappe.get_doc(doctype, name)
+    # #             if action == "submit":  doc.submit()
+    # #             elif action == "cancel": doc.cancel()
+    # #             elif action == "delete": frappe.delete_doc(doctype, name)
+    # #             results["success"].append(name)
+    # #         except Exception as e:
+    # #             results["failed"].append({{"name": name, "error": str(e)}})
+    # #     frappe.db.commit()
+    # #     return results
+''',
+    }
+    block = _PRESET_BLOCKS.get(preset, '')
+    if not block:
+        return ''
+    return block
+
+
 def _desk_py_template(fn_name, tpl_path, app, module, page_name, preset='blank'):
     """Return rich commented Python boilerplate for a desk page."""
     return f'''import frappe
@@ -3837,8 +4417,8 @@ def get_{fn_name}(**kwargs):
 
     # ── Compute KPI cards ────────────────────────────────────────────────────
     # kpis = [
-    #     {{"label": "Open Orders", "value": frappe.db.count("Sales Order", {{"status": "To Deliver and Bill"}}), "color": "#5c4da8"}},
-    #     {{"label": "Unpaid Invoices", "value": frappe.db.count("Sales Invoice", {{"outstanding_amount": [">", 0]}}),"color": "#dc2626"}},
+    #     {{"label": "Open Orders",    "value": frappe.db.count("Sales Order",   {{"status": "To Deliver and Bill"}}), "color": "#5c4da8"}},
+    #     {{"label": "Unpaid Invoices","value": frappe.db.count("Sales Invoice", {{"outstanding_amount": [">", 0]}}),  "color": "#dc2626"}},
     # ]
 
     # ── Render a Jinja2 template ─────────────────────────────────────────────
@@ -3848,14 +4428,14 @@ def get_{fn_name}(**kwargs):
     #     "kpis": kpis,
     # }})
     # return html
-    """
+    # """
     context = {{
         "title": "{page_name.replace("-", " ").replace("_", " ").title()}",
         # "records": [],
     }}
     html = frappe.render_template("{tpl_path}", context)
     return html
-'''
+''' + _desk_py_preset_block(preset, tpl_path, page_name)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -4651,6 +5231,2720 @@ frappe.call({
 '''
 
 
+def _desk_tpl_dashboard(cc, title):
+    """Executive dashboard — KPI row + recent transactions + top customers + activity feed."""
+    return r'''
+<!-- ══ DASHBOARD DESK PRESET ════════════════════════════════════════════════
+     Python context keys expected (all optional — page degrades gracefully):
+       kpis          list[{label, value, sub, color, icon}]
+       recent_rows   list[{name, party, date, amount, status}]
+       top_parties   list[{name, total, count}]
+       activity      list[{user, action, doctype, docname, age}]
+     To populate from Python (in your .py file):
+       import frappe, frappe.utils as fu
+       kpis = [
+           {"label":"Revenue (MTD)", "value": frappe.db.sql("SELECT IFNULL(SUM(grand_total),0) FROM `tabSales Invoice` WHERE docstatus=1 AND MONTH(posting_date)=MONTH(CURDATE()) AND YEAR(posting_date)=YEAR(CURDATE())")[0][0], "icon":"💰", "color":"#5c4da8"},
+           {"label":"Expenses (MTD)", "value": frappe.db.sql("SELECT IFNULL(SUM(grand_total),0) FROM `tabPurchase Invoice` WHERE docstatus=1 AND MONTH(posting_date)=MONTH(CURDATE())")[0][0], "icon":"📤", "color":"#dc2626"},
+           {"label":"Open Orders",    "value": frappe.db.count("Sales Order",    {"status": ["in",["To Deliver and Bill","To Bill"]]}), "icon":"📦", "color":"#0369a1"},
+           {"label":"Open Issues",    "value": frappe.db.count("Issue",          {"status": "Open"}),                                  "icon":"🔔", "color":"#b45309"},
+       ]
+       recent_rows = frappe.get_all("Sales Invoice", filters={"docstatus":1}, fields=["name","customer as party","posting_date as date","grand_total as amount","status"], order_by="posting_date desc", limit=10)
+       top_parties = frappe.db.sql("SELECT customer as name, SUM(grand_total) as total, COUNT(*) as count FROM `tabSales Invoice` WHERE docstatus=1 AND YEAR(posting_date)=YEAR(CURDATE()) GROUP BY customer ORDER BY total DESC LIMIT 8", as_dict=1)
+       activity    = frappe.get_all("Activity Log", fields=["user","subject as action","reference_doctype as doctype","reference_name as docname","creation as age"], order_by="creation desc", limit=12)
+       context.update({"kpis": kpis, "recent_rows": recent_rows, "top_parties": top_parties, "activity": activity})
+════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root {
+    --dbd-brand:  #5c4da8; --dbd-light: #ede9fe; --dbd-muted: #6b7280;
+    --dbd-dark:   #1e1b3a; --dbd-r: 10px; --dbd-sh: 0 2px 12px rgba(92,77,168,.10);
+  }
+  .dbd-wrap { padding: 2px 0; font-family: inherit; }
+  /* KPI row */
+  .dbd-kpi-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; margin-bottom:22px; }
+  .dbd-kpi { background:#fff; border-radius:var(--dbd-r); box-shadow:var(--dbd-sh); padding:18px 20px; border-left:4px solid var(--dbd-brand); display:flex; align-items:center; gap:14px; }
+  .dbd-kpi-ico { font-size:2rem; }
+  .dbd-kpi-val { font-size:1.7rem; font-weight:900; color:var(--dbd-brand); line-height:1; }
+  .dbd-kpi-label { font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--dbd-muted); margin-top:3px; }
+  .dbd-kpi-sub { font-size:11px; color:var(--dbd-muted); margin-top:2px; }
+  /* Two-column body */
+  .dbd-body { display:grid; grid-template-columns:1fr 320px; gap:16px; margin-bottom:16px; }
+  @media(max-width:900px){ .dbd-body { grid-template-columns:1fr; } }
+  .dbd-card { background:#fff; border-radius:var(--dbd-r); box-shadow:var(--dbd-sh); overflow:hidden; }
+  .dbd-card-hdr { padding:12px 16px; font-weight:700; font-size:13px; color:var(--dbd-dark); border-bottom:1px solid var(--dbd-light); display:flex; align-items:center; justify-content:space-between; }
+  .dbd-card-hdr a { font-size:11px; font-weight:400; color:var(--dbd-brand); text-decoration:none; }
+  /* Table */
+  .dbd-tbl { width:100%; border-collapse:collapse; font-size:13px; }
+  .dbd-tbl th { padding:9px 14px; background:var(--dbd-light); color:var(--dbd-brand); font-weight:700; text-align:left; font-size:11px; text-transform:uppercase; }
+  .dbd-tbl td { padding:9px 14px; border-bottom:1px solid #f4f0fc; }
+  .dbd-tbl tr:hover td { background:#faf7ff; cursor:pointer; }
+  .dbd-tbl tr:last-child td { border:none; }
+  /* Badges */
+  .dbd-badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:10px; font-weight:700; }
+  .dbd-badge.green{background:#dcfce7;color:#14532d} .dbd-badge.red{background:#fee2e2;color:#7f1d1d}
+  .dbd-badge.blue{background:#dbeafe;color:#1e3a5f}  .dbd-badge.yellow{background:#fef9c3;color:#713f12}
+  /* Top parties bar */
+  .dbd-party-row { display:flex; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid #f4f0fc; font-size:12px; }
+  .dbd-party-row:last-child { border:none; }
+  .dbd-party-name { flex:1; font-weight:600; color:var(--dbd-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dbd-party-bar-wrap { width:80px; background:#f0eaff; border-radius:4px; height:6px; overflow:hidden; }
+  .dbd-party-bar { height:6px; background:var(--dbd-brand); border-radius:4px; }
+  .dbd-party-total { font-weight:700; color:var(--dbd-brand); min-width:50px; text-align:right; font-size:11px; }
+  /* Activity feed */
+  .dbd-activity-row { display:flex; gap:10px; padding:8px 14px; border-bottom:1px solid #f4f0fc; font-size:12px; }
+  .dbd-activity-row:last-child { border:none; }
+  .dbd-av { width:26px; height:26px; border-radius:50%; background:var(--dbd-brand); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .dbd-activity-body { flex:1; }
+  .dbd-activity-user { font-weight:600; color:var(--dbd-dark); }
+  .dbd-activity-doc { color:var(--dbd-brand); }
+  .dbd-activity-age { color:var(--dbd-muted); font-size:11px; }
+</style>
+
+<div class="dbd-wrap">
+
+  {#- ══ KPI CARDS ══ -#}
+  <div class="dbd-kpi-row">
+    {% for kpi in kpis %}
+    <div class="dbd-kpi" style="border-color:{{ kpi.color }}">
+      <div class="dbd-kpi-ico">{{ kpi.icon }}</div>
+      <div>
+        <div class="dbd-kpi-val" style="color:{{ kpi.color }}">{{ kpi.value }}</div>
+        <div class="dbd-kpi-label">{{ kpi.label }}</div>
+        {% if kpi.sub %}<div class="dbd-kpi-sub">{{ kpi.sub }}</div>{% endif %}
+      </div>
+    </div>
+    {% else %}
+    {#- Placeholder when no kpis passed from Python -#}
+    {% for ph in [["💰","Revenue","#5c4da8"],["📤","Expenses","#dc2626"],["📦","Open Orders","#0369a1"],["🔔","Open Issues","#b45309"]] %}
+    <div class="dbd-kpi" style="border-color:{{ ph[2] }}">
+      <div class="dbd-kpi-ico">{{ ph[0] }}</div>
+      <div><div class="dbd-kpi-val" style="color:{{ ph[2] }}">—</div><div class="dbd-kpi-label">{{ ph[1] }}</div></div>
+    </div>
+    {% endfor %}
+    {% endfor %}
+  </div>
+
+  {#- ══ BODY: RECENT INVOICES + TOP CUSTOMERS ══ -#}
+  <div class="dbd-body">
+
+    {#- Recent transactions -#}
+    <div class="dbd-card">
+      <div class="dbd-card-hdr">
+        Recent Transactions
+        <a href="/app/sales-invoice">View all →</a>
+      </div>
+      <table class="dbd-tbl">
+        <thead><tr><th>Invoice</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for row in recent_rows %}
+          <tr onclick="frappe.set_route('Form','Sales Invoice','{{ row.name }}')">
+            <td><strong>{{ row.name }}</strong></td>
+            <td>{{ row.party }}</td>
+            <td>{{ row.date }}</td>
+            <td>{{ frappe.format_value(row.amount, {"fieldtype":"Currency"}) }}</td>
+            <td><span class="dbd-badge {% if row.status=='Paid' %}green{% elif row.status=='Overdue' %}red{% elif row.status=='Unpaid' %}yellow{% else %}blue{% endif %}">{{ row.status }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--dbd-muted)">No invoices yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {#- Right column: top parties + activity -#}
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="dbd-card">
+        <div class="dbd-card-hdr">Top Customers (YTD)</div>
+        {% for p in top_parties %}
+        {% set pct = [(p.total / top_parties[0].total * 100)|int, 4]|max %}
+        <div class="dbd-party-row">
+          <div class="dbd-party-name">{{ p.name }}</div>
+          <div class="dbd-party-bar-wrap"><div class="dbd-party-bar" style="width:{{ pct }}%"></div></div>
+          <div class="dbd-party-total">{{ p.count }} inv</div>
+        </div>
+        {% else %}
+        <p style="padding:16px;color:var(--dbd-muted);font-size:12px">No data yet.</p>
+        {% endfor %}
+      </div>
+      <div class="dbd-card">
+        <div class="dbd-card-hdr">Recent Activity</div>
+        {% for a in activity %}
+        <div class="dbd-activity-row">
+          <div class="dbd-av">{{ (a.user or "?")[0]|upper }}</div>
+          <div class="dbd-activity-body">
+            <span class="dbd-activity-user">{{ a.user }}</span>
+            {{ a.action }}
+            <a class="dbd-activity-doc" href="/app/{{ a.doctype|lower|replace(' ','-') }}/{{ a.docname }}">{{ a.docname }}</a>
+            <div class="dbd-activity-age">{{ a.age }}</div>
+          </div>
+        </div>
+        {% else %}
+        <p style="padding:16px;color:var(--dbd-muted);font-size:12px">No activity yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>{#- /dbd-body -#}
+
+</div>{#- /dbd-wrap -#}
+'''
+
+
+def _desk_tpl_list_tool(cc, title):
+    """Filterable list — search + filters + sortable table + pagination + bulk actions."""
+    return r'''
+<!-- ══ LIST TOOL DESK PRESET ════════════════════════════════════════════════
+     Python context keys expected:
+       records   list[{name, party, date, amount, status, owner}]
+       total     int   — total count before pagination
+       page      int   — current page (1-based)
+       per_page  int   — page size
+       statuses  list[str] — available status values for filter dropdown
+     Example Python (in your .py file):
+       page     = int(kwargs.get("page") or 1)
+       per_page = int(kwargs.get("per_page") or 25)
+       filters  = {}
+       if kwargs.get("status"): filters["status"] = kwargs["status"]
+       if kwargs.get("q"):      filters["name"]   = ["like", f"%{kwargs['q']}%"]
+       total   = frappe.db.count("Sales Invoice", filters)
+       records = frappe.get_all("Sales Invoice", filters=filters,
+                   fields=["name","customer as party","posting_date as date","grand_total as amount","status","owner"],
+                   order_by=kwargs.get("order_by","posting_date desc"),
+                   limit=per_page, start=(page-1)*per_page)
+       context.update({"records":records,"total":total,"page":page,"per_page":per_page})
+════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  .lt-wrap { font-family:inherit; padding:2px 0; }
+  /* Toolbar */
+  .lt-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; background:#fff; padding:10px 14px; border-radius:8px; box-shadow:0 1px 6px rgba(92,77,168,.08); }
+  .lt-search { flex:1; min-width:180px; display:flex; align-items:center; gap:6px; background:#f7f5fc; border:1px solid #e0d4fc; border-radius:20px; padding:5px 12px; }
+  .lt-search input { border:none; background:transparent; outline:none; font-size:13px; width:100%; }
+  .lt-select { border:1px solid #e0d4fc; border-radius:6px; padding:5px 10px; font-size:12px; background:#faf8ff; color:#3a2e5e; outline:none; cursor:pointer; }
+  .lt-btn { padding:6px 14px; border-radius:6px; border:none; cursor:pointer; font-size:12px; font-weight:600; }
+  .lt-btn-primary { background:#5c4da8; color:#fff; }
+  .lt-btn-primary:hover { background:#4a3d8f; }
+  .lt-btn-ghost { background:#f0eaff; color:#5c4da8; border:1px solid #d4bcfc; }
+  /* Bulk bar */
+  .lt-bulk-bar { display:none; background:#5c4da8; color:#fff; padding:8px 14px; border-radius:8px; margin-bottom:10px; align-items:center; gap:12px; font-size:13px; }
+  .lt-bulk-bar.visible { display:flex; }
+  .lt-bulk-btn { padding:4px 12px; border-radius:6px; border:none; cursor:pointer; font-size:12px; font-weight:600; background:rgba(255,255,255,.15); color:#fff; }
+  .lt-bulk-btn:hover { background:rgba(255,255,255,.25); }
+  .lt-bulk-btn.danger { background:rgba(220,38,38,.3); }
+  /* Table */
+  .lt-card { background:#fff; border-radius:10px; box-shadow:0 2px 12px rgba(92,77,168,.10); overflow:hidden; }
+  .lt-tbl { width:100%; border-collapse:collapse; font-size:13px; }
+  .lt-tbl thead th { background:#ede9fe; color:#5c4da8; padding:10px 14px; text-align:left; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
+  .lt-tbl thead th.sortable { cursor:pointer; user-select:none; }
+  .lt-tbl thead th.sortable:hover { background:#e0d4fc; }
+  .lt-tbl tbody tr:hover td { background:#faf7ff; }
+  .lt-tbl tbody td { padding:9px 14px; border-bottom:1px solid #f3f0fc; vertical-align:middle; }
+  .lt-tbl tbody tr:last-child td { border:none; }
+  .lt-cb { accent-color:#5c4da8; width:14px; height:14px; cursor:pointer; }
+  .lt-link { color:#5c4da8; font-weight:600; text-decoration:none; }
+  .lt-link:hover { text-decoration:underline; }
+  /* Badges */
+  .lt-badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:10px; font-weight:700; }
+  .lt-badge.green{background:#dcfce7;color:#14532d} .lt-badge.red{background:#fee2e2;color:#7f1d1d}
+  .lt-badge.blue{background:#dbeafe;color:#1e3a5f}  .lt-badge.yellow{background:#fef9c3;color:#713f12}
+  .lt-badge.purple{background:#ede9fe;color:#5c4da8}
+  /* Row actions */
+  .lt-actions { display:flex; gap:6px; opacity:0; transition:opacity .15s; }
+  .lt-tbl tbody tr:hover .lt-actions { opacity:1; }
+  .lt-act-btn { padding:3px 8px; border-radius:5px; border:none; cursor:pointer; font-size:11px; font-weight:600; }
+  .lt-act-edit { background:#ede9fe; color:#5c4da8; }
+  .lt-act-del  { background:#fee2e2; color:#dc2626; }
+  /* Pagination */
+  .lt-paginate { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-top:1px solid #f0eaff; font-size:12px; color:#6b7280; }
+  .lt-page-btns { display:flex; gap:4px; }
+  .lt-page-btn { padding:4px 10px; border-radius:5px; border:1px solid #e0d4fc; background:#fff; cursor:pointer; font-size:12px; color:#5c4da8; }
+  .lt-page-btn:hover { background:#f0eaff; }
+  .lt-page-btn.active { background:#5c4da8; color:#fff; border-color:#5c4da8; }
+  /* Empty state */
+  .lt-empty { text-align:center; padding:50px 20px; color:#9080b8; }
+  .lt-empty .lt-empty-ico { font-size:3rem; margin-bottom:10px; }
+</style>
+
+<div class="lt-wrap">
+  {#- ── Toolbar ── -#}
+  <div class="lt-toolbar">
+    <div class="lt-search">
+      <span>🔍</span>
+      <input type="text" id="lt-q" placeholder="Search by name, party…" value="{{ search or '' }}">
+    </div>
+    <select class="lt-select" id="lt-status">
+      <option value="">All Statuses</option>
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <select class="lt-select" id="lt-order">
+      <option value="posting_date desc">Newest first</option>
+      <option value="posting_date asc">Oldest first</option>
+      <option value="grand_total desc">Highest amount</option>
+      <option value="name asc">Name A→Z</option>
+    </select>
+    <button class="lt-btn lt-btn-ghost" onclick="lt_export()">⬇ Export</button>
+    <button class="lt-btn lt-btn-primary" onclick="frappe.new_doc('Sales Invoice')">+ New</button>
+  </div>
+
+  {#- ── Bulk action bar (shown when rows selected) ── -#}
+  <div class="lt-bulk-bar" id="lt-bulk-bar">
+    <strong id="lt-bulk-count">0 selected</strong>
+    <button class="lt-bulk-btn" onclick="lt_bulk_assign()">👤 Assign</button>
+    <button class="lt-bulk-btn" onclick="lt_bulk_export()">⬇ Export</button>
+    <button class="lt-bulk-btn danger" onclick="lt_bulk_delete()">🗑 Delete</button>
+    <span style="flex:1"></span>
+    <button class="lt-bulk-btn" onclick="lt_clear_selection()">✕ Clear</button>
+  </div>
+
+  {#- ── Table ── -#}
+  <div class="lt-card">
+    <table class="lt-tbl">
+      <thead>
+        <tr>
+          <th><input type="checkbox" class="lt-cb" id="lt-select-all" title="Select all"></th>
+          <th class="sortable">Name ↕</th>
+          <th class="sortable">Party ↕</th>
+          <th class="sortable">Date ↕</th>
+          <th class="sortable">Amount ↕</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in records %}
+        <tr>
+          <td><input type="checkbox" class="lt-cb lt-row-cb" data-name="{{ row.name }}"></td>
+          <td><a class="lt-link" href="/app/sales-invoice/{{ row.name }}">{{ row.name }}</a></td>
+          <td>{{ row.party }}</td>
+          <td>{{ row.date }}</td>
+          <td><strong>{{ frappe.format_value(row.amount, {"fieldtype":"Currency"}) }}</strong></td>
+          <td>
+            <span class="lt-badge {% if row.status in ['Paid','Submitted'] %}green{% elif row.status in ['Overdue','Cancelled'] %}red{% elif row.status=='Unpaid' %}yellow{% else %}blue{% endif %}">
+              {{ row.status }}
+            </span>
+          </td>
+          <td>
+            <div class="lt-actions">
+              <button class="lt-act-btn lt-act-edit" onclick="frappe.set_route('Form','Sales Invoice','{{ row.name }}')">Edit</button>
+              <button class="lt-act-btn lt-act-del"  onclick="lt_delete_row('{{ row.name }}')">Del</button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7"><div class="lt-empty"><div class="lt-empty-ico">🗂️</div><p>No records match your filters.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {#- ── Pagination ── -#}
+    {% if total %}
+    <div class="lt-paginate">
+      <span>Showing {{ ((page-1)*per_page)+1 }}–{{ [page*per_page, total]|min }} of {{ total }}</span>
+      <div class="lt-page-btns">
+        {% if page > 1 %}<button class="lt-page-btn" onclick="lt_goto({{ page-1 }})">← Prev</button>{% endif %}
+        {% for p in range([page-2,1]|max, [page+3, (total//per_page)+2]|min) %}
+        <button class="lt-page-btn {% if p==page %}active{% endif %}" onclick="lt_goto({{ p }})">{{ p }}</button>
+        {% endfor %}
+        {% if page*per_page < total %}<button class="lt-page-btn" onclick="lt_goto({{ page+1 }})">Next →</button>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+/* ── List Tool interactions ──────────────────────────────────────────────── */
+// Reload page with updated args via frappe.call
+function lt_reload(extra) {
+    var args = Object.assign({ q: $("#lt-q").val(), status: $("#lt-status").val(), order_by: $("#lt-order").val() }, extra || {});
+    frappe.call({ method: window._lt_method, args: args, callback: r => { if (r.message) $(page.main).html(r.message); } });
+}
+function lt_goto(p) { lt_reload({ page: p }); }
+
+// Checkbox handling
+$(document).on("change", "#lt-select-all", function() {
+    $(".lt-row-cb").prop("checked", this.checked);
+    lt_update_bulk_bar();
+});
+$(document).on("change", ".lt-row-cb", function() { lt_update_bulk_bar(); });
+function lt_update_bulk_bar() {
+    var sel = $(".lt-row-cb:checked").length;
+    if (sel > 0) { $("#lt-bulk-count").text(sel + " selected"); $("#lt-bulk-bar").addClass("visible"); }
+    else         { $("#lt-bulk-bar").removeClass("visible"); }
+}
+function lt_clear_selection() { $(".lt-row-cb, #lt-select-all").prop("checked", false); lt_update_bulk_bar(); }
+function lt_selected_names() { return $(".lt-row-cb:checked").map((i,el) => $(el).data("name")).get(); }
+
+// Bulk actions
+function lt_bulk_delete() {
+    var names = lt_selected_names();
+    if (!names.length) return;
+    frappe.confirm("Delete " + names.length + " record(s)?", function() {
+        frappe.call({ method: "frappe.client.delete_bulk",
+                      args: { doctype: "Sales Invoice", names: names },
+                      callback: () => { frappe.show_alert("Deleted", "green"); lt_reload(); } });
+    });
+}
+function lt_bulk_assign() {
+    // frappe.prompt({label:"Assign To", fieldtype:"Link", options:"User"}, v => { /* frappe.call assign */ });
+    frappe.show_alert("Assign dialog — implement with frappe.prompt", "blue");
+}
+function lt_bulk_export() { frappe.show_alert("Export — implement with frappe.call + download", "blue"); }
+function lt_export()      { frappe.show_alert("Export all — implement with frappe.call + download", "blue"); }
+function lt_delete_row(name) {
+    frappe.confirm("Delete " + name + "?", function() {
+        frappe.call({ method:"frappe.client.delete", args:{doctype:"Sales Invoice",name:name}, callback:() => lt_reload() });
+    });
+}
+// Search on Enter
+$(document).on("keydown","#lt-q", function(e) { if (e.key==="Enter") lt_reload({page:1}); });
+$(document).on("change","#lt-status,#lt-order", function() { lt_reload({page:1}); });
+</script>
+'''
+
+
+def _desk_tpl_form_tool(cc, title):
+    """Multi-section input form — 3 collapsible sections, validation, save/cancel."""
+    return r'''
+<!-- ══ FORM TOOL DESK PRESET ════════════════════════════════════════════════
+     Python context keys expected (for edit/load mode):
+       doc       dict   — existing document fields (empty dict for new)
+       customers list   — [{"name","customer_name"}] for Customer link dropdown
+       mode      str    — "new" | "edit"
+     Example Python load:
+       name = kwargs.get("name")
+       if name:
+           doc = frappe.get_doc("Sales Order", name).as_dict()
+           mode = "edit"
+       else:
+           doc = {}; mode = "new"
+       customers = frappe.get_all("Customer", fields=["name","customer_name"], limit=200)
+       context.update({"doc":doc, "mode":mode, "customers":customers})
+     Example Python save (separate whitelisted method):
+       @frappe.whitelist()
+       def save_form(**kwargs):
+           doc = frappe.get_doc({"doctype":"Sales Order", **kwargs})
+           doc.insert(ignore_permissions=False)
+           return {"status":"ok", "name": doc.name}
+════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  .ft-wrap { max-width:860px; margin:0 auto; font-family:inherit; padding:4px 0; }
+  .ft-banner { display:none; padding:10px 16px; border-radius:8px; margin-bottom:14px; font-size:13px; font-weight:600; }
+  .ft-banner.success { background:#dcfce7; color:#14532d; border:1px solid #bbf7d0; }
+  .ft-banner.error   { background:#fee2e2; color:#7f1d1d; border:1px solid #fca5a5; }
+  /* Section */
+  .ft-section { background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(92,77,168,.08); margin-bottom:14px; overflow:hidden; }
+  .ft-section-hdr { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; cursor:pointer; border-bottom:1px solid #f0eaff; }
+  .ft-section-hdr:hover { background:#faf7ff; }
+  .ft-section-title { font-weight:700; font-size:13px; color:#1e1b3a; display:flex; align-items:center; gap:8px; }
+  .ft-section-chevron { color:#9080b8; font-size:12px; transition:transform .2s; }
+  .ft-section.collapsed .ft-section-chevron { transform:rotate(-90deg); }
+  .ft-section-body { padding:18px; }
+  .ft-section.collapsed .ft-section-body { display:none; }
+  /* Fields */
+  .ft-field-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  .ft-field-row.full { grid-template-columns:1fr; }
+  .ft-field { display:flex; flex-direction:column; gap:4px; }
+  .ft-label { font-size:12px; font-weight:600; color:#3a2e5e; }
+  .ft-label .req { color:#dc2626; margin-left:2px; }
+  .ft-input, .ft-select, .ft-textarea { border:1px solid #e0d4fc; border-radius:6px; padding:7px 10px; font-size:13px; outline:none; background:#faf8ff; transition:border-color .15s; width:100%; box-sizing:border-box; }
+  .ft-input:focus, .ft-select:focus, .ft-textarea:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,.1); }
+  .ft-input.invalid { border-color:#dc2626; background:#fff5f5; }
+  .ft-err { font-size:11px; color:#dc2626; min-height:14px; }
+  .ft-textarea { min-height:90px; resize:vertical; }
+  /* File upload */
+  .ft-upload-zone { border:2px dashed #d4bcfc; border-radius:8px; padding:20px; text-align:center; cursor:pointer; transition:background .15s; }
+  .ft-upload-zone:hover { background:#f5f0ff; }
+  .ft-upload-zone p { color:#9080b8; font-size:12px; margin:4px 0; }
+  /* Footer */
+  .ft-footer { display:flex; align-items:center; gap:10px; padding:14px 18px; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(92,77,168,.08); }
+  .ft-save-btn { padding:9px 24px; background:#5c4da8; color:#fff; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; }
+  .ft-save-btn:hover { background:#4a3d8f; }
+  .ft-save-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .ft-cancel-btn { padding:9px 18px; background:#f0eaff; color:#5c4da8; border:1px solid #d4bcfc; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer; }
+  .ft-reset-btn  { padding:9px 18px; background:#fff; color:#9080b8; border:1px solid #e0d4fc; border-radius:7px; font-size:13px; cursor:pointer; }
+  .ft-mode-badge { margin-left:auto; font-size:11px; padding:3px 10px; border-radius:20px; background:#dbeafe; color:#1e3a5f; font-weight:700; }
+</style>
+
+<div class="ft-wrap">
+  <div class="ft-banner" id="ft-banner"></div>
+
+  {#- ── Section 1: Basic Information ── -#}
+  <div class="ft-section" id="ft-sec-basic">
+    <div class="ft-section-hdr" onclick="ft_toggle('ft-sec-basic')">
+      <div class="ft-section-title">📋 Basic Information</div>
+      <div class="ft-section-chevron">▼</div>
+    </div>
+    <div class="ft-section-body">
+      <div class="ft-field-row">
+        <div class="ft-field">
+          <label class="ft-label">Title / Name <span class="req">*</span></label>
+          <input class="ft-input" id="ft-title" type="text" value="{{ doc.title or '' }}" placeholder="Enter document title">
+          <div class="ft-err" id="ft-title-err"></div>
+        </div>
+        <div class="ft-field">
+          <label class="ft-label">Customer <span class="req">*</span></label>
+          <select class="ft-select" id="ft-customer">
+            <option value="">— Select Customer —</option>
+            {% for c in customers %}
+            <option value="{{ c.name }}" {% if doc.customer==c.name %}selected{% endif %}>{{ c.customer_name or c.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="ft-err" id="ft-customer-err"></div>
+        </div>
+      </div>
+      <div class="ft-field-row">
+        <div class="ft-field">
+          <label class="ft-label">Date <span class="req">*</span></label>
+          <input class="ft-input" id="ft-date" type="date" value="{{ doc.transaction_date or '' }}">
+          <div class="ft-err" id="ft-date-err"></div>
+        </div>
+        <div class="ft-field">
+          <label class="ft-label">Priority</label>
+          <select class="ft-select" id="ft-priority">
+            {% for p in ["Low","Medium","High","Urgent"] %}
+            <option value="{{ p }}" {% if doc.priority==p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="ft-field-row">
+        <div class="ft-field">
+          <label class="ft-label">Amount</label>
+          <input class="ft-input" id="ft-amount" type="number" step="0.01" value="{{ doc.grand_total or '' }}" placeholder="0.00">
+        </div>
+        <div class="ft-field">
+          <label class="ft-label">Currency</label>
+          <select class="ft-select" id="ft-currency">
+            {% for cur in ["USD","EUR","GBP","INR","AED","SAR"] %}
+            <option value="{{ cur }}" {% if doc.currency==cur %}selected{% endif %}>{{ cur }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {#- ── Section 2: Address & Contact ── -#}
+  <div class="ft-section" id="ft-sec-addr">
+    <div class="ft-section-hdr" onclick="ft_toggle('ft-sec-addr')">
+      <div class="ft-section-title">📍 Address &amp; Contact</div>
+      <div class="ft-section-chevron">▼</div>
+    </div>
+    <div class="ft-section-body">
+      <div class="ft-field-row full">
+        <div class="ft-field">
+          <label class="ft-label">Street Address</label>
+          <input class="ft-input" id="ft-address" type="text" value="{{ doc.address_line1 or '' }}" placeholder="123 Main Street">
+        </div>
+      </div>
+      <div class="ft-field-row">
+        <div class="ft-field">
+          <label class="ft-label">City</label>
+          <input class="ft-input" id="ft-city" type="text" value="{{ doc.city or '' }}">
+        </div>
+        <div class="ft-field">
+          <label class="ft-label">Country</label>
+          <input class="ft-input" id="ft-country" type="text" value="{{ doc.country or '' }}" placeholder="United States">
+        </div>
+      </div>
+      <div class="ft-field-row">
+        <div class="ft-field">
+          <label class="ft-label">Phone</label>
+          <input class="ft-input" id="ft-phone" type="tel" value="{{ doc.phone or '' }}">
+        </div>
+        <div class="ft-field">
+          <label class="ft-label">Email</label>
+          <input class="ft-input" id="ft-email" type="email" value="{{ doc.email_id or '' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {#- ── Section 3: Notes & Attachments ── -#}
+  <div class="ft-section" id="ft-sec-notes">
+    <div class="ft-section-hdr" onclick="ft_toggle('ft-sec-notes')">
+      <div class="ft-section-title">📝 Notes &amp; Attachments</div>
+      <div class="ft-section-chevron">▼</div>
+    </div>
+    <div class="ft-section-body">
+      <div class="ft-field">
+        <label class="ft-label">Internal Notes</label>
+        <textarea class="ft-textarea" id="ft-notes" placeholder="Add any internal notes, instructions or context…">{{ doc.notes or '' }}</textarea>
+      </div>
+      <div style="margin-top:14px">
+        <label class="ft-label">Attachments</label>
+        <div class="ft-upload-zone" onclick="document.getElementById('ft-file').click()">
+          <div style="font-size:2rem">📎</div>
+          <p><strong>Click to upload</strong> or drag &amp; drop</p>
+          <p>PDF, Excel, images — max 10 MB</p>
+          <input type="file" id="ft-file" style="display:none" multiple>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {#- ── Footer ── -#}
+  <div class="ft-footer">
+    <button class="ft-save-btn" id="ft-save-btn" onclick="ft_save()">💾 Save</button>
+    <button class="ft-cancel-btn" onclick="history.back()">Cancel</button>
+    <button class="ft-reset-btn" onclick="ft_reset()">↺ Reset</button>
+    {% if mode %}
+    <span class="ft-mode-badge">{{ mode|upper }}</span>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+/* ── Form Tool interactions ──────────────────────────────────────────────── */
+function ft_toggle(id) {
+    var sec = document.getElementById(id);
+    sec.classList.toggle("collapsed");
+}
+function ft_show_banner(msg, type) {
+    var el = document.getElementById("ft-banner");
+    el.textContent = msg; el.className = "ft-banner " + type; el.style.display = "block";
+    setTimeout(function(){ el.style.display = "none"; }, 5000);
+}
+function ft_reset() { document.querySelectorAll(".ft-input,.ft-textarea").forEach(el => el.value = ""); }
+function ft_validate() {
+    var ok = true;
+    function check(id, errId, msg) {
+        var val = document.getElementById(id).value.trim();
+        document.getElementById(errId).textContent = val ? "" : msg;
+        if (!val) { document.getElementById(id).classList.add("invalid"); ok = false; }
+        else       document.getElementById(id).classList.remove("invalid");
+    }
+    check("ft-title",    "ft-title-err",    "Title is required");
+    check("ft-customer", "ft-customer-err", "Customer is required");
+    check("ft-date",     "ft-date-err",     "Date is required");
+    return ok;
+}
+function ft_save() {
+    if (!ft_validate()) return;
+    var btn = document.getElementById("ft-save-btn");
+    btn.disabled = true; btn.textContent = "Saving…";
+    var data = {
+        title:     document.getElementById("ft-title").value,
+        customer:  document.getElementById("ft-customer").value,
+        date:      document.getElementById("ft-date").value,
+        priority:  document.getElementById("ft-priority").value,
+        amount:    document.getElementById("ft-amount").value,
+        currency:  document.getElementById("ft-currency").value,
+        address:   document.getElementById("ft-address").value,
+        city:      document.getElementById("ft-city").value,
+        country:   document.getElementById("ft-country").value,
+        phone:     document.getElementById("ft-phone").value,
+        email:     document.getElementById("ft-email").value,
+        notes:     document.getElementById("ft-notes").value,
+    };
+    frappe.call({
+        method: window._ft_save_method || "frappe_devkit.api.page_builder.create_desk_page",
+        // Replace with your actual save method: e.g. "my_app.my_module.page.my_page.my_page.save_form"
+        args: data,
+        callback: function(r) {
+            btn.disabled = false; btn.textContent = "💾 Save";
+            if (r.message && r.message.status === "ok") {
+                ft_show_banner("✅ Saved successfully — " + (r.message.name || ""), "success");
+            } else {
+                ft_show_banner("❌ Save failed — check the console for details.", "error");
+            }
+        },
+        error: function() { btn.disabled = false; btn.textContent = "💾 Save"; ft_show_banner("❌ Server error", "error"); }
+    });
+}
+</script>
+'''
+
+
+def _desk_tpl_analytics(cc, title):
+    """Analytics page — filters + 4 KPI tiles + 2 Chart.js areas + summary table."""
+    return r'''
+<!-- ══ ANALYTICS DESK PRESET ════════════════════════════════════════════════
+     Python context keys expected:
+       metrics      {revenue, cost, profit, margin_pct}
+       trend_labels list[str]   — month labels ["Jan","Feb",...]
+       trend_data   list[float] — revenue per month
+       cost_data    list[float] — cost per month
+       top_customers list[{name, revenue, pct}]
+       summary_rows  list[{category, revenue, cost, profit, count}]
+     Example Python:
+       from_date = kwargs.get("from_date") or frappe.utils.add_months(frappe.utils.today(), -6)
+       to_date   = kwargs.get("to_date")   or frappe.utils.today()
+       rev = frappe.db.sql("SELECT IFNULL(SUM(grand_total),0) FROM `tabSales Invoice` WHERE docstatus=1 AND posting_date BETWEEN %(f)s AND %(t)s", {"f":from_date,"t":to_date})[0][0]
+       cost= frappe.db.sql("SELECT IFNULL(SUM(grand_total),0) FROM `tabPurchase Invoice` WHERE docstatus=1 AND posting_date BETWEEN %(f)s AND %(t)s", {"f":from_date,"t":to_date})[0][0]
+       trend = frappe.db.sql("SELECT DATE_FORMAT(posting_date,'%%b %%Y') as lbl, SUM(grand_total) as rev FROM `tabSales Invoice` WHERE docstatus=1 AND posting_date BETWEEN %(f)s AND %(t)s GROUP BY lbl ORDER BY MIN(posting_date)", {"f":from_date,"t":to_date}, as_dict=1)
+       top   = frappe.db.sql("SELECT customer as name, SUM(grand_total) as revenue FROM `tabSales Invoice` WHERE docstatus=1 AND posting_date BETWEEN %(f)s AND %(t)s GROUP BY customer ORDER BY revenue DESC LIMIT 10", {"f":from_date,"t":to_date}, as_dict=1)
+       profit = rev - cost
+       context.update({"metrics":{"revenue":rev,"cost":cost,"profit":profit,"margin_pct":round(profit/rev*100,1) if rev else 0}, "trend_labels":[r.lbl for r in trend], "trend_data":[r.rev for r in trend], "cost_data":[], "top_customers":top, "summary_rows":[]})
+════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  .an-wrap { font-family:inherit; padding:2px 0; }
+  /* Filter bar */
+  .an-filters { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; background:#fff; padding:12px 16px; border-radius:10px; box-shadow:0 1px 8px rgba(92,77,168,.08); margin-bottom:18px; }
+  .an-fld { display:flex; flex-direction:column; gap:3px; }
+  .an-fld label { font-size:11px; font-weight:600; color:#5c4da8; text-transform:uppercase; letter-spacing:.05em; }
+  .an-fld input, .an-fld select { border:1px solid #e0d4fc; border-radius:6px; padding:6px 10px; font-size:12px; background:#faf8ff; outline:none; }
+  .an-fld input:focus, .an-fld select:focus { border-color:#7c3aed; }
+  .an-apply { padding:8px 18px; background:#5c4da8; color:#fff; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; margin-top:auto; }
+  .an-apply:hover { background:#4a3d8f; }
+  /* KPI tiles */
+  .an-kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+  @media(max-width:800px){ .an-kpi-row { grid-template-columns:1fr 1fr; } }
+  .an-kpi { background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(92,77,168,.08); padding:16px 18px; border-top:3px solid #5c4da8; }
+  .an-kpi-val { font-size:1.6rem; font-weight:900; color:#1e1b3a; }
+  .an-kpi-lbl { font-size:11px; text-transform:uppercase; color:#6b7280; letter-spacing:.06em; margin-top:4px; }
+  .an-kpi-trend { font-size:12px; margin-top:4px; }
+  .an-kpi-trend.up { color:#14532d; } .an-kpi-trend.down { color:#7f1d1d; }
+  /* Charts row */
+  .an-charts-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px; }
+  @media(max-width:700px){ .an-charts-row { grid-template-columns:1fr; } }
+  .an-card { background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(92,77,168,.08); overflow:hidden; }
+  .an-card-hdr { padding:12px 16px; font-weight:700; font-size:13px; color:#1e1b3a; border-bottom:1px solid #f0eaff; }
+  .an-chart-area { padding:16px; height:220px; display:flex; align-items:center; justify-content:center; }
+  .an-chart-placeholder { text-align:center; color:#9080b8; font-size:12px; }
+  /* Summary table */
+  .an-tbl { width:100%; border-collapse:collapse; font-size:13px; }
+  .an-tbl th { background:#ede9fe; color:#5c4da8; padding:9px 14px; text-align:left; font-size:11px; text-transform:uppercase; font-weight:700; }
+  .an-tbl td { padding:9px 14px; border-bottom:1px solid #f3f0fc; }
+  .an-tbl tr:last-child td { border:none; }
+  .an-tbl tr:hover td { background:#faf7ff; }
+  .an-bar-mini { display:inline-block; height:6px; border-radius:3px; background:#5c4da8; vertical-align:middle; margin-left:6px; }
+  .an-profit-pos { color:#14532d; font-weight:700; }
+  .an-profit-neg { color:#7f1d1d; font-weight:700; }
+</style>
+
+<div class="an-wrap">
+  {#- ── Filter bar ── -#}
+  <div class="an-filters">
+    <div class="an-fld">
+      <label>From Date</label>
+      <input type="date" id="an-from" value="{{ from_date or '' }}">
+    </div>
+    <div class="an-fld">
+      <label>To Date</label>
+      <input type="date" id="an-to" value="{{ to_date or '' }}">
+    </div>
+    <div class="an-fld">
+      <label>Group By</label>
+      <select id="an-group">
+        <option value="month">Month</option>
+        <option value="quarter">Quarter</option>
+        <option value="year">Year</option>
+      </select>
+    </div>
+    <div class="an-fld">
+      <label>Company</label>
+      <select id="an-company">
+        <option value="">All Companies</option>
+        {#- populate via Python: {% for c in companies %}<option>{{ c.name }}</option>{% endfor %} -#}
+      </select>
+    </div>
+    <button class="an-apply" onclick="an_reload()">▶ Apply</button>
+  </div>
+
+  {#- ── KPI tiles ── -#}
+  <div class="an-kpi-row">
+    <div class="an-kpi" style="border-color:#5c4da8">
+      <div class="an-kpi-val">{{ frappe.format_value(metrics.revenue or 0, {"fieldtype":"Currency"}) }}</div>
+      <div class="an-kpi-lbl">Total Revenue</div>
+    </div>
+    <div class="an-kpi" style="border-color:#dc2626">
+      <div class="an-kpi-val">{{ frappe.format_value(metrics.cost or 0, {"fieldtype":"Currency"}) }}</div>
+      <div class="an-kpi-lbl">Total Cost</div>
+    </div>
+    <div class="an-kpi" style="border-color:{% if (metrics.profit or 0) >= 0 %}#16a34a{% else %}#dc2626{% endif %}">
+      <div class="an-kpi-val">{{ frappe.format_value(metrics.profit or 0, {"fieldtype":"Currency"}) }}</div>
+      <div class="an-kpi-lbl">Gross Profit</div>
+    </div>
+    <div class="an-kpi" style="border-color:#0369a1">
+      <div class="an-kpi-val">{{ metrics.margin_pct or 0 }}%</div>
+      <div class="an-kpi-lbl">Profit Margin</div>
+    </div>
+  </div>
+
+  {#- ── Charts row ── -#}
+  <div class="an-charts-row">
+    <div class="an-card">
+      <div class="an-card-hdr">📈 Revenue vs Cost — Trend</div>
+      <div class="an-chart-area">
+        <canvas id="an-trend-chart" width="100%" height="200"></canvas>
+      </div>
+    </div>
+    <div class="an-card">
+      <div class="an-card-hdr">🏆 Top Customers by Revenue</div>
+      <div class="an-chart-area">
+        <canvas id="an-cust-chart" width="100%" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  {#- ── Summary breakdown table ── -#}
+  <div class="an-card">
+    <div class="an-card-hdr">📊 Breakdown by Category</div>
+    <table class="an-tbl">
+      <thead><tr><th>Category</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Invoices</th><th>Share</th></tr></thead>
+      <tbody>
+        {% set max_rev = summary_rows | map(attribute='revenue') | max if summary_rows else 1 %}
+        {% for row in summary_rows %}
+        <tr>
+          <td><strong>{{ row.category }}</strong></td>
+          <td>{{ frappe.format_value(row.revenue, {"fieldtype":"Currency"}) }}</td>
+          <td>{{ frappe.format_value(row.cost, {"fieldtype":"Currency"}) }}</td>
+          <td class="{% if row.profit >= 0 %}an-profit-pos{% else %}an-profit-neg{% endif %}">
+            {{ frappe.format_value(row.profit, {"fieldtype":"Currency"}) }}
+          </td>
+          <td>{{ row.count }}</td>
+          <td>
+            {{ ((row.revenue / max_rev)*100)|round|int }}%
+            <span class="an-bar-mini" style="width:{{ ((row.revenue / max_rev)*60)|int }}px"></span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;padding:24px;color:#9080b8">No data for selected period.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/* ── Analytics — Chart.js initialisation ───────────────────────────────── */
+// Chart.js is loaded from CDN. Add to your .js file on_page_load:
+//   frappe.require("https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js", () => load_data());
+
+var AN_LABELS  = {{ trend_labels | tojson }};
+var AN_REVENUE = {{ trend_data   | tojson }};
+var AN_COST    = {{ cost_data    | tojson }};
+var AN_CUST_LABELS = {{ top_customers | map(attribute='name')    | list | tojson }};
+var AN_CUST_DATA   = {{ top_customers | map(attribute='revenue') | list | tojson }};
+
+function an_init_charts() {
+    if (typeof Chart === "undefined") return; // Chart.js not yet loaded
+    // Trend chart (line)
+    var ctx1 = document.getElementById("an-trend-chart").getContext("2d");
+    new Chart(ctx1, {
+        type: "line",
+        data: {
+            labels: AN_LABELS,
+            datasets: [
+                { label:"Revenue", data:AN_REVENUE, borderColor:"#5c4da8", backgroundColor:"rgba(92,77,168,.08)", tension:.35, fill:true },
+                { label:"Cost",    data:AN_COST,    borderColor:"#dc2626", backgroundColor:"rgba(220,38,38,.06)",  tension:.35, fill:true }
+            ]
+        },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom" } } }
+    });
+    // Top customers (horizontal bar)
+    var ctx2 = document.getElementById("an-cust-chart").getContext("2d");
+    new Chart(ctx2, {
+        type: "bar",
+        data: { labels:AN_CUST_LABELS, datasets:[{ label:"Revenue", data:AN_CUST_DATA, backgroundColor:"#5c4da8" }] },
+        options: { indexAxis:"y", responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+    });
+}
+
+function an_reload() {
+    var args = { from_date: document.getElementById("an-from").value, to_date: document.getElementById("an-to").value, group_by: document.getElementById("an-group").value };
+    frappe.call({ method: window._an_method, args: args, callback: r => { if (r.message) $(page.main).html(r.message); } });
+}
+
+// Init on load (works if Chart.js already present; otherwise call from .js after require)
+if (typeof Chart !== "undefined") an_init_charts();
+else document.addEventListener("chartjs_ready", an_init_charts);
+</script>
+'''
+
+
+def _desk_tpl_settings(cc, title):
+    """Settings page — sidebar tabs + General/Email/Integrations/Advanced/Danger Zone panels."""
+    return r'''
+<!-- ══ SETTINGS DESK PRESET ═════════════════════════════════════════════════
+     Python context keys expected:
+       settings   dict  — flat dict of current setting values
+       integrations list[{id, name, icon, enabled, description}]
+     Example Python:
+       settings = {
+           "company_name":  frappe.db.get_single_value("Global Defaults","default_company") or "",
+           "currency":      frappe.db.get_single_value("Global Defaults","default_currency") or "USD",
+           "timezone":      frappe.db.get_single_value("System Settings","time_zone") or "UTC",
+           "smtp_host":     frappe.db.get_single_value("Email Account","smtp_server") or "",
+           "smtp_port":     frappe.db.get_single_value("Email Account","smtp_port") or 587,
+       }
+       context.update({"settings": settings, "integrations": []})
+     Save method pattern:
+       @frappe.whitelist()
+       def save_settings(**kwargs):
+           doc = frappe.get_doc("System Settings")
+           for key, val in kwargs.items():
+               if hasattr(doc, key): setattr(doc, key, val)
+           doc.save(ignore_permissions=True)
+           return {"status":"ok"}
+════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  .stt-wrap { display:flex; height:100%; font-family:inherit; gap:0; }
+  /* Sidebar */
+  .stt-sidebar { width:200px; background:#fff; border-right:1px solid #e8e0f8; padding:12px 0; flex-shrink:0; }
+  .stt-tab { display:flex; align-items:center; gap:8px; padding:9px 16px; cursor:pointer; font-size:13px; color:#5c4da8; border-left:3px solid transparent; transition:background .12s; }
+  .stt-tab:hover { background:#f7f3ff; }
+  .stt-tab.active { background:#ede9fe; border-color:#7c3aed; font-weight:700; color:#3a2060; }
+  .stt-tab-ico { font-size:15px; }
+  .stt-sep { height:1px; background:#f0eaff; margin:6px 0; }
+  /* Content */
+  .stt-content { flex:1; overflow-y:auto; padding:20px 24px; background:#f7f5fc; }
+  .stt-panel { display:none; }
+  .stt-panel.active { display:block; }
+  .stt-panel-title { font-size:16px; font-weight:800; color:#1e1b3a; margin-bottom:4px; }
+  .stt-panel-desc  { font-size:12px; color:#6b7280; margin-bottom:18px; }
+  /* Cards */
+  .stt-card { background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(92,77,168,.08); padding:18px 20px; margin-bottom:16px; }
+  .stt-card-title { font-size:13px; font-weight:700; color:#3a2e5e; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid #f0eaff; }
+  /* Fields */
+  .stt-frow { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:12px; }
+  .stt-frow.full { grid-template-columns:1fr; }
+  .stt-fld { display:flex; flex-direction:column; gap:4px; }
+  .stt-lbl { font-size:12px; font-weight:600; color:#3a2e5e; }
+  .stt-lbl span { font-size:11px; font-weight:400; color:#9080b8; }
+  .stt-inp, .stt-sel { border:1px solid #e0d4fc; border-radius:6px; padding:7px 10px; font-size:13px; background:#faf8ff; outline:none; width:100%; box-sizing:border-box; }
+  .stt-inp:focus, .stt-sel:focus { border-color:#7c3aed; box-shadow:0 0 0 2px rgba(124,58,237,.1); }
+  /* Toggle switch */
+  .stt-toggle-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f5f0ff; }
+  .stt-toggle-row:last-child { border:none; }
+  .stt-toggle-info { flex:1; }
+  .stt-toggle-lbl { font-size:13px; font-weight:600; color:#1e1b3a; }
+  .stt-toggle-sub  { font-size:11px; color:#9080b8; }
+  .stt-switch { position:relative; width:40px; height:22px; flex-shrink:0; }
+  .stt-switch input { opacity:0; width:0; height:0; }
+  .stt-slider { position:absolute; inset:0; background:#e0d4fc; border-radius:22px; cursor:pointer; transition:background .2s; }
+  .stt-slider:before { content:""; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; }
+  .stt-switch input:checked + .stt-slider { background:#5c4da8; }
+  .stt-switch input:checked + .stt-slider:before { transform:translateX(18px); }
+  /* Buttons */
+  .stt-save { padding:8px 20px; background:#5c4da8; color:#fff; border:none; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; margin-top:4px; }
+  .stt-save:hover { background:#4a3d8f; }
+  /* Danger zone */
+  .stt-danger-card { background:#fff5f5; border:1px solid #fca5a5; border-radius:10px; padding:18px 20px; margin-bottom:16px; }
+  .stt-danger-title { color:#7f1d1d; font-weight:700; margin-bottom:10px; }
+  .stt-danger-row  { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #fee2e2; }
+  .stt-danger-row:last-child { border:none; }
+  .stt-danger-btn { padding:6px 14px; border:1px solid #dc2626; color:#dc2626; background:#fff; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; }
+  .stt-danger-btn:hover { background:#dc2626; color:#fff; }
+  /* Integration cards */
+  .stt-int-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  .stt-int-card { background:#fff; border:1px solid #e0d4fc; border-radius:8px; padding:14px; display:flex; align-items:flex-start; gap:10px; }
+  .stt-int-ico  { font-size:1.8rem; flex-shrink:0; }
+  .stt-int-name { font-weight:700; font-size:13px; color:#1e1b3a; }
+  .stt-int-desc { font-size:11px; color:#9080b8; margin-top:2px; }
+</style>
+
+<div class="stt-wrap">
+  {#- ── Sidebar tabs ── -#}
+  <div class="stt-sidebar">
+    <div class="stt-tab active" onclick="stt_show('general')"><span class="stt-tab-ico">⚙️</span> General</div>
+    <div class="stt-tab" onclick="stt_show('email')"><span class="stt-tab-ico">📧</span> Email</div>
+    <div class="stt-tab" onclick="stt_show('integrations')"><span class="stt-tab-ico">🔌</span> Integrations</div>
+    <div class="stt-tab" onclick="stt_show('advanced')"><span class="stt-tab-ico">🔧</span> Advanced</div>
+    <div class="stt-sep"></div>
+    <div class="stt-tab" onclick="stt_show('danger')" style="color:#dc2626"><span class="stt-tab-ico">⚠️</span> Danger Zone</div>
+  </div>
+
+  {#- ── Content panels ── -#}
+  <div class="stt-content">
+
+    {#- General -#}
+    <div class="stt-panel active" id="stt-general">
+      <div class="stt-panel-title">General Settings</div>
+      <div class="stt-panel-desc">Company-wide defaults applied across all modules.</div>
+      <div class="stt-card">
+        <div class="stt-card-title">Company</div>
+        <div class="stt-frow">
+          <div class="stt-fld">
+            <label class="stt-lbl">Company Name</label>
+            <input class="stt-inp" id="stt-company" value="{{ settings.company_name or '' }}">
+          </div>
+          <div class="stt-fld">
+            <label class="stt-lbl">Default Currency</label>
+            <select class="stt-sel" id="stt-currency">
+              {% for cur in ["USD","EUR","GBP","INR","AED","SAR","PKR"] %}
+              <option value="{{ cur }}" {% if settings.currency==cur %}selected{% endif %}>{{ cur }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="stt-frow">
+          <div class="stt-fld">
+            <label class="stt-lbl">Timezone</label>
+            <select class="stt-sel" id="stt-tz">
+              {% for tz in ["UTC","Asia/Karachi","Asia/Dubai","Asia/Kolkata","America/New_York","Europe/London"] %}
+              <option value="{{ tz }}" {% if settings.timezone==tz %}selected{% endif %}>{{ tz }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="stt-fld">
+            <label class="stt-lbl">Date Format</label>
+            <select class="stt-sel" id="stt-date-fmt">
+              <option value="dd-mm-yyyy">DD-MM-YYYY</option>
+              <option value="mm-dd-yyyy">MM-DD-YYYY</option>
+              <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+            </select>
+          </div>
+        </div>
+        <button class="stt-save" onclick="stt_save('general')">Save General</button>
+      </div>
+      <div class="stt-card">
+        <div class="stt-card-title">Feature Flags</div>
+        <div class="stt-toggle-row">
+          <div class="stt-toggle-info"><div class="stt-toggle-lbl">Multi-Currency</div><div class="stt-toggle-sub">Allow transactions in multiple currencies</div></div>
+          <label class="stt-switch"><input type="checkbox" id="stt-multicur" {% if settings.multi_currency %}checked{% endif %}><span class="stt-slider"></span></label>
+        </div>
+        <div class="stt-toggle-row">
+          <div class="stt-toggle-info"><div class="stt-toggle-lbl">Inventory Tracking</div><div class="stt-toggle-sub">Track stock levels per warehouse</div></div>
+          <label class="stt-switch"><input type="checkbox" id="stt-inventory" {% if settings.inventory %}checked{% endif %}><span class="stt-slider"></span></label>
+        </div>
+        <div class="stt-toggle-row">
+          <div class="stt-toggle-info"><div class="stt-toggle-lbl">Maintenance Mode</div><div class="stt-toggle-sub">Show maintenance page to non-System Managers</div></div>
+          <label class="stt-switch"><input type="checkbox" id="stt-maint"><span class="stt-slider"></span></label>
+        </div>
+      </div>
+    </div>
+
+    {#- Email -#}
+    <div class="stt-panel" id="stt-email">
+      <div class="stt-panel-title">Email &amp; Notifications</div>
+      <div class="stt-panel-desc">Configure outbound email (SMTP) and notification defaults.</div>
+      <div class="stt-card">
+        <div class="stt-card-title">SMTP Configuration</div>
+        <div class="stt-frow">
+          <div class="stt-fld"><label class="stt-lbl">SMTP Host</label><input class="stt-inp" id="stt-smtp-host" placeholder="smtp.gmail.com" value="{{ settings.smtp_host or '' }}"></div>
+          <div class="stt-fld"><label class="stt-lbl">SMTP Port</label><input class="stt-inp" id="stt-smtp-port" type="number" placeholder="587" value="{{ settings.smtp_port or '' }}"></div>
+        </div>
+        <div class="stt-frow">
+          <div class="stt-fld"><label class="stt-lbl">Username / Email</label><input class="stt-inp" id="stt-smtp-user" type="email" placeholder="no-reply@company.com"></div>
+          <div class="stt-fld"><label class="stt-lbl">Password <span>(stored encrypted)</span></label><input class="stt-inp" id="stt-smtp-pass" type="password" placeholder="••••••••"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="stt-save" onclick="stt_save('email')">Save SMTP</button>
+          <button style="padding:8px 16px;border:1px solid #5c4da8;color:#5c4da8;background:#fff;border-radius:7px;font-size:12px;cursor:pointer" onclick="stt_test_email()">Send Test Email</button>
+        </div>
+      </div>
+      <div class="stt-card">
+        <div class="stt-card-title">Notification Preferences</div>
+        <div class="stt-toggle-row">
+          <div class="stt-toggle-info"><div class="stt-toggle-lbl">New Order Notifications</div><div class="stt-toggle-sub">Email alert when a Sales Order is created</div></div>
+          <label class="stt-switch"><input type="checkbox" checked><span class="stt-slider"></span></label>
+        </div>
+        <div class="stt-toggle-row">
+          <div class="stt-toggle-info"><div class="stt-toggle-lbl">Overdue Invoice Alerts</div><div class="stt-toggle-sub">Daily digest of overdue Sales Invoices</div></div>
+          <label class="stt-switch"><input type="checkbox" checked><span class="stt-slider"></span></label>
+        </div>
+        <div class="stt-toggle-row">
+          <div class="stt-toggle-info"><div class="stt-toggle-lbl">Low Stock Alerts</div><div class="stt-toggle-sub">Alert when item stock falls below reorder level</div></div>
+          <label class="stt-switch"><input type="checkbox"><span class="stt-slider"></span></label>
+        </div>
+      </div>
+    </div>
+
+    {#- Integrations -#}
+    <div class="stt-panel" id="stt-integrations">
+      <div class="stt-panel-title">Integrations</div>
+      <div class="stt-panel-desc">Connect with third-party services and APIs.</div>
+      <div class="stt-card">
+        <div class="stt-card-title">API Keys</div>
+        <div class="stt-frow full">
+          <div class="stt-fld">
+            <label class="stt-lbl">Public API Key <span>(read-only)</span></label>
+            <div style="display:flex;gap:8px">
+              <input class="stt-inp" id="stt-api-key" value="{{ settings.api_key or 'dk_••••••••••••••••' }}" readonly style="flex:1">
+              <button style="padding:6px 12px;border:1px solid #e0d4fc;border-radius:6px;background:#f0eaff;color:#5c4da8;font-size:12px;cursor:pointer" onclick="stt_copy('stt-api-key')">Copy</button>
+            </div>
+          </div>
+        </div>
+        <div class="stt-frow full">
+          <div class="stt-fld">
+            <label class="stt-lbl">Webhook URL</label>
+            <input class="stt-inp" id="stt-webhook" placeholder="https://your-server.com/api/webhook" value="{{ settings.webhook_url or '' }}">
+          </div>
+        </div>
+        <button class="stt-save" onclick="stt_save('integrations')">Save</button>
+      </div>
+      <div class="stt-card">
+        <div class="stt-card-title">Available Integrations</div>
+        <div class="stt-int-grid">
+          {% for intg in integrations %}
+          <div class="stt-int-card">
+            <div class="stt-int-ico">{{ intg.icon }}</div>
+            <div>
+              <div class="stt-int-name">{{ intg.name }}</div>
+              <div class="stt-int-desc">{{ intg.description }}</div>
+              <label class="stt-switch" style="margin-top:8px"><input type="checkbox" {% if intg.enabled %}checked{% endif %}><span class="stt-slider"></span></label>
+            </div>
+          </div>
+          {% else %}
+          <p style="color:#9080b8;font-size:12px;grid-column:1/-1">No integrations configured. Add them from Python context.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {#- Advanced -#}
+    <div class="stt-panel" id="stt-advanced">
+      <div class="stt-panel-title">Advanced Settings</div>
+      <div class="stt-panel-desc">Developer and system-level configuration. Handle with care.</div>
+      <div class="stt-card">
+        <div class="stt-card-title">System</div>
+        <div class="stt-frow">
+          <div class="stt-fld"><label class="stt-lbl">Session Expiry (minutes)</label><input class="stt-inp" type="number" value="60"></div>
+          <div class="stt-fld"><label class="stt-lbl">Max Upload Size (MB)</label><input class="stt-inp" type="number" value="10"></div>
+        </div>
+        <div class="stt-frow full">
+          <div class="stt-fld"><label class="stt-lbl">Custom JS (injected on all pages)</label><textarea class="stt-inp" style="min-height:80px;resize:vertical" placeholder="// console.log('hello');"></textarea></div>
+        </div>
+        <button class="stt-save" onclick="stt_save('advanced')">Save Advanced</button>
+      </div>
+    </div>
+
+    {#- Danger zone -#}
+    <div class="stt-panel" id="stt-danger">
+      <div class="stt-panel-title" style="color:#dc2626">⚠️ Danger Zone</div>
+      <div class="stt-panel-desc">These actions are irreversible. Proceed with extreme caution.</div>
+      <div class="stt-danger-card">
+        <div class="stt-danger-title">Destructive Actions</div>
+        <div class="stt-danger-row">
+          <div><div style="font-weight:700;font-size:13px">Clear All Cache</div><div style="font-size:11px;color:#9080b8">Clears Redis cache — users may experience a slow page load once.</div></div>
+          <button class="stt-danger-btn" onclick="stt_confirm_danger('clear_cache')">Clear Cache</button>
+        </div>
+        <div class="stt-danger-row">
+          <div><div style="font-weight:700;font-size:13px">Reset Settings to Default</div><div style="font-size:11px;color:#9080b8">All settings will revert to installation defaults.</div></div>
+          <button class="stt-danger-btn" onclick="stt_confirm_danger('reset_settings')">Reset</button>
+        </div>
+        <div class="stt-danger-row">
+          <div><div style="font-weight:700;font-size:13px">Delete All Test Data</div><div style="font-size:11px;color:#9080b8">Permanently removes all demo/test documents.</div></div>
+          <button class="stt-danger-btn" onclick="stt_confirm_danger('delete_test_data')">Delete</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function stt_show(tab) {
+    document.querySelectorAll(".stt-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".stt-panel").forEach(p => p.classList.remove("active"));
+    event.currentTarget.classList.add("active");
+    document.getElementById("stt-" + tab).classList.add("active");
+}
+function stt_save(section) {
+    frappe.show_alert("Settings saved — implement frappe.call to your save method", "green");
+    // frappe.call({ method: "my_app.my_page.save_settings", args: { section: section, ... }, callback: r => frappe.show_alert("Saved", "green") });
+}
+function stt_test_email() {
+    frappe.prompt({label:"Send to", fieldtype:"Data", reqd:1}, v => {
+        frappe.call({ method:"frappe.client.get", args:{doctype:"Email Account"}, callback: r => frappe.show_alert("Test email sent to " + v.value, "green") });
+    });
+}
+function stt_copy(id) {
+    var el = document.getElementById(id);
+    navigator.clipboard.writeText(el.value).then(() => frappe.show_alert("Copied!", "green"));
+}
+function stt_confirm_danger(action) {
+    frappe.confirm("Are you absolutely sure? This cannot be undone.", function() {
+        frappe.call({ method: "frappe_devkit.api.page_builder.create_desk_page",
+                      // Replace with your actual danger-zone method
+                      args: { action: action },
+                      callback: r => frappe.show_alert("Done: " + action, "green") });
+    });
+}
+</script>
+'''
+
+
+def _desk_tpl_wizard(cc, title):
+    """Multi-step wizard — 4-step progress bar, form per step, review + confirm."""
+    return r'''
+<!-- ══ WIZARD DESK PRESET ═══════════════════════════════════════════════════
+     Python context keys expected:
+       step      int  — current step (1–4), default 1
+       data      dict — accumulated form data across steps
+     Example Python:
+       step = int(kwargs.get("step") or 1)
+       data = frappe.parse_json(kwargs.get("data") or "{}")
+       context.update({"step": step, "data": data})
+     Each step submits to your Python method which returns the next step HTML.
+════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  .wiz-wrap { max-width:720px; margin:0 auto; font-family:inherit; padding:4px 0; }
+  /* Progress bar */
+  .wiz-steps { display:flex; align-items:center; margin-bottom:24px; }
+  .wiz-step  { display:flex; flex-direction:column; align-items:center; flex:1; position:relative; }
+  .wiz-step-line { position:absolute; top:16px; left:50%; right:-50%; height:2px; background:#e0d4fc; z-index:0; }
+  .wiz-step:last-child .wiz-step-line { display:none; }
+  .wiz-step-line.done { background:#5c4da8; }
+  .wiz-step-circle { width:32px; height:32px; border-radius:50%; border:2px solid #e0d4fc; background:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#9080b8; z-index:1; position:relative; }
+  .wiz-step-circle.active { border-color:#5c4da8; background:#5c4da8; color:#fff; }
+  .wiz-step-circle.done   { border-color:#5c4da8; background:#5c4da8; color:#fff; }
+  .wiz-step-lbl { font-size:10px; text-transform:uppercase; letter-spacing:.06em; margin-top:6px; color:#9080b8; text-align:center; }
+  .wiz-step-lbl.active { color:#5c4da8; font-weight:700; }
+  /* Card */
+  .wiz-card { background:#fff; border-radius:10px; box-shadow:0 2px 14px rgba(92,77,168,.10); overflow:hidden; margin-bottom:14px; }
+  .wiz-card-hdr { background:#5c4da8; color:#fff; padding:14px 20px; font-size:15px; font-weight:800; }
+  .wiz-card-body { padding:24px; }
+  /* Fields */
+  .wiz-frow { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .wiz-frow.full { grid-template-columns:1fr; }
+  .wiz-fld { display:flex; flex-direction:column; gap:5px; }
+  .wiz-lbl { font-size:12px; font-weight:600; color:#3a2e5e; }
+  .wiz-inp, .wiz-sel, .wiz-ta { border:1px solid #e0d4fc; border-radius:7px; padding:8px 12px; font-size:13px; background:#faf8ff; outline:none; width:100%; box-sizing:border-box; }
+  .wiz-inp:focus, .wiz-sel:focus, .wiz-ta:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,.1); }
+  .wiz-ta { min-height:80px; resize:vertical; }
+  /* Review card */
+  .wiz-review-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .wiz-review-item { background:#faf7ff; border-radius:7px; padding:10px 14px; }
+  .wiz-review-key { font-size:11px; text-transform:uppercase; color:#9080b8; letter-spacing:.06em; }
+  .wiz-review-val { font-size:14px; font-weight:700; color:#1e1b3a; margin-top:2px; }
+  .wiz-review-edit { font-size:11px; color:#5c4da8; cursor:pointer; text-decoration:none; }
+  /* Success */
+  .wiz-success { text-align:center; padding:30px 20px; }
+  .wiz-success-ico { font-size:3.5rem; }
+  .wiz-success-title { font-size:1.3rem; font-weight:800; color:#14532d; margin:10px 0 4px; }
+  .wiz-success-doc { font-size:13px; color:#5c4da8; font-weight:600; }
+  /* Footer */
+  .wiz-footer { display:flex; gap:10px; justify-content:space-between; padding:14px 20px; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(92,77,168,.08); }
+  .wiz-next { padding:9px 24px; background:#5c4da8; color:#fff; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; }
+  .wiz-next:hover { background:#4a3d8f; }
+  .wiz-prev { padding:9px 18px; background:#f0eaff; color:#5c4da8; border:1px solid #d4bcfc; border-radius:7px; font-size:13px; cursor:pointer; }
+  .wiz-submit { padding:9px 24px; background:#16a34a; color:#fff; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; }
+</style>
+
+<div class="wiz-wrap">
+  {#- ── Step progress ── -#}
+  <div class="wiz-steps">
+    {% set steps = [("1","📋","Basic Info"),("2","⚙️","Configure"),("3","🔍","Review"),("4","✅","Done")] %}
+    {% for s in steps %}
+    {% set n = loop.index %}
+    <div class="wiz-step">
+      {% if not loop.last %}<div class="wiz-step-line {% if step > n %}done{% endif %}"></div>{% endif %}
+      <div class="wiz-step-circle {% if step == n %}active{% elif step > n %}done{% endif %}">
+        {% if step > n %}✓{% else %}{{ s[0] }}{% endif %}
+      </div>
+      <div class="wiz-step-lbl {% if step == n %}active{% endif %}">{{ s[2] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {#- ── Step 1: Basic Info ── -#}
+  {% if step == 1 %}
+  <div class="wiz-card">
+    <div class="wiz-card-hdr">📋 Step 1 — Basic Information</div>
+    <div class="wiz-card-body">
+      <div class="wiz-frow">
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Document Name *</label>
+          <input class="wiz-inp" id="wiz-name" value="{{ data.name or '' }}" placeholder="Enter a unique name">
+        </div>
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Document Type *</label>
+          <select class="wiz-sel" id="wiz-doctype">
+            <option value="">— Select —</option>
+            {% for dt in ["Sales Order","Purchase Order","Task","Issue","Lead","Quotation"] %}
+            <option value="{{ dt }}" {% if data.doctype==dt %}selected{% endif %}>{{ dt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="wiz-frow">
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Priority</label>
+          <select class="wiz-sel" id="wiz-priority">
+            {% for p in ["Low","Medium","High","Urgent"] %}
+            <option value="{{ p }}" {% if data.priority==p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Due Date</label>
+          <input class="wiz-inp" type="date" id="wiz-due" value="{{ data.due_date or '' }}">
+        </div>
+      </div>
+      <div class="wiz-frow full">
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Description</label>
+          <textarea class="wiz-ta" id="wiz-desc" placeholder="Brief description…">{{ data.description or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {#- ── Step 2: Configuration ── -#}
+  {% elif step == 2 %}
+  <div class="wiz-card">
+    <div class="wiz-card-hdr">⚙️ Step 2 — Configuration</div>
+    <div class="wiz-card-body">
+      <div class="wiz-frow">
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Assign To</label>
+          <input class="wiz-inp" id="wiz-assign" value="{{ data.assigned_to or '' }}" placeholder="user@company.com">
+        </div>
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Department</label>
+          <select class="wiz-sel" id="wiz-dept">
+            <option value="">— Select —</option>
+            {% for d in ["Sales","Purchasing","Operations","Finance","IT","HR"] %}
+            <option value="{{ d }}" {% if data.department==d %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="wiz-frow">
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Notify by Email?</label>
+          <select class="wiz-sel" id="wiz-notify">
+            <option value="1" {% if data.notify %}selected{% endif %}>Yes — send email notification</option>
+            <option value="0" {% if not data.notify %}selected{% endif %}>No</option>
+          </select>
+        </div>
+        <div class="wiz-fld">
+          <label class="wiz-lbl">Tags (comma-separated)</label>
+          <input class="wiz-inp" id="wiz-tags" value="{{ data.tags or '' }}" placeholder="urgent, client-facing">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {#- ── Step 3: Review ── -#}
+  {% elif step == 3 %}
+  <div class="wiz-card">
+    <div class="wiz-card-hdr">🔍 Step 3 — Review &amp; Confirm</div>
+    <div class="wiz-card-body">
+      <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Please review the details below before submitting.</p>
+      <div class="wiz-review-grid">
+        {% for pair in [("Document Name",data.name),("Document Type",data.doctype),("Priority",data.priority),("Due Date",data.due_date),("Assigned To",data.assigned_to),("Department",data.department),("Tags",data.tags)] %}
+        {% if pair[1] %}
+        <div class="wiz-review-item">
+          <div class="wiz-review-key">{{ pair[0] }}</div>
+          <div class="wiz-review-val">{{ pair[1] }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% if data.description %}
+      <div class="wiz-review-item" style="margin-top:12px;grid-column:1/-1">
+        <div class="wiz-review-key">Description</div>
+        <div class="wiz-review-val" style="font-size:13px;font-weight:400">{{ data.description }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {#- ── Step 4: Complete ── -#}
+  {% elif step == 4 %}
+  <div class="wiz-card">
+    <div class="wiz-card-body">
+      <div class="wiz-success">
+        <div class="wiz-success-ico">✅</div>
+        <div class="wiz-success-title">Created Successfully!</div>
+        <div class="wiz-success-doc">{{ data.doctype }}: <a href="/app/{{ data.doctype|lower|replace(' ','-') }}/{{ data.created_name }}" style="color:#5c4da8">{{ data.created_name }}</a></div>
+        <div style="margin-top:20px;display:flex;gap:12px;justify-content:center">
+          <a href="/app/{{ data.doctype|lower|replace(' ','-') }}/{{ data.created_name }}" class="wiz-next" style="text-decoration:none">View Document →</a>
+          <button class="wiz-prev" onclick="wiz_reset()">Create Another</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {#- ── Footer navigation ── -#}
+  {% if step < 4 %}
+  <div class="wiz-footer">
+    <div>
+      {% if step > 1 %}
+      <button class="wiz-prev" onclick="wiz_go({{ step - 1 }})">← Previous</button>
+      {% endif %}
+    </div>
+    <div>
+      {% if step < 3 %}
+      <button class="wiz-next" onclick="wiz_go({{ step + 1 }})">Next →</button>
+      {% elif step == 3 %}
+      <button class="wiz-submit" onclick="wiz_submit()">🚀 Submit</button>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+var _wiz_data = {{ data | tojson }};
+function wiz_collect() {
+    var step = {{ step }};
+    if (step === 1) {
+        _wiz_data.name        = $("#wiz-name").val();
+        _wiz_data.doctype     = $("#wiz-doctype").val();
+        _wiz_data.priority    = $("#wiz-priority").val();
+        _wiz_data.due_date    = $("#wiz-due").val();
+        _wiz_data.description = $("#wiz-desc").val();
+    } else if (step === 2) {
+        _wiz_data.assigned_to = $("#wiz-assign").val();
+        _wiz_data.department  = $("#wiz-dept").val();
+        _wiz_data.notify      = $("#wiz-notify").val();
+        _wiz_data.tags        = $("#wiz-tags").val();
+    }
+}
+function wiz_go(next_step) {
+    wiz_collect();
+    frappe.call({ method: window._wiz_method, args: { step: next_step, data: JSON.stringify(_wiz_data) },
+                  callback: r => { if (r.message) $(page.main).html(r.message); } });
+}
+function wiz_submit() {
+    wiz_collect();
+    frappe.call({ method: window._wiz_method, args: { step: 4, submit: 1, data: JSON.stringify(_wiz_data) },
+                  callback: r => { if (r.message) $(page.main).html(r.message); } });
+}
+function wiz_reset() { frappe.call({ method: window._wiz_method, args: { step:1, data:"{}" }, callback: r => { if(r.message) $(page.main).html(r.message); } }); }
+</script>
+'''
+
+
+def _desk_tpl_kanban(cc, title):
+    """Kanban board — 4 columns (Todo/In Progress/Review/Done) with draggable cards."""
+    return r'''
+<!-- ══ KANBAN DESK PRESET ═══════════════════════════════════════════════════
+     Python context keys expected:
+       columns  dict  — {"todo":[], "inprogress":[], "review":[], "done":[]}
+       Each card:  {name, title, description, assignee, avatar, priority, due_date, tags}
+     Example Python (Task doctype):
+       statuses = {"todo":"Open","inprogress":"Working","review":"Pending Review","done":"Completed"}
+       columns  = {}
+       for col, status in statuses.items():
+           columns[col] = frappe.get_all("Task",
+               filters={"status": status},
+               fields=["name","subject as title","description","exp_end_date as due_date",
+                       "assigned_to as assignee","priority"],
+               limit=50)
+       context.update({"columns": columns})
+     For Issue: use {"todo":"Open","inprogress":"Replied","review":"Hold","done":"Resolved"}
+════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  .kb-wrap { display:flex; gap:14px; overflow-x:auto; height:100%; padding:2px 4px 8px; font-family:inherit; align-items:flex-start; }
+  /* Column */
+  .kb-col { min-width:260px; max-width:280px; flex-shrink:0; display:flex; flex-direction:column; border-radius:10px; background:#f7f5fc; overflow:hidden; }
+  .kb-col-hdr { padding:10px 14px; display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.07em; }
+  .kb-col-hdr.todo       { background:#e5e7eb; color:#374151; }
+  .kb-col-hdr.inprogress { background:#dbeafe; color:#1e3a5f; }
+  .kb-col-hdr.review     { background:#fef9c3; color:#713f12; }
+  .kb-col-hdr.done       { background:#dcfce7; color:#14532d; }
+  .kb-col-count { background:rgba(0,0,0,.1); border-radius:20px; padding:1px 7px; font-size:10px; }
+  .kb-col-add { font-size:16px; cursor:pointer; opacity:.7; }
+  .kb-col-add:hover { opacity:1; }
+  /* Card list */
+  .kb-list { flex:1; overflow-y:auto; padding:8px; min-height:60px; }
+  .kb-list.drag-over { background:rgba(92,77,168,.06); border-radius:8px; }
+  /* Card */
+  .kb-card { background:#fff; border-radius:8px; box-shadow:0 1px 6px rgba(92,77,168,.10); padding:12px; margin-bottom:8px; cursor:grab; border-left:3px solid #e0d4fc; transition:transform .15s, box-shadow .15s; }
+  .kb-card:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(92,77,168,.18); }
+  .kb-card:active { cursor:grabbing; }
+  .kb-card.priority-high   { border-color:#dc2626; }
+  .kb-card.priority-medium { border-color:#f59e0b; }
+  .kb-card.priority-low    { border-color:#6b7280; }
+  .kb-card-title { font-weight:700; font-size:13px; color:#1e1b3a; margin-bottom:4px; }
+  .kb-card-desc  { font-size:11px; color:#9080b8; margin-bottom:8px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .kb-card-footer { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .kb-avatar { width:22px; height:22px; border-radius:50%; background:#5c4da8; color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .kb-badge { padding:2px 7px; border-radius:20px; font-size:9px; font-weight:700; }
+  .kb-badge.high   { background:#fee2e2; color:#7f1d1d; }
+  .kb-badge.medium { background:#fef9c3; color:#713f12; }
+  .kb-badge.low    { background:#f3f4f6; color:#374151; }
+  .kb-due { font-size:10px; color:#9080b8; margin-left:auto; }
+  .kb-due.overdue { color:#dc2626; font-weight:700; }
+  .kb-tag { background:#ede9fe; color:#5c4da8; padding:1px 6px; border-radius:4px; font-size:9px; }
+  .kb-drag-handle { color:#d4bcfc; font-size:12px; float:right; cursor:grab; }
+  /* Add card footer */
+  .kb-add-row { padding:6px 8px; }
+  .kb-add-btn { width:100%; padding:7px; border:2px dashed #e0d4fc; border-radius:6px; background:transparent; color:#9080b8; font-size:12px; cursor:pointer; text-align:center; }
+  .kb-add-btn:hover { background:#f5f0ff; color:#5c4da8; border-color:#a78bfa; }
+</style>
+
+<div class="kb-wrap">
+  {% set col_defs = [("todo","Todo","todo"),("inprogress","In Progress","inprogress"),("review","In Review","review"),("done","Done","done")] %}
+  {% for col_id, col_label, col_cls in col_defs %}
+  <div class="kb-col" id="kb-col-{{ col_id }}">
+    <div class="kb-col-hdr {{ col_cls }}">
+      <span>{{ col_label }}</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="kb-col-count">{{ (columns[col_id] or []) | length }}</span>
+        <span class="kb-col-add" onclick="kb_add_card('{{ col_id }}')">＋</span>
+      </div>
+    </div>
+    <div class="kb-list" id="kb-list-{{ col_id }}"
+         ondragover="kb_dragover(event)" ondrop="kb_drop(event,'{{ col_id }}')">
+      {% for card in (columns[col_id] or []) %}
+      <div class="kb-card priority-{{ card.priority|lower if card.priority else 'low' }}"
+           draggable="true"
+           id="kb-card-{{ card.name }}"
+           data-name="{{ card.name }}"
+           data-col="{{ col_id }}"
+           ondragstart="kb_dragstart(event)">
+        <span class="kb-drag-handle">⠿</span>
+        <div class="kb-card-title">{{ card.title or card.name }}</div>
+        {% if card.description %}
+        <div class="kb-card-desc">{{ card.description }}</div>
+        {% endif %}
+        <div class="kb-card-footer">
+          {% if card.assignee %}
+          <div class="kb-avatar" title="{{ card.assignee }}">{{ card.assignee[0]|upper }}</div>
+          {% endif %}
+          {% if card.priority %}
+          <span class="kb-badge {{ card.priority|lower }}">{{ card.priority }}</span>
+          {% endif %}
+          {% if card.due_date %}
+          <span class="kb-due">{{ card.due_date }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:20px;color:#d4bcfc;font-size:12px">No cards</div>
+      {% endfor %}
+    </div>
+    <div class="kb-add-row">
+      <button class="kb-add-btn" onclick="kb_add_card('{{ col_id }}')">+ Add card</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+/* ── Kanban drag-drop ────────────────────────────────────────────────────── */
+var _kb_dragging = null;
+function kb_dragstart(e) { _kb_dragging = e.currentTarget; e.currentTarget.style.opacity = ".5"; }
+function kb_dragover(e)  { e.preventDefault(); e.currentTarget.classList.add("drag-over"); }
+function kb_drop(e, col) {
+    e.preventDefault();
+    e.currentTarget.classList.remove("drag-over");
+    if (!_kb_dragging) return;
+    var name    = _kb_dragging.dataset.name;
+    var old_col = _kb_dragging.dataset.col;
+    if (old_col === col) { _kb_dragging.style.opacity="1"; return; }
+    _kb_dragging.dataset.col = col;
+    document.getElementById("kb-list-" + col).appendChild(_kb_dragging);
+    _kb_dragging.style.opacity = "1";
+    // Call backend to update status
+    var status_map = { todo:"Open", inprogress:"Working", review:"Pending Review", done:"Completed" };
+    frappe.call({
+        method: "frappe.client.set_value",
+        args: { doctype:"Task", name:name, fieldname:"status", value: status_map[col] || col },
+        callback: r => frappe.show_alert(name + " → " + col, "green")
+    });
+}
+document.addEventListener("dragend", function() { if (_kb_dragging) { _kb_dragging.style.opacity="1"; _kb_dragging=null; } });
+document.querySelectorAll(".kb-list").forEach(l => l.addEventListener("dragleave", function() { this.classList.remove("drag-over"); }));
+
+function kb_add_card(col) {
+    frappe.prompt([
+        { label:"Title",    fieldtype:"Data",   reqd:1 },
+        { label:"Priority", fieldtype:"Select", options:"Low\nMedium\nHigh", default:"Medium" },
+        { label:"Due Date", fieldtype:"Date" },
+    ], function(v) {
+        frappe.call({
+            method: "frappe.client.insert",
+            args: { doc: { doctype:"Task", subject:v.Title, priority:v.Priority, exp_end_date:v["Due Date"], status: {todo:"Open",inprogress:"Working",review:"Pending Review",done:"Completed"}[col]||col } },
+            callback: r => { frappe.show_alert("Card created: " + r.message.name, "green"); frappe.call({ method: window._kb_method, callback: rr => { if(rr.message) $(page.main).html(rr.message); } }); }
+        });
+    }, "Add Card to " + col);
+}
+</script>
+'''
+
+
+def _desk_tpl_import_export(cc, title):
+    """Import / Export tooling — doctype selector, CSV download, paste/upload import."""
+    return f'''<!-- ══ IMPORT/EXPORT DESK PRESET ═════════════════════════════════════════════
+     Python context keys expected:
+       selected_doctype  str  — currently selected DocType
+       doctype_fields    list — {{fieldname, label, fieldtype}}
+       import_history    list — {{name, reference_doctype, import_type, status,
+                                  total_records, failed_records, creation}}
+     Wire up:
+       page.main.on("click","#ie-download-btn", ...)  → frappe.call get_{cc.replace("-","_")} with doctype
+       page.main.on("click","#ie-import-btn", ...)    → frappe.call with CSV text payload
+══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root{{--ie-brand:#0891b2;--ie-light:#cffafe;--ie-dark:#155e75;--ie-rad:10px;--ie-sh:0 4px 18px rgba(8,145,178,.12);}}
+  .ie-wrap{{font-family:inherit;padding:0 4px}}
+  .ie-card{{background:#fff;border-radius:var(--ie-rad);box-shadow:var(--ie-sh);overflow:hidden;margin-bottom:18px}}
+  .ie-card-hdr{{padding:12px 18px;font-weight:700;font-size:13px;color:var(--ie-dark);background:var(--ie-light);border-bottom:1px solid #a5f3fc;display:flex;align-items:center;gap:8px}}
+  .ie-card-body{{padding:16px 18px}}
+  .ie-row{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}}
+  .ie-label{{font-size:11px;font-weight:700;color:var(--ie-dark);display:block;margin-bottom:4px}}
+  .ie-sel,.ie-inp{{width:100%;padding:7px 10px;border:1px solid #cffafe;border-radius:6px;font-size:12px;background:#f0fdfe;outline:none}}
+  .ie-sel:focus,.ie-inp:focus{{border-color:var(--ie-brand);box-shadow:0 0 0 2px rgba(8,145,178,.15)}}
+  .ie-btn{{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:filter .15s}}
+  .ie-btn:hover{{filter:brightness(1.08)}}
+  .ie-btn.primary{{background:var(--ie-brand);color:#fff}}
+  .ie-btn.secondary{{background:var(--ie-light);color:var(--ie-dark)}}
+  .ie-btn.danger{{background:#fee2e2;color:#991b1b}}
+  .ie-fields-wrap{{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}}
+  .ie-field-chip{{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:#e0f2fe;color:#0c4a6e;cursor:pointer;border:2px solid transparent}}
+  .ie-field-chip.selected{{background:var(--ie-brand);color:#fff;border-color:var(--ie-brand)}}
+  .ie-textarea{{width:100%;min-height:120px;padding:10px;border:1px solid #cffafe;border-radius:6px;font-size:11.5px;font-family:monospace;background:#f0fdfe;resize:vertical;outline:none}}
+  .ie-textarea:focus{{border-color:var(--ie-brand)}}
+  .ie-table{{width:100%;border-collapse:collapse;font-size:12px}}
+  .ie-table th{{background:var(--ie-light);color:var(--ie-dark);padding:8px 12px;text-align:left;font-weight:700;border-bottom:2px solid #a5f3fc}}
+  .ie-table td{{padding:7px 12px;border-bottom:1px solid #f0fdfe}}
+  .ie-table tr:hover td{{background:#f0fdfe}}
+  .ie-status{{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}}
+  .ie-status.success{{background:#dcfce7;color:#14532d}}
+  .ie-status.error{{background:#fee2e2;color:#991b1b}}
+  .ie-status.pending{{background:#fef9c3;color:#713f12}}
+  .ie-status.partial{{background:#dbeafe;color:#1e3a5f}}
+</style>
+
+<div class="ie-wrap">
+
+  {{#- ══ EXPORT SECTION ═══════════════════════════════════════════════════════ -#}}
+  <div class="ie-card">
+    <div class="ie-card-hdr">⬇️ Export Data</div>
+    <div class="ie-card-body">
+      <div class="ie-row">
+        <div>
+          <label class="ie-label">DocType</label>
+          <input id="ie-doctype" class="ie-inp" value="{{{{ selected_doctype }}}}" placeholder="e.g. Sales Invoice">
+        </div>
+        <div>
+          <label class="ie-label">Format</label>
+          <select id="ie-format" class="ie-sel">
+            <option value="csv">CSV</option>
+            <option value="xlsx">Excel (.xlsx)</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="ie-label">Fields to export (click to toggle)</label>
+        <div class="ie-fields-wrap" id="ie-fields-wrap">
+          {{% for f in doctype_fields %}}
+          <span class="ie-field-chip" data-fn="{{{{ f.fieldname }}}}" onclick="ie_toggle_field(this)">{{{{ f.label or f.fieldname }}}}</span>
+          {{% endfor %}}
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="ie-btn primary" id="ie-select-all" onclick="ie_select_all()">Select All</button>
+        <button class="ie-btn secondary" id="ie-export-btn" onclick="ie_export()">⬇️ Download</button>
+      </div>
+    </div>
+  </div>
+
+  {{#- ══ IMPORT SECTION ═══════════════════════════════════════════════════════ -#}}
+  <div class="ie-card">
+    <div class="ie-card-hdr">⬆️ Import Data</div>
+    <div class="ie-card-body">
+      <p style="font-size:12px;color:#0e7490;margin-bottom:10px">
+        Paste CSV below (first row = headers matching field names) or upload a file.
+      </p>
+      <label class="ie-label">Paste CSV / JSON</label>
+      <textarea id="ie-csv-input" class="ie-textarea" placeholder="name,customer,grand_total&#10;INV-0001,Example,1000"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <label class="ie-btn secondary" style="cursor:pointer">
+          📂 Upload File <input type="file" id="ie-file-input" accept=".csv,.xlsx,.json" style="display:none" onchange="ie_read_file(this)">
+        </label>
+        <button class="ie-btn primary" onclick="ie_import()">⬆️ Import</button>
+        <button class="ie-btn secondary" onclick="ie_preview()">👁 Preview</button>
+      </div>
+      <div id="ie-preview-wrap" style="margin-top:12px;display:none">
+        <label class="ie-label">Preview (first 5 rows)</label>
+        <div id="ie-preview-tbl"></div>
+      </div>
+      <div id="ie-import-progress" style="display:none;margin-top:12px">
+        <div style="background:#e0f2fe;border-radius:6px;height:10px;overflow:hidden">
+          <div id="ie-prog-bar" style="height:100%;background:var(--ie-brand);width:0%;transition:width .3s"></div>
+        </div>
+        <div id="ie-prog-label" style="font-size:11px;color:#0e7490;margin-top:4px;text-align:center">Importing…</div>
+      </div>
+    </div>
+  </div>
+
+  {{#- ══ HISTORY ════════════════════════════════════════════════════════════ -#}}
+  <div class="ie-card">
+    <div class="ie-card-hdr">🕑 Import History</div>
+    <div class="ie-card-body" style="padding:0">
+      <table class="ie-table">
+        <thead>
+          <tr><th>ID</th><th>DocType</th><th>Type</th><th>Status</th><th>Total</th><th>Failed</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          {{% for h in import_history %}}
+          <tr>
+            <td><a href="/app/data-import/{{{{ h.name }}}}" target="_blank">{{{{ h.name }}}}</a></td>
+            <td>{{{{ h.reference_doctype }}}}</td>
+            <td>{{{{ h.import_type }}}}</td>
+            <td><span class="ie-status {{% if h.status=='Success' %}}success{{% elif h.status=='Error' %}}error{{% elif h.status=='Partial Success' %}}partial{{% else %}}pending{{% endif %}}">{{{{ h.status }}}}</span></td>
+            <td>{{{{ h.total_records }}}}</td>
+            <td>{{{{ h.failed_records }}}}</td>
+            <td style="font-size:11px;color:#64748b">{{{{ h.creation }}}}</td>
+          </tr>
+          {{% else %}}
+          <tr><td colspan="7" style="text-align:center;padding:24px;color:#94a3b8">No import history.</td></tr>
+          {{% endfor %}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── Import/Export helpers ──────────────────────────────────────────────── */
+function ie_toggle_field(el) {{ el.classList.toggle("selected"); }}
+function ie_select_all() {{
+    document.querySelectorAll(".ie-field-chip").forEach(c => c.classList.add("selected"));
+}}
+function ie_selected_fields() {{
+    return [...document.querySelectorAll(".ie-field-chip.selected")].map(c => c.dataset.fn);
+}}
+function ie_export() {{
+    var fields = ie_selected_fields();
+    var doctype = document.getElementById("ie-doctype").value.trim();
+    if (!doctype) {{ frappe.show_alert("Enter a DocType", "orange"); return; }}
+    if (!fields.length) {{ frappe.show_alert("Select at least one field", "orange"); return; }}
+    frappe.show_alert("Preparing download…", "blue");
+    // Use Frappe's built-in export
+    var params = new URLSearchParams({{
+        doctype: doctype,
+        fields: JSON.stringify(fields),
+        file_type: document.getElementById("ie-format").value.toUpperCase(),
+        cmd: "frappe.desk.reportview.export_query"
+    }});
+    window.open("/api/method/frappe.desk.reportview.export_query?" + params.toString());
+}}
+function ie_read_file(inp) {{
+    var file = inp.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = e => {{ document.getElementById("ie-csv-input").value = e.target.result; }};
+    reader.readAsText(file);
+}}
+function ie_preview() {{
+    var csv = document.getElementById("ie-csv-input").value.trim();
+    if (!csv) {{ frappe.show_alert("Paste CSV first", "orange"); return; }}
+    var lines = csv.split("\\n").slice(0, 6);
+    var cols = lines[0].split(",");
+    var html = '<table class="ie-table"><thead><tr>' + cols.map(c=>`<th>${{c}}</th>`).join("") + "</tr></thead><tbody>";
+    lines.slice(1).forEach(row => {{
+        html += "<tr>" + row.split(",").map(c=>`<td>${{c}}</td>`).join("") + "</tr>";
+    }});
+    html += "</tbody></table>";
+    document.getElementById("ie-preview-tbl").innerHTML = html;
+    document.getElementById("ie-preview-wrap").style.display = "block";
+}}
+function ie_import() {{
+    var csv = document.getElementById("ie-csv-input").value.trim();
+    var doctype = document.getElementById("ie-doctype").value.trim();
+    if (!doctype || !csv) {{ frappe.show_alert("DocType and CSV required", "orange"); return; }}
+    document.getElementById("ie-import-progress").style.display = "block";
+    // Animate progress (demo — replace with real progress via frappe.call)
+    var prog = 0;
+    var bar = document.getElementById("ie-prog-bar");
+    var lbl = document.getElementById("ie-prog-label");
+    var iv = setInterval(() => {{
+        prog = Math.min(prog + Math.random() * 15, 90);
+        bar.style.width = prog + "%";
+    }}, 300);
+    frappe.call({{
+        method: "frappe.client.insert_many",
+        args: {{ docs: [] }},  // replace with parsed docs
+        callback: r => {{
+            clearInterval(iv);
+            bar.style.width = "100%";
+            lbl.textContent = "Done!";
+            frappe.show_alert("Import complete", "green");
+        }},
+        error: e => {{
+            clearInterval(iv);
+            bar.style.width = "100%";
+            bar.style.background = "#dc2626";
+            lbl.textContent = "Error: " + (e.message || "unknown");
+        }}
+    }});
+}}
+</script>
+'''
+
+
+def _desk_tpl_approval_inbox(cc, title):
+    """Approval Inbox — pending workflow actions with batch approve/reject."""
+    return f'''<!-- ══ APPROVAL INBOX DESK PRESET ════════════════════════════════════════════
+     Python context keys expected:
+       requests  list — {{name, doctype, document_name, submitted_by, creation,
+                          status, workflow_state, amount, description, priority, pending_since}}
+       counts    dict — {{all, pending, approved, rejected}}
+     Wire backend approve/reject:
+       frappe.call("frappe.model.workflow.apply_workflow",
+                   {{doc: ..., action: "Approve"}})
+═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root{{--ai-brand:#15803d;--ai-light:#dcfce7;--ai-dark:#14532d;--ai-rad:10px;--ai-sh:0 4px 18px rgba(21,128,61,.10);}}
+  .ai-wrap{{font-family:inherit;padding:0 4px}}
+  .ai-kpi-row{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}}
+  .ai-kpi{{background:#fff;border-radius:var(--ai-rad);box-shadow:var(--ai-sh);padding:14px 18px;border-left:4px solid var(--ai-brand)}}
+  .ai-kpi.pending{{border-color:#f59e0b}}
+  .ai-kpi.approved{{border-color:var(--ai-brand)}}
+  .ai-kpi.rejected{{border-color:#dc2626}}
+  .ai-kpi-val{{font-size:1.8rem;font-weight:900;color:#1e1b3a}}
+  .ai-kpi-lbl{{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#6b7280}}
+  .ai-toolbar{{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}}
+  .ai-tab{{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #e5e7eb;background:#fff;color:#374151;transition:all .15s}}
+  .ai-tab.active,.ai-tab:hover{{background:var(--ai-brand);color:#fff;border-color:var(--ai-brand)}}
+  .ai-search{{flex:1;min-width:160px;padding:7px 12px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none}}
+  .ai-search:focus{{border-color:var(--ai-brand)}}
+  .ai-btn-batch{{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;border:none;cursor:pointer}}
+  .ai-btn-batch.approve{{background:var(--ai-light);color:var(--ai-dark)}}
+  .ai-btn-batch.reject{{background:#fee2e2;color:#991b1b}}
+  /* Cards */
+  .ai-card{{background:#fff;border-radius:var(--ai-rad);box-shadow:var(--ai-sh);padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;transition:box-shadow .15s}}
+  .ai-card:hover{{box-shadow:0 6px 24px rgba(21,128,61,.16)}}
+  .ai-chk{{width:16px;height:16px;margin-top:2px;flex-shrink:0;cursor:pointer;accent-color:var(--ai-brand)}}
+  .ai-card-body{{flex:1}}
+  .ai-card-title{{font-weight:700;font-size:13px;color:#1e1b3a;margin-bottom:3px}}
+  .ai-card-meta{{font-size:11px;color:#6b7280;margin-bottom:7px}}
+  .ai-card-footer{{display:flex;align-items:center;gap:8px;flex-wrap:wrap}}
+  .ai-badge{{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}}
+  .ai-badge.open{{background:#fef9c3;color:#713f12}}
+  .ai-badge.approved{{background:var(--ai-light);color:var(--ai-dark)}}
+  .ai-badge.rejected{{background:#fee2e2;color:#991b1b}}
+  .ai-priority.high{{color:#dc2626;font-weight:700;font-size:11px}}
+  .ai-priority.medium{{color:#f59e0b;font-weight:700;font-size:11px}}
+  .ai-priority.low{{color:#6b7280;font-size:11px}}
+  .ai-amount{{font-weight:700;color:var(--ai-brand);font-size:12px;margin-left:auto}}
+  .ai-since{{font-size:10.5px;color:#9ca3af}}
+  .ai-actions{{display:flex;gap:6px;margin-left:auto}}
+  .ai-action-btn{{padding:5px 12px;border-radius:5px;font-size:11px;font-weight:700;border:none;cursor:pointer}}
+  .ai-action-btn.approve{{background:var(--ai-light);color:var(--ai-dark)}}
+  .ai-action-btn.reject{{background:#fee2e2;color:#991b1b}}
+  .ai-action-btn.view{{background:#f1f5f9;color:#334155}}
+  .ai-empty{{text-align:center;padding:50px;color:#94a3b8}}
+</style>
+
+<div class="ai-wrap">
+
+  {{#- ══ KPI ROW ════════════════════════════════════════════════════════════ -#}}
+  <div class="ai-kpi-row">
+    <div class="ai-kpi"><div class="ai-kpi-val">{{{{ counts.all or 0 }}}}</div><div class="ai-kpi-lbl">Total</div></div>
+    <div class="ai-kpi pending"><div class="ai-kpi-val">{{{{ counts.pending or 0 }}}}</div><div class="ai-kpi-lbl">Pending</div></div>
+    <div class="ai-kpi approved"><div class="ai-kpi-val">{{{{ counts.approved or 0 }}}}</div><div class="ai-kpi-lbl">Approved</div></div>
+    <div class="ai-kpi rejected"><div class="ai-kpi-val">{{{{ counts.rejected or 0 }}}}</div><div class="ai-kpi-lbl">Rejected</div></div>
+  </div>
+
+  {{#- ══ TOOLBAR ═══════════════════════════════════════════════════════════ -#}}
+  <div class="ai-toolbar">
+    <button class="ai-tab active" data-status="all"      onclick="ai_filter_tab(this)">All</button>
+    <button class="ai-tab"        data-status="Open"     onclick="ai_filter_tab(this)">Pending</button>
+    <button class="ai-tab"        data-status="Approved" onclick="ai_filter_tab(this)">Approved</button>
+    <button class="ai-tab"        data-status="Rejected" onclick="ai_filter_tab(this)">Rejected</button>
+    <input class="ai-search" id="ai-search" placeholder="Search…" oninput="ai_search()">
+    <button class="ai-btn-batch approve" onclick="ai_batch('Approved')">✅ Approve Selected</button>
+    <button class="ai-btn-batch reject"  onclick="ai_batch('Rejected')">✗ Reject Selected</button>
+  </div>
+
+  {{#- ══ CARDS ═════════════════════════════════════════════════════════════ -#}}
+  <div id="ai-cards-wrap">
+    {{% for req in requests %}}
+    <div class="ai-card" data-name="{{{{ req.name }}}}" data-status="{{{{ req.status }}}}">
+      <input type="checkbox" class="ai-chk" value="{{{{ req.name }}}}">
+      <div class="ai-card-body">
+        <div class="ai-card-title">
+          <a href="/app/{{{{ req.doctype|lower|replace(' ','-') }}}}/{{{{ req.document_name }}}}" target="_blank">{{{{ req.document_name }}}}</a>
+          <span style="font-weight:400;color:#6b7280;font-size:11px"> — {{{{ req.doctype }}}}</span>
+        </div>
+        <div class="ai-card-meta">
+          Submitted by <strong>{{{{ req.submitted_by }}}}</strong> · {{{{ req.pending_since or req.creation }}}}
+          {{% if req.description %}} · {{{{ req.description }}}}{{% endif %}}
+        </div>
+        <div class="ai-card-footer">
+          <span class="ai-badge {{{{ req.status|lower }}}}">{{{{ req.status }}}}</span>
+          {{% if req.priority %}}
+          <span class="ai-priority {{{{ req.priority|lower }}}}">{{{{ req.priority }}}}</span>
+          {{% endif %}}
+          {{% if req.amount %}}
+          <span class="ai-amount">{{{{ frappe.format_value(req.amount, dict(fieldtype="Currency")) }}}}</span>
+          {{% endif %}}
+          <span class="ai-since">{{{{ req.workflow_state }}}}</span>
+          <div class="ai-actions">
+            <button class="ai-action-btn view"    onclick="ai_view('{{{{ req.doctype }}}}','{{{{ req.document_name }}}}')">View</button>
+            <button class="ai-action-btn approve" onclick="ai_action('{{{{ req.name }}}}','Approved')">Approve</button>
+            <button class="ai-action-btn reject"  onclick="ai_action('{{{{ req.name }}}}','Rejected')">Reject</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {{% else %}}
+    <div class="ai-empty">
+      <div style="font-size:3rem;margin-bottom:10px">✅</div>
+      <p>No pending approvals</p>
+    </div>
+    {{% endfor %}}
+  </div>
+
+</div>
+
+<script>
+/* ── Approval Inbox helpers ─────────────────────────────────────────────── */
+var _ai_status_filter = "all";
+function ai_filter_tab(btn) {{
+    document.querySelectorAll(".ai-tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    _ai_status_filter = btn.dataset.status;
+    ai_apply_filters();
+}}
+function ai_search() {{ ai_apply_filters(); }}
+function ai_apply_filters() {{
+    var q = document.getElementById("ai-search").value.toLowerCase();
+    document.querySelectorAll(".ai-card").forEach(c => {{
+        var statusOk = _ai_status_filter === "all" || c.dataset.status === _ai_status_filter;
+        var textOk   = !q || c.textContent.toLowerCase().includes(q);
+        c.style.display = statusOk && textOk ? "" : "none";
+    }});
+}}
+function ai_view(doctype, name) {{
+    frappe.set_route("Form", doctype, name);
+}}
+function ai_action(name, action) {{
+    frappe.call({{
+        method: "frappe.client.set_value",
+        args: {{ doctype:"Workflow Action", name:name, fieldname:"status", value:action }},
+        callback: () => {{
+            var card = document.querySelector(`.ai-card[data-name="${{name}}"]`);
+            if (card) {{ card.dataset.status = action; ai_apply_filters(); }}
+            frappe.show_alert("{{{{ action }}}} " + name, "green");
+        }}
+    }});
+}}
+function ai_batch(action) {{
+    var names = [...document.querySelectorAll(".ai-chk:checked")].map(c => c.value);
+    if (!names.length) {{ frappe.show_alert("Select records first", "orange"); return; }}
+    frappe.confirm(`${{action}} ${{names.length}} record(s)?`, () => {{
+        names.forEach(n => ai_action(n, action));
+    }});
+}}
+</script>
+'''
+
+
+def _desk_tpl_report_viewer(cc, title):
+    """Report Viewer — dynamic DocType selector, filter builder, paginated table, CSV export."""
+    return f'''<!-- ══ REPORT VIEWER DESK PRESET ═════════════════════════════════════════════
+     Python context keys expected:
+       report_title  str  — e.g. "Sales Invoice"
+       columns       list — {{fieldname, label, fieldtype}}
+       data          list — rows as dicts
+       total_count   int
+       page_no       int
+       limit         int
+     Pass filters from frontend via frappe.call args:
+       doctype, filters (JSON), sort_by, sort_order, limit, page_no
+═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root{{--rv-brand:#0369a1;--rv-light:#e0f2fe;--rv-dark:#0c4a6e;--rv-rad:10px;--rv-sh:0 4px 18px rgba(3,105,161,.10);}}
+  .rv-wrap{{font-family:inherit;padding:0 4px}}
+  .rv-toolbar{{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border-radius:var(--rv-rad);box-shadow:var(--rv-sh);padding:12px 16px;margin-bottom:14px}}
+  .rv-dt-inp{{padding:7px 10px;border:1px solid #bae6fd;border-radius:6px;font-size:12px;background:var(--rv-light);outline:none;width:180px}}
+  .rv-dt-inp:focus{{border-color:var(--rv-brand)}}
+  .rv-btn{{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:filter .15s}}
+  .rv-btn:hover{{filter:brightness(1.08)}}
+  .rv-btn.primary{{background:var(--rv-brand);color:#fff}}
+  .rv-btn.secondary{{background:var(--rv-light);color:var(--rv-dark)}}
+  .rv-btn.export{{background:#f0fdf4;color:#15803d}}
+  .rv-filters-wrap{{width:100%;display:none}}
+  .rv-filters-wrap.open{{display:block}}
+  .rv-filter-row{{display:flex;gap:6px;align-items:center;margin-bottom:6px}}
+  .rv-filter-row select,.rv-filter-row input{{padding:5px 8px;border:1px solid #bae6fd;border-radius:5px;font-size:11.5px;outline:none;background:var(--rv-light)}}
+  .rv-filter-row .rv-rm{{background:#fee2e2;color:#991b1b;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px}}
+  /* Table */
+  .rv-table-wrap{{background:#fff;border-radius:var(--rv-rad);box-shadow:var(--rv-sh);overflow:hidden}}
+  .rv-table-hdr{{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rv-light)}}
+  .rv-table-title{{font-weight:700;font-size:13px;color:var(--rv-dark)}}
+  .rv-count{{font-size:11px;color:#64748b}}
+  .rv-table{{width:100%;border-collapse:collapse;font-size:12px}}
+  .rv-table th{{background:var(--rv-light);color:var(--rv-dark);padding:9px 12px;text-align:left;font-weight:700;border-bottom:2px solid #bae6fd;cursor:pointer;white-space:nowrap}}
+  .rv-table th:hover{{background:#bae6fd}}
+  .rv-table th .sort-ico{{font-size:10px;margin-left:4px;opacity:.5}}
+  .rv-table td{{padding:8px 12px;border-bottom:1px solid #f0f9ff;white-space:nowrap;overflow:hidden;max-width:200px;text-overflow:ellipsis}}
+  .rv-table tr:hover td{{background:#f0f9ff}}
+  /* Pagination */
+  .rv-pagination{{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--rv-light)}}
+  .rv-pg-btn{{padding:5px 12px;border-radius:5px;border:1px solid #bae6fd;background:#fff;color:var(--rv-dark);font-size:12px;cursor:pointer;font-weight:700}}
+  .rv-pg-btn:hover{{background:var(--rv-light)}}
+  .rv-pg-btn:disabled{{opacity:.4;cursor:not-allowed}}
+  .rv-pg-info{{font-size:11.5px;color:#64748b;margin:0 6px}}
+  .rv-loading{{text-align:center;padding:30px;color:#94a3b8}}
+</style>
+
+<div class="rv-wrap">
+
+  {{#- ══ TOOLBAR ════════════════════════════════════════════════════════════ -#}}
+  <div class="rv-toolbar">
+    <input id="rv-doctype" class="rv-dt-inp" value="{{{{ report_title }}}}" placeholder="DocType">
+    <button class="rv-btn secondary" onclick="rv_toggle_filters()">🔽 Filters</button>
+    <button class="rv-btn primary"   onclick="rv_run()">▶ Run</button>
+    <button class="rv-btn export"    onclick="rv_export()">⬇ CSV</button>
+    <select id="rv-limit" style="padding:7px;border:1px solid #bae6fd;border-radius:6px;font-size:12px;background:var(--rv-light)">
+      <option>25</option><option selected>50</option><option>100</option><option>200</option>
+    </select>
+    <span class="rv-count" id="rv-total-label">{{{{ total_count }}}} records</span>
+  </div>
+
+  {{#- ══ FILTER BUILDER ════════════════════════════════════════════════════ -#}}
+  <div id="rv-filters-wrap" class="rv-filters-wrap" style="background:#fff;border-radius:var(--rv-rad);box-shadow:var(--rv-sh);padding:12px 16px;margin-bottom:14px">
+    <div id="rv-filter-rows"></div>
+    <button class="rv-btn secondary" onclick="rv_add_filter()" style="font-size:11px;padding:5px 10px">+ Add Filter</button>
+  </div>
+
+  {{#- ══ TABLE ══════════════════════════════════════════════════════════════ -#}}
+  <div class="rv-table-wrap">
+    <div class="rv-table-hdr">
+      <span class="rv-table-title" id="rv-tbl-title">{{{{ report_title }}}}</span>
+    </div>
+    <div id="rv-table-body">
+      <table class="rv-table" id="rv-table">
+        <thead>
+          <tr>
+            {{% for col in columns %}}
+            <th onclick="rv_sort('{{{{ col.fieldname }}}}')">
+              {{{{ col.label or col.fieldname }}}} <span class="sort-ico">↕</span>
+            </th>
+            {{% endfor %}}
+          </tr>
+        </thead>
+        <tbody id="rv-tbody">
+          {{% for row in data %}}
+          <tr>
+            {{% for col in columns %}}
+            <td title="{{{{ row[col.fieldname] }}}}">{{{{ row[col.fieldname] or "—" }}}}</td>
+            {{% endfor %}}
+          </tr>
+          {{% else %}}
+          <tr><td colspan="{{{{ columns|length or 1 }}}}" style="text-align:center;padding:30px;color:#94a3b8">No records.</td></tr>
+          {{% endfor %}}
+        </tbody>
+      </table>
+    </div>
+    <div class="rv-pagination">
+      <button class="rv-pg-btn" id="rv-prev" onclick="rv_page(-1)" {{% if page_no <= 1 %}}disabled{{% endif %}}>&lsaquo; Prev</button>
+      <span class="rv-pg-info" id="rv-pg-info">Page {{{{ page_no }}}} of {{{{ ((total_count / limit)|int + (1 if total_count % limit else 0)) or 1 }}}}</span>
+      <button class="rv-pg-btn" id="rv-next" onclick="rv_page(1)" {{% if (page_no * limit) >= total_count %}}disabled{{% endif %}}>Next &rsaquo;</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── Report Viewer ──────────────────────────────────────────────────────── */
+var _rv_page = {{{{ page_no }}}};
+var _rv_sort_by = "name", _rv_sort_ord = "desc";
+var _rv_filters = [];
+var _rv_method = "frappe_devkit.api.page_builder.get_{cc.replace("-","_")}";  // update to your fn
+
+function rv_toggle_filters() {{
+    var w = document.getElementById("rv-filters-wrap");
+    w.classList.toggle("open");
+    if (w.classList.contains("open") && !document.getElementById("rv-filter-rows").children.length)
+        rv_add_filter();
+}}
+function rv_add_filter() {{
+    var id = Date.now();
+    var row = document.createElement("div");
+    row.className = "rv-filter-row"; row.id = "rvf-" + id;
+    row.innerHTML = `<input placeholder="Field" style="width:130px">
+        <select><option>=</option><option>like</option><option>></option><option><</option><option>!=</option></select>
+        <input placeholder="Value" style="width:130px">
+        <button class="rv-rm" onclick="document.getElementById('rvf-${{id}}').remove()">✕</button>`;
+    document.getElementById("rv-filter-rows").appendChild(row);
+}}
+function rv_build_filters() {{
+    var rows = document.querySelectorAll("#rv-filter-rows .rv-filter-row");
+    var filters = [];
+    rows.forEach(r => {{
+        var inputs = r.querySelectorAll("input, select");
+        var field = inputs[0].value.trim(), op = inputs[1].value, val = inputs[2].value.trim();
+        if (field && val) filters.push([field, op, val]);
+    }});
+    return filters;
+}}
+function rv_run(page) {{
+    _rv_page = page || 1;
+    var dt = document.getElementById("rv-doctype").value.trim();
+    if (!dt) {{ frappe.show_alert("Enter DocType", "orange"); return; }}
+    document.getElementById("rv-table-body").innerHTML = '<div class="rv-loading">Loading…</div>';
+    frappe.call({{
+        method: _rv_method,
+        args: {{ doctype:dt, filters:JSON.stringify(rv_build_filters()),
+                 sort_by:_rv_sort_by, sort_order:_rv_sort_ord,
+                 limit:document.getElementById("rv-limit").value,
+                 page_no:_rv_page }},
+        callback: r => {{
+            if (r.message) $(page.main).html(r.message);
+        }}
+    }});
+}}
+function rv_sort(field) {{
+    if (_rv_sort_by === field) _rv_sort_ord = _rv_sort_ord === "asc" ? "desc" : "asc";
+    else {{ _rv_sort_by = field; _rv_sort_ord = "asc"; }}
+    rv_run(_rv_page);
+}}
+function rv_page(delta) {{ rv_run(_rv_page + delta); }}
+function rv_export() {{
+    var dt = document.getElementById("rv-doctype").value.trim();
+    if (!dt) {{ frappe.show_alert("Enter DocType", "orange"); return; }}
+    var params = new URLSearchParams({{ doctype:dt, file_type:"CSV",
+        cmd:"frappe.desk.reportview.export_query" }});
+    window.open("/api/method/frappe.desk.reportview.export_query?" + params);
+}}
+</script>
+'''
+
+
+def _desk_tpl_calendar_view(cc, title):
+    """Calendar View — month grid with colour-coded events, prev/next nav, event create."""
+    return f'''<!-- ══ CALENDAR VIEW DESK PRESET ═════════════════════════════════════════════
+     Python context keys expected:
+       current_month_name  str  — e.g. "March"
+       current_year        int
+       current_month       int  — 1..12
+       calendar_weeks      list — [[ {{day, date, events:[{{title,color,category}}]}} ]]
+     Navigation: reload page with ?year=&month= params
+     Event categories get their colour from event["color"] (CSS colour string)
+═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root{{--cal-brand:#9333ea;--cal-light:#f3e8ff;--cal-dark:#581c87;--cal-rad:10px;--cal-sh:0 4px 18px rgba(147,51,234,.10);}}
+  .cal-wrap{{font-family:inherit;padding:0 4px}}
+  .cal-header{{display:flex;align-items:center;gap:10px;background:#fff;border-radius:var(--cal-rad);box-shadow:var(--cal-sh);padding:12px 18px;margin-bottom:14px}}
+  .cal-nav-btn{{background:var(--cal-light);color:var(--cal-dark);border:none;border-radius:6px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer}}
+  .cal-nav-btn:hover{{background:#e9d5ff}}
+  .cal-title{{font-size:18px;font-weight:900;color:var(--cal-dark);flex:1;text-align:center}}
+  .cal-btn-today{{background:var(--cal-brand);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}}
+  .cal-grid-wrap{{background:#fff;border-radius:var(--cal-rad);box-shadow:var(--cal-sh);overflow:hidden}}
+  .cal-dow-row{{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:2px solid var(--cal-light)}}
+  .cal-dow{{padding:8px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--cal-dark);background:var(--cal-light)}}
+  .cal-week{{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #f3e8ff}}
+  .cal-week:last-child{{border-bottom:none}}
+  .cal-day{{min-height:90px;padding:6px;border-right:1px solid #f3e8ff;position:relative;vertical-align:top}}
+  .cal-day:last-child{{border-right:none}}
+  .cal-day.empty{{background:#fafafa}}
+  .cal-day.today .cal-day-num{{background:var(--cal-brand);color:#fff;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}}
+  .cal-day-num{{font-size:12px;font-weight:700;color:#374151;margin-bottom:4px;display:inline-block}}
+  .cal-day:hover{{background:#fdf4ff;cursor:pointer}}
+  .cal-event{{display:block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;color:#fff}}
+  .cal-more{{font-size:10px;color:var(--cal-brand);font-weight:700;cursor:pointer;padding-left:2px}}
+  .cal-legend{{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;background:#fff;border-radius:8px;padding:8px 14px;box-shadow:var(--cal-sh)}}
+  .cal-legend-item{{display:flex;align-items:center;gap:5px;font-size:11px;color:#374151}}
+  .cal-legend-dot{{width:10px;height:10px;border-radius:50%}}
+</style>
+
+<div class="cal-wrap">
+
+  {{#- ══ HEADER / NAV ══════════════════════════════════════════════════════ -#}}
+  <div class="cal-header">
+    <button class="cal-nav-btn" onclick="cal_nav(-1)">‹</button>
+    <span class="cal-title">{{{{ current_month_name }}}} {{{{ current_year }}}}</span>
+    <button class="cal-nav-btn" onclick="cal_nav(1)">›</button>
+    <button class="cal-btn-today" onclick="cal_today()">Today</button>
+    <button class="cal-btn-today" style="background:#f3e8ff;color:var(--cal-dark)" onclick="cal_add_event()">+ Event</button>
+  </div>
+
+  {{#- ══ GRID ════════════════════════════════════════════════════════════ -#}}
+  <div class="cal-grid-wrap">
+    <div class="cal-dow-row">
+      {{% for dow in ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] %}}
+      <div class="cal-dow">{{{{ dow }}}}</div>
+      {{% endfor %}}
+    </div>
+    {{% for week in calendar_weeks %}}
+    <div class="cal-week">
+      {{% for cell in week %}}
+      {{% if cell.day %}}
+      <div class="cal-day{{% if cell.date == frappe.utils.today() %}} today{{% endif %}}"
+           onclick="cal_day_click('{{{{ cell.date }}}}')">
+        <span class="cal-day-num">{{{{ cell.day }}}}</span>
+        {{% for ev in cell.events[:3] %}}
+        <span class="cal-event"
+              style="background:{{{{ ev.color or '#9333ea' }}}}"
+              title="{{{{ ev.title }}}}"
+              onclick="cal_event_click(event,'{{{{ ev.name or '' }}}}','{{{{ ev.category or '' }}}}')">
+          {{{{ ev.title }}}}
+        </span>
+        {{% endfor %}}
+        {{% if cell.events|length > 3 %}}
+        <span class="cal-more">+{{{{ cell.events|length - 3 }}}} more</span>
+        {{% endif %}}
+      </div>
+      {{% else %}}
+      <div class="cal-day empty"></div>
+      {{% endif %}}
+      {{% endfor %}}
+    </div>
+    {{% endfor %}}
+  </div>
+
+  {{#- ══ LEGEND ════════════════════════════════════════════════════════════ -#}}
+  <div class="cal-legend">
+    <span style="font-size:11px;font-weight:700;color:#374151;margin-right:4px">Categories:</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#9333ea"></span>Task</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#0369a1"></span>Event</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#15803d"></span>Holiday</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#dc2626"></span>Deadline</span>
+  </div>
+
+</div>
+
+<script>
+/* ── Calendar helpers ────────────────────────────────────────────────────── */
+var _cal_year  = {{{{ current_year }}}};
+var _cal_month = {{{{ current_month }}}};
+
+function cal_nav(delta) {{
+    _cal_month += delta;
+    if (_cal_month < 1)  {{ _cal_month = 12; _cal_year--; }}
+    if (_cal_month > 12) {{ _cal_month = 1;  _cal_year++; }}
+    window.location.search = `?year=${{_cal_year}}&month=${{_cal_month}}`;
+}}
+function cal_today() {{
+    var now = new Date();
+    window.location.search = `?year=${{now.getFullYear()}}&month=${{now.getMonth()+1}}`;
+}}
+function cal_day_click(date) {{
+    frappe.msgprint(`Date: ${{date}}`);
+}}
+function cal_event_click(ev, name, cat) {{
+    ev.stopPropagation();
+    if (name && cat) frappe.set_route("Form", cat, name);
+}}
+function cal_add_event() {{
+    frappe.prompt([
+        {{ label:"Title",    fieldtype:"Data", reqd:1 }},
+        {{ label:"Date",     fieldtype:"Date", reqd:1 }},
+        {{ label:"Category", fieldtype:"Select", options:"Task\\nEvent\\nHoliday\\nDeadline", default:"Task" }},
+    ], v => {{
+        frappe.call({{
+            method: "frappe.client.insert",
+            args: {{ doc: {{ doctype:"Task", subject:v.Title, exp_end_date:v.Date }} }},
+            callback: r => {{
+                frappe.show_alert("Event created: " + r.message.name, "green");
+                cal_today();
+            }}
+        }});
+    }}, "Add Event");
+}}
+</script>
+'''
+
+
+def _desk_tpl_audit_trail(cc, title):
+    """Audit Trail — filterable Version log with diff viewer and user filter."""
+    return f'''<!-- ══ AUDIT TRAIL DESK PRESET ═══════════════════════════════════════════════
+     Python context keys expected:
+       audit_logs  list — {{name, doctype, docname, user, timestamp, action, changes}}
+                          changes: [{{field, old, new}}]
+     Filters applied server-side by re-calling get_{cc.replace("-","_")}(user=, doctype=,
+       from_date=, to_date=, action=)
+═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root{{--at-brand:#374151;--at-light:#f3f4f6;--at-accent:#6b7280;--at-rad:10px;--at-sh:0 4px 18px rgba(55,65,81,.08);}}
+  .at-wrap{{font-family:inherit;padding:0 4px}}
+  .at-filters{{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border-radius:var(--at-rad);box-shadow:var(--at-sh);padding:12px 16px;margin-bottom:14px;align-items:flex-end}}
+  .at-filter-group{{display:flex;flex-direction:column;gap:3px}}
+  .at-label{{font-size:10.5px;font-weight:700;color:var(--at-accent)}}
+  .at-inp{{padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;background:var(--at-light)}}
+  .at-inp:focus{{border-color:var(--at-brand)}}
+  .at-btn{{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;border:none;cursor:pointer;align-self:flex-end}}
+  .at-btn.primary{{background:var(--at-brand);color:#fff}}
+  .at-btn.secondary{{background:var(--at-light);color:var(--at-brand)}}
+  /* Timeline */
+  .at-timeline{{position:relative;padding-left:28px}}
+  .at-timeline::before{{content:"";position:absolute;left:10px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,#e5e7eb,transparent)}}
+  .at-entry{{position:relative;margin-bottom:14px}}
+  .at-entry::before{{content:"";position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--at-brand);border:2px solid #fff;box-shadow:0 0 0 2px var(--at-brand)}}
+  .at-entry.create::before{{background:#15803d}}
+  .at-entry.delete::before{{background:#dc2626}}
+  .at-entry.update::before{{background:#0369a1}}
+  .at-card{{background:#fff;border-radius:var(--at-rad);box-shadow:var(--at-sh);padding:12px 16px;cursor:pointer;transition:box-shadow .15s}}
+  .at-card:hover{{box-shadow:0 6px 22px rgba(55,65,81,.14)}}
+  .at-card-hdr{{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}}
+  .at-action-badge{{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}}
+  .at-action-badge.create{{background:#dcfce7;color:#14532d}}
+  .at-action-badge.update{{background:#dbeafe;color:#1e3a5f}}
+  .at-action-badge.delete{{background:#fee2e2;color:#991b1b}}
+  .at-docname{{font-weight:700;font-size:13px;color:#1e1b3a}}
+  .at-doctype{{font-size:11px;color:#6b7280}}
+  .at-time{{font-size:10.5px;color:#9ca3af;margin-left:auto}}
+  .at-user{{font-size:11.5px;color:#374151}}
+  .at-changes{{margin-top:8px;display:none;border-top:1px solid #f3f4f6;padding-top:8px}}
+  .at-changes.open{{display:block}}
+  .at-change-row{{display:grid;grid-template-columns:140px 1fr 1fr;gap:6px;font-size:11px;padding:3px 0;border-bottom:1px solid #f9fafb}}
+  .at-change-field{{color:#6b7280;font-weight:700}}
+  .at-change-old{{color:#dc2626;text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+  .at-change-new{{color:#15803d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+  .at-empty{{text-align:center;padding:50px;color:#94a3b8}}
+  .at-expand{{font-size:10px;color:#6b7280;float:right;cursor:pointer;padding:0 4px}}
+</style>
+
+<div class="at-wrap">
+
+  {{#- ══ FILTERS ═══════════════════════════════════════════════════════════ -#}}
+  <div class="at-filters">
+    <div class="at-filter-group">
+      <label class="at-label">User</label>
+      <input id="at-user" class="at-inp" placeholder="user@example.com" style="width:160px">
+    </div>
+    <div class="at-filter-group">
+      <label class="at-label">DocType</label>
+      <input id="at-doctype" class="at-inp" placeholder="Sales Invoice" style="width:140px">
+    </div>
+    <div class="at-filter-group">
+      <label class="at-label">Action</label>
+      <select id="at-action" class="at-inp">
+        <option value="">All</option>
+        <option>Create</option><option>Update</option><option>Delete</option><option>Submit</option>
+      </select>
+    </div>
+    <div class="at-filter-group">
+      <label class="at-label">From</label>
+      <input id="at-from" type="date" class="at-inp">
+    </div>
+    <div class="at-filter-group">
+      <label class="at-label">To</label>
+      <input id="at-to" type="date" class="at-inp">
+    </div>
+    <button class="at-btn primary" onclick="at_run()">🔍 Search</button>
+    <button class="at-btn secondary" onclick="at_clear()">✕ Clear</button>
+  </div>
+
+  {{#- ══ TIMELINE ══════════════════════════════════════════════════════════ -#}}
+  <div class="at-timeline" id="at-timeline">
+    {{% for log in audit_logs %}}
+    <div class="at-entry {{{{ log.action|lower }}}}">
+      <div class="at-card" onclick="at_toggle('at-chg-{{{{ loop.index }}}}')">
+        <div class="at-card-hdr">
+          <span class="at-action-badge {{{{ log.action|lower }}}}">{{{{ log.action }}}}</span>
+          <span class="at-docname">{{{{ log.docname }}}}</span>
+          <span class="at-doctype">{{{{ log.doctype }}}}</span>
+          <span class="at-time">{{{{ log.timestamp }}}}</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="at-user">👤 {{{{ log.user }}}}</span>
+          {{% if log.changes %}}
+          <span style="font-size:10.5px;color:#6b7280">{{{{ log.changes|length }}}} field(s) changed <span class="at-expand">▼</span></span>
+          {{% endif %}}
+        </div>
+        {{% if log.changes %}}
+        <div id="at-chg-{{{{ loop.index }}}}" class="at-changes">
+          <div class="at-change-row" style="font-weight:700;color:#374151;border-bottom:2px solid #e5e7eb">
+            <span>Field</span><span>Before</span><span>After</span>
+          </div>
+          {{% for ch in log.changes %}}
+          <div class="at-change-row">
+            <span class="at-change-field">{{{{ ch.field }}}}</span>
+            <span class="at-change-old">{{{{ ch.old or "—" }}}}</span>
+            <span class="at-change-new">{{{{ ch.new or "—" }}}}</span>
+          </div>
+          {{% endfor %}}
+        </div>
+        {{% endif %}}
+      </div>
+    </div>
+    {{% else %}}
+    <div class="at-empty">
+      <div style="font-size:2.5rem;margin-bottom:10px">🔍</div>
+      <p>No audit logs found.</p>
+    </div>
+    {{% endfor %}}
+  </div>
+
+</div>
+
+<script>
+/* ── Audit Trail helpers ────────────────────────────────────────────────── */
+function at_toggle(id) {{
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle("open");
+}}
+function at_run() {{
+    var args = {{
+        user:      document.getElementById("at-user").value,
+        doctype:   document.getElementById("at-doctype").value,
+        action:    document.getElementById("at-action").value,
+        from_date: document.getElementById("at-from").value,
+        to_date:   document.getElementById("at-to").value,
+    }};
+    frappe.call({{
+        method: "frappe_devkit.api.page_builder.get_{cc.replace("-","_")}",  // update to your fn
+        args: args,
+        callback: r => {{ if (r.message) $(page.main).html(r.message); }}
+    }});
+}}
+function at_clear() {{
+    ["at-user","at-doctype","at-from","at-to"].forEach(id => document.getElementById(id).value="");
+    document.getElementById("at-action").value = "";
+    at_run();
+}}
+</script>
+'''
+
+
+def _desk_tpl_notification_center(cc, title):
+    """Notification Hub — grouped read/unread notifications with bulk mark-as-read."""
+    return f'''<!-- ══ NOTIFICATION CENTER DESK PRESET ═══════════════════════════════════════
+     Python context keys expected:
+       notification_groups  list — [{{date_label, items:[{{name,subject,type,is_read,
+                                      from_user,age,document_type,document_name}}]}}]
+       unread_count         int
+     Tab filter passed via frappe.call arg "tab" (all|unread|mentions|system|workflow)
+═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root{{--nc-brand:#b45309;--nc-light:#fef3c7;--nc-dark:#92400e;--nc-rad:10px;--nc-sh:0 4px 18px rgba(180,83,9,.10);}}
+  .nc-wrap{{font-family:inherit;padding:0 4px;max-width:820px}}
+  .nc-header{{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}}
+  .nc-title{{font-size:20px;font-weight:900;color:var(--nc-dark);flex:1}}
+  .nc-badge{{background:var(--nc-brand);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700}}
+  .nc-btn{{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;border:none;cursor:pointer}}
+  .nc-btn.primary{{background:var(--nc-brand);color:#fff}}
+  .nc-btn.secondary{{background:var(--nc-light);color:var(--nc-dark)}}
+  .nc-tabs{{display:flex;gap:4px;background:#fff;border-radius:var(--nc-rad);box-shadow:var(--nc-sh);padding:6px;margin-bottom:14px;flex-wrap:wrap}}
+  .nc-tab{{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent;color:#6b7280;transition:all .15s}}
+  .nc-tab.active,.nc-tab:hover{{background:var(--nc-brand);color:#fff}}
+  /* Groups */
+  .nc-group-label{{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--nc-dark);padding:6px 2px;margin-bottom:6px}}
+  /* Notification item */
+  .nc-item{{display:flex;gap:12px;align-items:flex-start;background:#fff;border-radius:8px;box-shadow:var(--nc-sh);padding:12px 14px;margin-bottom:8px;cursor:pointer;border-left:3px solid transparent;transition:all .15s}}
+  .nc-item:hover{{box-shadow:0 6px 22px rgba(180,83,9,.14);transform:translateX(2px)}}
+  .nc-item.unread{{border-left-color:var(--nc-brand);background:#fffbf0}}
+  .nc-item.read{{opacity:.75}}
+  .nc-icon{{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}}
+  .nc-icon.mention{{background:#dbeafe}}
+  .nc-icon.alert{{background:var(--nc-light)}}
+  .nc-icon.workflow{{background:#dcfce7}}
+  .nc-icon.default{{background:#f3f4f6}}
+  .nc-body{{flex:1}}
+  .nc-subject{{font-size:13px;font-weight:700;color:#1e1b3a;margin-bottom:3px}}
+  .nc-item.read .nc-subject{{font-weight:400}}
+  .nc-meta{{font-size:11px;color:#6b7280}}
+  .nc-from{{font-weight:600;color:#374151}}
+  .nc-actions{{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}}
+  .nc-age{{font-size:10px;color:#9ca3af;white-space:nowrap}}
+  .nc-mark-btn{{font-size:10px;color:var(--nc-brand);background:var(--nc-light);border:none;border-radius:4px;padding:3px 7px;cursor:pointer;white-space:nowrap}}
+  .nc-type-badge{{padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:700}}
+  .nc-type-badge.mention{{background:#dbeafe;color:#1e3a5f}}
+  .nc-type-badge.alert{{background:var(--nc-light);color:var(--nc-dark)}}
+  .nc-type-badge.workflow{{background:#dcfce7;color:#14532d}}
+  .nc-empty{{text-align:center;padding:50px;color:#94a3b8}}
+</style>
+
+<div class="nc-wrap">
+
+  {{#- ══ HEADER ════════════════════════════════════════════════════════════ -#}}
+  <div class="nc-header">
+    <span class="nc-title">🔔 Notifications</span>
+    {{% if unread_count %}}
+    <span class="nc-badge">{{{{ unread_count }}}} unread</span>
+    {{% endif %}}
+    <button class="nc-btn primary"   onclick="nc_mark_all()">✓ Mark all read</button>
+    <button class="nc-btn secondary" onclick="nc_reload()">↻ Refresh</button>
+  </div>
+
+  {{#- ══ TABS ══════════════════════════════════════════════════════════════ -#}}
+  <div class="nc-tabs">
+    <button class="nc-tab active" data-tab="all"      onclick="nc_tab(this)">All</button>
+    <button class="nc-tab"        data-tab="unread"   onclick="nc_tab(this)">Unread</button>
+    <button class="nc-tab"        data-tab="mentions" onclick="nc_tab(this)">@Mentions</button>
+    <button class="nc-tab"        data-tab="system"   onclick="nc_tab(this)">System</button>
+    <button class="nc-tab"        data-tab="workflow" onclick="nc_tab(this)">Workflow</button>
+  </div>
+
+  {{#- ══ NOTIFICATION GROUPS ═══════════════════════════════════════════════ -#}}
+  {{% if notification_groups %}}
+    {{% for group in notification_groups %}}
+    <div class="nc-group-label">{{{{ group.date_label }}}}</div>
+    {{% for n in group.items %}}
+    <div class="nc-item {{'unread' if not n.is_read else 'read'}}"
+         data-name="{{{{ n.name }}}}"
+         data-type="{{{{ n.type|lower }}}}"
+         onclick="nc_open('{{{{ n.document_type }}}}','{{{{ n.document_name }}}}','{{{{ n.name }}}}')">
+      <div class="nc-icon {{{{ 'mention' if n.type=='Mention' else 'workflow' if n.type=='Workflow Action' else 'alert' if n.type=='Alert' else 'default' }}}}">
+        {{% if n.type == 'Mention' %}}💬
+        {{% elif n.type == 'Workflow Action' %}}✅
+        {{% elif n.type == 'Alert' %}}⚠️
+        {{% else %}}🔔{{% endif %}}
+      </div>
+      <div class="nc-body">
+        <div class="nc-subject">{{{{ n.subject }}}}</div>
+        <div class="nc-meta">
+          From <span class="nc-from">{{{{ n.from_user or "System" }}}}</span>
+          {{% if n.document_type %}} · {{{{ n.document_type }}}}{{% endif %}}
+          {{% if n.document_name %}} — {{{{ n.document_name }}}}{{% endif %}}
+        </div>
+      </div>
+      <div class="nc-actions">
+        <span class="nc-age">{{{{ n.age or "" }}}}</span>
+        <span class="nc-type-badge {{{{ 'mention' if n.type=='Mention' else 'workflow' if n.type=='Workflow Action' else 'alert' }}}}">{{{{ n.type }}}}</span>
+        {{% if not n.is_read %}}
+        <button class="nc-mark-btn" onclick="nc_mark(event,'{{{{ n.name }}}}')">Mark read</button>
+        {{% endif %}}
+      </div>
+    </div>
+    {{% endfor %}}
+    {{% endfor %}}
+  {{% else %}}
+  <div class="nc-empty">
+    <div style="font-size:2.5rem;margin-bottom:10px">🔔</div>
+    <p>No notifications</p>
+  </div>
+  {{% endif %}}
+
+</div>
+
+<script>
+/* ── Notification Center helpers ────────────────────────────────────────── */
+function nc_tab(btn) {{
+    document.querySelectorAll(".nc-tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    var tab = btn.dataset.tab;
+    frappe.call({{
+        method: "frappe_devkit.api.page_builder.get_{cc.replace("-","_")}",  // update to your fn
+        args: {{ tab: tab }},
+        callback: r => {{ if (r.message) $(page.main).html(r.message); }}
+    }});
+}}
+function nc_open(doctype, docname, name) {{
+    // Mark as read then navigate
+    if (name) frappe.call({{ method:"frappe.client.set_value",
+        args:{{ doctype:"Notification Log", name:name, fieldname:"read", value:1 }} }});
+    if (doctype && docname) frappe.set_route("Form", doctype, docname);
+}}
+function nc_mark(ev, name) {{
+    ev.stopPropagation();
+    frappe.call({{
+        method: "frappe.client.set_value",
+        args: {{ doctype:"Notification Log", name:name, fieldname:"read", value:1 }},
+        callback: () => {{
+            var el = document.querySelector(`.nc-item[data-name="${{name}}"]`);
+            if (el) {{ el.classList.remove("unread"); el.classList.add("read"); }}
+            frappe.show_alert("Marked as read", "green");
+        }}
+    }});
+}}
+function nc_mark_all() {{
+    frappe.confirm("Mark all notifications as read?", () => {{
+        frappe.call({{
+            method: "frappe.client.set_value",
+            args: {{ doctype:"Notification Log", name:"all", fieldname:"read", value:1 }},
+            callback: () => {{
+                document.querySelectorAll(".nc-item.unread").forEach(el => {{
+                    el.classList.remove("unread"); el.classList.add("read");
+                    var btn = el.querySelector(".nc-mark-btn");
+                    if (btn) btn.remove();
+                }});
+                frappe.show_alert("All notifications marked as read", "green");
+            }}
+        }});
+    }});
+}}
+function nc_reload() {{ window.location.reload(); }}
+</script>
+'''
+
+
+def _desk_tpl_bulk_ops(cc, title):
+    """Bulk Operations — select-all table with action chooser and progress bar."""
+    return f'''<!-- ══ BULK OPS DESK PRESET ══════════════════════════════════════════════════
+     Python context keys expected:
+       records  list — {{name, status, owner, creation, grand_total}}
+     Action handler (server-side):
+       @frappe.whitelist()
+       def bulk_action_{cc.replace("-","_")}(**kwargs):
+           names  = frappe.parse_json(kwargs.get("names", "[]"))
+           action = kwargs.get("action")   # submit | cancel | delete | assign | export
+           ...
+═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  :root{{--bo-brand:#dc2626;--bo-light:#fee2e2;--bo-dark:#991b1b;--bo-rad:10px;--bo-sh:0 4px 18px rgba(220,38,38,.08);}}
+  .bo-wrap{{font-family:inherit;padding:0 4px}}
+  .bo-toolbar{{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border-radius:var(--bo-rad);box-shadow:var(--bo-sh);padding:12px 16px;margin-bottom:14px}}
+  .bo-search{{flex:1;min-width:160px;padding:7px 12px;border:1px solid #fecaca;border-radius:6px;font-size:12px;outline:none;background:#fff9f9}}
+  .bo-search:focus{{border-color:var(--bo-brand)}}
+  .bo-action-sel{{padding:7px 10px;border:1px solid #fecaca;border-radius:6px;font-size:12px;outline:none;background:#fff9f9;color:#374151}}
+  .bo-btn{{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:filter .15s}}
+  .bo-btn:hover{{filter:brightness(1.08)}}
+  .bo-btn.run{{background:var(--bo-brand);color:#fff}}
+  .bo-btn.run:disabled{{background:#fca5a5;cursor:not-allowed}}
+  .bo-btn.secondary{{background:var(--bo-light);color:var(--bo-dark)}}
+  .bo-selection-bar{{background:var(--bo-light);border:1px solid #fecaca;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;color:var(--bo-dark);display:none;align-items:center;gap:8px}}
+  .bo-selection-bar.visible{{display:flex}}
+  /* Table */
+  .bo-table-wrap{{background:#fff;border-radius:var(--bo-rad);box-shadow:var(--bo-sh);overflow:hidden}}
+  .bo-table{{width:100%;border-collapse:collapse;font-size:12px}}
+  .bo-table th{{background:var(--bo-light);color:var(--bo-dark);padding:9px 12px;text-align:left;font-weight:700;border-bottom:2px solid #fecaca}}
+  .bo-table th:first-child{{width:36px}}
+  .bo-table td{{padding:8px 12px;border-bottom:1px solid #fff5f5}}
+  .bo-table tr:hover td{{background:#fff9f9}}
+  .bo-table tr.selected td{{background:#fff5f5}}
+  .bo-chk{{accent-color:var(--bo-brand);width:15px;height:15px;cursor:pointer}}
+  .bo-status{{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}}
+  .bo-status.draft{{background:#f3f4f6;color:#374151}}
+  .bo-status.submitted{{background:#dcfce7;color:#14532d}}
+  .bo-status.cancelled{{background:#fee2e2;color:#991b1b}}
+  .bo-status.open{{background:#fef9c3;color:#713f12}}
+  /* Progress */
+  .bo-progress-wrap{{display:none;background:#fff;border-radius:var(--bo-rad);box-shadow:var(--bo-sh);padding:16px 18px;margin-top:14px}}
+  .bo-progress-wrap.visible{{display:block}}
+  .bo-prog-label{{font-size:12px;font-weight:700;color:var(--bo-dark);margin-bottom:8px}}
+  .bo-prog-bar-bg{{background:#fecaca;border-radius:6px;height:12px;overflow:hidden}}
+  .bo-prog-bar{{height:100%;background:var(--bo-brand);width:0%;border-radius:6px;transition:width .3s}}
+  .bo-prog-counts{{display:flex;gap:12px;margin-top:8px;font-size:11px}}
+  .bo-prog-success{{color:#15803d;font-weight:700}}
+  .bo-prog-fail{{color:#dc2626;font-weight:700}}
+  .bo-empty{{text-align:center;padding:40px;color:#94a3b8}}
+</style>
+
+<div class="bo-wrap">
+
+  {{#- ══ TOOLBAR ═══════════════════════════════════════════════════════════ -#}}
+  <div class="bo-toolbar">
+    <input class="bo-search" id="bo-search" placeholder="Search records…" oninput="bo_filter()">
+    <select id="bo-action" class="bo-action-sel">
+      <option value="">— choose action —</option>
+      <option value="submit">Submit</option>
+      <option value="cancel">Cancel</option>
+      <option value="delete">Delete</option>
+      <option value="assign">Assign</option>
+      <option value="export">Export CSV</option>
+    </select>
+    <button class="bo-btn run" id="bo-run-btn" onclick="bo_run()" disabled>▶ Run on Selected</button>
+    <button class="bo-btn secondary" onclick="bo_select_all()">Select All</button>
+    <button class="bo-btn secondary" onclick="bo_deselect_all()">Deselect All</button>
+  </div>
+
+  {{#- ══ SELECTION BAR ═════════════════════════════════════════════════════ -#}}
+  <div id="bo-selection-bar" class="bo-selection-bar">
+    <span id="bo-sel-count">0</span> record(s) selected
+    <button class="bo-btn secondary" style="padding:4px 10px;font-size:11px" onclick="bo_deselect_all()">✕ Clear</button>
+  </div>
+
+  {{#- ══ TABLE ══════════════════════════════════════════════════════════════ -#}}
+  <div class="bo-table-wrap">
+    <table class="bo-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" class="bo-chk" id="bo-chk-all" onchange="bo_toggle_all(this)"></th>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Owner</th>
+          <th>Amount</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody id="bo-tbody">
+        {{% for rec in records %}}
+        <tr id="bo-row-{{{{ rec.name }}}}" data-name="{{{{ rec.name }}}}">
+          <td><input type="checkbox" class="bo-chk bo-row-chk" value="{{{{ rec.name }}}}" onchange="bo_on_chk()"></td>
+          <td><a href="#" onclick="frappe.set_route('Form','{cc}','{{{{ rec.name }}}}');return false">{{{{ rec.name }}}}</a></td>
+          <td>
+            <span class="bo-status {{{{ 'submitted' if rec.docstatus==1 else 'cancelled' if rec.docstatus==2 else 'draft' }}}}">
+              {{{{ rec.status or ("Submitted" if rec.docstatus==1 else "Cancelled" if rec.docstatus==2 else "Draft") }}}}
+            </span>
+          </td>
+          <td>{{{{ rec.owner }}}}</td>
+          <td>{{{{ frappe.format_value(rec.grand_total, dict(fieldtype="Currency")) if rec.grand_total else "—" }}}}</td>
+          <td style="color:#6b7280;font-size:11px">{{{{ rec.creation }}}}</td>
+        </tr>
+        {{% else %}}
+        <tr><td colspan="6" class="bo-empty">No records.</td></tr>
+        {{% endfor %}}
+      </tbody>
+    </table>
+  </div>
+
+  {{#- ══ PROGRESS ══════════════════════════════════════════════════════════ -#}}
+  <div id="bo-progress-wrap" class="bo-progress-wrap">
+    <div class="bo-prog-label" id="bo-prog-label">Processing…</div>
+    <div class="bo-prog-bar-bg"><div class="bo-prog-bar" id="bo-prog-bar"></div></div>
+    <div class="bo-prog-counts">
+      <span class="bo-prog-success">✓ <span id="bo-prog-ok">0</span> succeeded</span>
+      <span class="bo-prog-fail">✗ <span id="bo-prog-fail">0</span> failed</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── Bulk Ops helpers ───────────────────────────────────────────────────── */
+function bo_get_selected() {{
+    return [...document.querySelectorAll(".bo-row-chk:checked")].map(c => c.value);
+}}
+function bo_on_chk() {{
+    var sel = bo_get_selected();
+    var selBar = document.getElementById("bo-selection-bar");
+    selBar.classList.toggle("visible", sel.length > 0);
+    document.getElementById("bo-sel-count").textContent = sel.length;
+    document.getElementById("bo-run-btn").disabled = sel.length === 0;
+}}
+function bo_toggle_all(chk) {{
+    document.querySelectorAll(".bo-row-chk").forEach(c => {{
+        var row = c.closest("tr");
+        if (row.style.display !== "none") {{ c.checked = chk.checked; }}
+    }});
+    bo_on_chk();
+}}
+function bo_select_all() {{
+    document.querySelectorAll(".bo-row-chk").forEach(c => c.checked = true);
+    document.getElementById("bo-chk-all").checked = true;
+    bo_on_chk();
+}}
+function bo_deselect_all() {{
+    document.querySelectorAll(".bo-row-chk, #bo-chk-all").forEach(c => c.checked = false);
+    bo_on_chk();
+}}
+function bo_filter() {{
+    var q = document.getElementById("bo-search").value.toLowerCase();
+    document.querySelectorAll("#bo-tbody tr").forEach(row => {{
+        row.style.display = !q || row.textContent.toLowerCase().includes(q) ? "" : "none";
+    }});
+}}
+function bo_run() {{
+    var names  = bo_get_selected();
+    var action = document.getElementById("bo-action").value;
+    if (!names.length) {{ frappe.show_alert("Select at least one record", "orange"); return; }}
+    if (!action)       {{ frappe.show_alert("Choose an action", "orange"); return; }}
+
+    frappe.confirm(`Run "${{action}}" on ${{names.length}} record(s)?`, () => {{
+        var prog = document.getElementById("bo-progress-wrap");
+        prog.classList.add("visible");
+        document.getElementById("bo-prog-bar").style.width = "0%";
+        document.getElementById("bo-prog-ok").textContent   = "0";
+        document.getElementById("bo-prog-fail").textContent = "0";
+
+        frappe.call({{
+            method: "frappe_devkit.api.page_builder.bulk_action_{cc.replace("-","_")}",  // update to your fn
+            args: {{ names: JSON.stringify(names), action: action }},
+            callback: r => {{
+                if (!r.message) return;
+                var ok   = (r.message.success || []).length;
+                var fail = (r.message.failed  || []).length;
+                document.getElementById("bo-prog-bar").style.width  = "100%";
+                document.getElementById("bo-prog-ok").textContent   = ok;
+                document.getElementById("bo-prog-fail").textContent = fail;
+                document.getElementById("bo-prog-label").textContent =
+                    `Done — ${{ok}} succeeded, ${{fail}} failed`;
+                if (ok)   frappe.show_alert(`${{ok}} record(s) processed`, "green");
+                if (fail) frappe.show_alert(`${{fail}} record(s) failed`, "red");
+                // Grey-out processed rows
+                (r.message.success || []).forEach(n => {{
+                    var row = document.getElementById("bo-row-" + n);
+                    if (row) row.style.opacity = ".4";
+                }});
+            }},
+            error: e => {{
+                document.getElementById("bo-prog-label").textContent = "Error: " + (e.message || "unknown");
+                document.getElementById("bo-prog-bar").style.background = "#dc2626";
+            }}
+        }});
+    }});
+}}
+</script>
+'''
+
+
 def _desk_tpl_template(page_name, title, preset='blank'):
     """Return rich commented Jinja2 HTML template for a desk page."""
     cc = page_name.replace("_", "-")
@@ -4660,6 +7954,34 @@ def _desk_tpl_template(page_name, title, preset='blank'):
         return _desk_tpl_split_explorer(cc, title)
     elif preset == 'adv_dashboard':
         return _desk_tpl_adv_dashboard(cc, title)
+    elif preset == 'dashboard':
+        return _desk_tpl_dashboard(cc, title)
+    elif preset == 'list_tool':
+        return _desk_tpl_list_tool(cc, title)
+    elif preset == 'form_tool':
+        return _desk_tpl_form_tool(cc, title)
+    elif preset == 'analytics':
+        return _desk_tpl_analytics(cc, title)
+    elif preset == 'settings':
+        return _desk_tpl_settings(cc, title)
+    elif preset == 'wizard':
+        return _desk_tpl_wizard(cc, title)
+    elif preset == 'kanban':
+        return _desk_tpl_kanban(cc, title)
+    elif preset == 'import_export':
+        return _desk_tpl_import_export(cc, title)
+    elif preset == 'approval_inbox':
+        return _desk_tpl_approval_inbox(cc, title)
+    elif preset == 'report_viewer':
+        return _desk_tpl_report_viewer(cc, title)
+    elif preset == 'calendar_view':
+        return _desk_tpl_calendar_view(cc, title)
+    elif preset == 'audit_trail':
+        return _desk_tpl_audit_trail(cc, title)
+    elif preset == 'notification_center':
+        return _desk_tpl_notification_center(cc, title)
+    elif preset == 'bulk_ops':
+        return _desk_tpl_bulk_ops(cc, title)
     # ── default blank template ────────────────────────────────────────────────
     css_class = cc
     return f'''{{#-
