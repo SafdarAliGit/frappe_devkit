@@ -145,36 +145,109 @@ def _generate_controller_py(doctype_name, is_submittable, is_child_table, is_tre
     return f"""import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, cint, nowdate
+from frappe.utils import flt, cint, nowdate, getdate, now_datetime
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# {doctype_name} — Controller
+# ════════════════════════════════════════════════════════════════════════════════
+# LIFECYCLE ORDER (happy path, no submit):
+#   before_insert → validate → after_insert → before_save → on_update
+#
+# VALIDATION PATTERNS:
+#   self.validate_unique_value()           # raises if duplicate
+#   frappe.throw(_("Error msg"))           # raise with translated message
+#   frappe.msgprint(_("Info msg"))         # non-blocking message
+#   self.flags.ignore_validate = True      # skip validate in code
+#
+# FIELD ACCESS:
+#   self.field_name                        # read/write any field
+#   self.get("field_name")                 # safe get (returns None if missing)
+#   self.set("field_name", value)          # safe set
+#   self.db_get("field_name")             # read directly from DB (avoids local cache)
+#
+# CHILD TABLE ROWS:
+#   for row in self.items: row.amount = row.qty * row.rate
+#   self.append("items", {{"item_code": "ITEM-001", "qty": 1}})
+#   self.set("items", [])  # clear all rows
+#
+# COMMON UTILITIES:
+#   frappe.db.get_value("DocType", name, "field")
+#   frappe.db.set_value("DocType", name, "field", value)
+#   frappe.get_doc("DocType", name)
+#   frappe.publish_realtime("event", payload, user=frappe.session.user)
+# ════════════════════════════════════════════════════════════════════════════════
 
 
 class {class_name}(Document):
 
 \tdef autoname(self):
+\t\t# Called before the document is named. Override to set self.name manually.
+\t\t# Example: self.name = frappe.generate_hash(length=10)
+\t\t# Example: self.name = f"{{self.series}}-{{getdate().year}}-{{self.customer[:4].upper()}}"
 \t\tpass
 
 \tdef before_insert(self):
+\t\t# Called before the record is inserted for the first time.
+\t\t# Good for setting computed defaults.
+\t\t# Example: self.posting_date = nowdate()
+\t\t# Example: self.status = "Draft"
 \t\tpass
 
 \tdef after_insert(self):
+\t\t# Called after successful INSERT. Use for side-effects like sending notifications.
+\t\t# Example: frappe.sendmail(recipients=[self.email], subject="Created", message="...")
+\t\t# Example: frappe.publish_realtime("{doctype_name.lower().replace(' ','_')}_created",
+\t\t#              {{"name": self.name}}, user=frappe.session.user)
 \t\tpass
 
 \tdef validate(self):
+\t\t# Called before every save (insert + update). Add business rule checks here.
+\t\t#
+\t\t# ── Required field check ────────────────────────────────────────────────
+\t\t# if not self.customer:
+\t\t#     frappe.throw(_("Customer is required"), title=_("Validation Error"))
+\t\t#
+\t\t# ── Date validation ─────────────────────────────────────────────────────
+\t\t# if self.end_date and self.start_date and getdate(self.end_date) < getdate(self.start_date):
+\t\t#     frappe.throw(_("End Date cannot be before Start Date"))
+\t\t#
+\t\t# ── Unique value check ───────────────────────────────────────────────────
+\t\t# existing = frappe.db.get_value("{doctype_name}", {{"email": self.email, "name": ["!=", self.name or ""]}})
+\t\t# if existing:
+\t\t#     frappe.throw(_("Email {{0}} is already used in {{1}}").format(self.email, existing))
+\t\t#
+\t\t# ── Child table aggregation ──────────────────────────────────────────────
+\t\t# self.total_amount = sum(flt(row.amount) for row in self.get("items") or [])
 \t\tpass
 
 \tdef before_save(self):
+\t\t# Called just before the database write (after validate).
+\t\t# Use for final computed fields or audit fields.
+\t\t# Example: self.last_modified_by = frappe.session.user
 \t\tpass
 
 \tdef on_update(self):
+\t\t# Called after every successful save.
+\t\t# Avoid heavy operations here — prefer after_insert for first-time logic.
+\t\t# Example: frappe.db.set_value("Related DocType", self.ref, "status", self.status)
 \t\tpass
 
 \tdef on_trash(self):
+\t\t# Called before the document is deleted. Raise an error to prevent deletion.
+\t\t# Example:
+\t\t# if frappe.db.count("Child DocType", {{"parent": self.name}}):
+\t\t#     frappe.throw(_("Cannot delete — has linked records"))
 \t\tpass
 
 \tdef after_delete(self):
+\t\t# Called after deletion. Clean up related records here.
+\t\t# Example: frappe.db.delete("Log Entry", {{"ref_name": self.name}})
 \t\tpass
 
 \tdef on_change(self):
+\t\t# Called whenever any field changes (even via set_value without a full save).
+\t\t# Use sparingly — prefer validate or on_update for most logic.
 \t\tpass
 {submit_block}{tree_block}
 """
@@ -209,22 +282,72 @@ def _generate_controller_js(doctype_name, is_submittable, is_child_table, built_
     return f"""// Copyright (c) 2025, Safdar and contributors
 // License: MIT
 
+// ════════════════════════════════════════════════════════════════════════════
+// {doctype_name} — Client-side Form Controller
+// ════════════════════════════════════════════════════════════════════════════
+// COMMON PATTERNS:
+//   frm.set_value("field", value)         — set a field value
+//   frm.get_field("field").df.hidden = 1; frm.refresh_field("field")  — hide a field
+//   frm.toggle_reqd("field", true)        — make a field required dynamically
+//   frm.add_custom_button(__("Label"), fn) — add button to header
+//   frm.set_indicator_formatter("field", fn) — color list view cells
+//
+// CALLING BACKEND:
+//   frappe.call({{
+//     method: "app.module.doctype.{doctype_name.lower().replace(' ','_')}.{doctype_name.lower().replace(' ','_')}.my_function",
+//     args: {{ name: frm.doc.name }},
+//     callback: r => {{ frm.reload_doc(); frappe.show_alert("Done", "green"); }}
+//   }});
+//
+// CHILD TABLE:
+//   frm.doc.items.forEach(row => {{ row.amount = row.qty * row.rate; }});
+//   frm.refresh_field("items");
+//   frappe.model.set_value(row.doctype, row.name, "field", value);
+// ════════════════════════════════════════════════════════════════════════════
+
 frappe.ui.form.on("{doctype_name}", {{
 
 \tsetup: function(frm) {{
+\t\t// Runs once when the form is first created in memory (before data loads).
+\t\t// Use for add_fetch, custom filters on Link fields, and one-time setup.
 {fetch_block}
+\t\t// ── Custom Link field filter ──────────────────────────────────────────
+\t\t// frm.set_query("item_code", function() {{
+\t\t//   return {{ filters: {{ "disabled": 0, "is_stock_item": 1 }} }};
+\t\t// }});
+\t\t// ── Child table link filter ───────────────────────────────────────────
+\t\t// frm.set_query("item_code", "items", function(doc, cdt, cdn) {{
+\t\t//   return {{ filters: {{ "item_group": doc.category }} }};
+\t\t// }});
 \t}},
 
 \trefresh: function(frm) {{
+\t\t// Runs every time the form is rendered (load, save, submit, etc.)
 \t\tif (frm.is_new()) {{
-\t\t\t// new document logic here
+\t\t\t// First render of a new unsaved document
+\t\t\t// frm.set_value("posting_date", frappe.datetime.get_today());
+\t\t\t// frm.set_value("status", "Draft");
 \t\t}}
+\t\t// ── Show/hide fields based on state ───────────────────────────────────
+\t\t// frm.toggle_display("section_files", frm.doc.status === "Open");
+\t\t// ── Custom action buttons ─────────────────────────────────────────────
+\t\t// if (!frm.is_new() && frm.doc.docstatus === 1) {{
+\t\t//   frm.add_custom_button(__("Generate Report"), function() {{
+\t\t//     frappe.call({{ method: "...", args: {{ name: frm.doc.name }},
+\t\t//       callback: r => window.open(r.message.url) }});
+\t\t//   }}, __("Actions"));
+\t\t// }}
 \t}},
 
 \tbefore_save: function(frm) {{
+\t\t// Client-side validation before the save request is sent.
+\t\t// Throw to prevent saving:
+\t\t// if (!frm.doc.customer) {{ frappe.throw(__("Customer is required")); }}
 \t}},
 
 \tafter_save: function(frm) {{
+\t\t// Runs after a successful save response from the server.
+\t\t// frappe.show_alert({{ message: __("Saved"), indicator: "green" }}, 3);
 \t}},
 {submit_block}
 {events_block}
@@ -237,17 +360,60 @@ def _generate_list_js(doctype_name):
     return f"""// Copyright (c) 2025, Safdar and contributors
 // License: MIT
 
+// ════════════════════════════════════════════════════════════════════════════
+// {doctype_name} — List View Settings
+// ════════════════════════════════════════════════════════════════════════════
+// HOW TO EXTEND:
+//   add_fields  — extra fields fetched for each row (use in get_indicator / formatters)
+//   get_indicator — returns [label, color, filter_string] to colorise status cells
+//   formatters  — custom cell renderers: {{ fieldname: (value, df, doc) => html }}
+//   button      — adds a button column: {{ show: (doc) => bool, get_label: () => str,
+//                   action: (doc) => void, perm: "write" }}
+//   onload      — fires once when the list loads; use to add filter shortcuts
+//   refresh     — fires on every list refresh
+// ════════════════════════════════════════════════════════════════════════════
+
 frappe.listview_settings["{doctype_name}"] = {{
 
+\t// Fetch extra fields not shown as columns but needed for indicators/formatters
 \tadd_fields: [],
+\t// add_fields: ["status", "grand_total", "customer"],
 
+\t// Return a [label, color, quick-filter] tuple to show a coloured status pill.
+\t// Colors: red, green, blue, orange, yellow, gray, darkgrey, purple, pink, cyan
 \tget_indicator: function(doc) {{
 \t\tif (doc.status === "Open")      return [__("Open"),      "blue",  "status,=,Open"];
 \t\tif (doc.status === "Completed") return [__("Completed"), "green", "status,=,Completed"];
 \t\tif (doc.status === "Cancelled") return [__("Cancelled"), "red",   "status,=,Cancelled"];
+\t\tif (doc.docstatus === 1)        return [__("Submitted"), "blue",  "docstatus,=,1"];
 \t}},
 
+\t// ── Custom cell formatters ─────────────────────────────────────────────
+\t// formatters: {{
+\t//   grand_total: (value, df, doc) =>
+\t//     `<span style="color:${{doc.outstanding_amount > 0 ? '#dc2626' : '#059669'}}">
+\t//        ${{frappe.format(value, df)}}</span>`,
+\t// }},
+
+\t// ── Row-level action button ────────────────────────────────────────────
+\t// button: {{
+\t//   show: (doc) => doc.status === "Open",
+\t//   get_label: () => __("Approve"),
+\t//   action: (doc) => {{
+\t//     frappe.call({{ method: "...", args: {{ name: doc.name }},
+\t//       callback: () => cur_list.refresh() }});
+\t//   }},
+\t//   perm: "write",
+\t// }},
+
 \tonload: function(listview) {{
+\t\t// Add sidebar filter shortcuts
+\t\t// listview.filter_area.add([["status", "=", "Open"]]);
+\t}},
+
+\trefresh: function(listview) {{
+\t\t// Runs on every list refresh — add custom header buttons here
+\t\t// listview.page.add_inner_button(__("Export All"), () => {{ ... }});
 \t}},
 
 }};

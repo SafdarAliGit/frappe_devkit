@@ -381,6 +381,22 @@ def scaffold_number_cards_batch(app_name, module_name, cards_json):
 
 
 # ─────────────────────────────────────────────────────────────────
+# FIXTURE RECORD LISTING (app-scoped)
+# ─────────────────────────────────────────────────────────────────
+@frappe.whitelist()
+def list_app_fixture_records(app_name, fixture_file):
+    """
+    Return records stored in an app's fixture JSON file.
+    fixture_file: bare filename, e.g. 'dashboard_chart' or 'number_card'
+      (with or without .json extension).
+    Returns list of dicts from the JSON array, or [] if file doesn't exist.
+    """
+    name = fixture_file.replace(".json", "")
+    path = os.path.join(get_app_path(app_name), app_name, "fixtures", f"{name}.json")
+    return read_json(path)
+
+
+# ─────────────────────────────────────────────────────────────────
 # SERVER SCRIPT
 # ─────────────────────────────────────────────────────────────────
 @frappe.whitelist()

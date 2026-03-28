@@ -859,6 +859,20 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 /* ═══ INLINE CODE ═══ */
 .dkst-code { font-family: 'Consolas','Courier New',monospace; font-size: 12px; background: #f0ecff; color: #5c4da8; padding: 1px 5px; border-radius: 3px; }
 
+/* ═══ FILE SIDE PANEL ═══ */
+.dkst-fp-wrap { display: flex; gap: 14px; align-items: flex-start; }
+.dkst-fp-main { flex: 1; min-width: 0; }
+.dkst-fp-side { width: 220px; flex-shrink: 0; }
+.dkst-fp-card { background: #f9f7ff; border: 1px solid #e0d8f8; border-radius: 8px; padding: 10px 12px; }
+.dkst-fp-title { font-size: 11px; font-weight: 700; color: #7a6ab8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+.dkst-fp-refresh { font-size: 12px; cursor: pointer; color: #9080b8; background: none; border: none; padding: 0 2px; }
+.dkst-fp-refresh:hover { color: #5c4da8; }
+.dkst-fp-empty { font-size: 11.5px; color: #b0a8d0; padding: 6px 0; }
+.dkst-fp-file { display: block; font-size: 11.5px; color: #5c4da8; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; transition: background .15s; }
+.dkst-fp-file:hover { background: #ede9fb; color: #3d2b8a; text-decoration: none; }
+.dkst-fp-file .dkst-fp-rel { font-size: 10px; color: #a090c8; display: block; }
+@media (max-width: 1100px) { .dkst-fp-wrap { flex-direction: column; } .dkst-fp-side { width: 100%; } }
+
 /* ═══ WIDGET PRESET PANELS (Number Card / Dashboard Chart) ═══ */
 .dkwc-action-bar {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -1468,7 +1482,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			});
 		});
 	}
-	function api(method, args, $t) {
+	function api(method, args, $t, done) {
 		$t.text(`▶  Calling ${method.split(".").pop()}() …`).removeClass("ok err");
 		frappe.call({ method, args,
 			callback: r => {
@@ -1492,6 +1506,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 					$t.text(out);
 					setStatus(`✓  ${m.message||"Done"}`);
 					frappe.show_alert({message:m.message||"Done",indicator:"green"});
+					if (typeof done === 'function') done(m);
 				} else if (m?.status==="exists") {
 					$t.text(`ℹ  ${m.message}`);
 				} else {
@@ -1758,6 +1773,79 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			${F("dt_so","Sort Field","text","modified")}
 		</div>`);
 		wireAMD($c1,"dt_app","dt_mod",null);
+
+		// ── Naming Rule → live hints + autoname auto-suggest ──────────────────
+		const _NR_META = {
+			'By fieldname': {
+				hint: '<b>By fieldname</b> — Frappe uses the value of a chosen field as the document name. Set <b>Autoname Pattern</b> to the fieldname (e.g. <code>title</code> or <code>email</code>). Best for documents where a natural unique field exists.',
+				patternFn: () => 'title',
+				needsPattern: true,
+			},
+			'By Naming Series field': {
+				hint: '<b>Naming Series</b> — A <code>naming_series</code> Select field in the form controls the prefix. Tokens: <code>YYYY</code> year · <code>MM</code> month · <code>DD</code> day · <code>.####</code> zero-padded counter · <code>.{fieldname}</code> field value. Example: <code>INV-.YYYY.-.####</code> → <em>INV-2025-0001</em>.',
+				patternFn: dtName => (dtName.substring(0,4).toUpperCase() || 'DOC') + '-.YYYY.-.####',
+				needsPattern: true,
+			},
+			'Autoincrement': {
+				hint: '<b>Autoincrement</b> — Names are plain integers 1, 2, 3 … Fastest option with no gaps. Leave <b>Autoname Pattern</b> blank.',
+				patternFn: () => '',
+				needsPattern: false,
+			},
+			'Expression': {
+				hint: '<b>Expression</b> — A Jinja expression evaluated at save time. Common patterns: <code>field:fieldname</code> · <code>hash</code> · <code>format:{field1}-{field2}</code>. Set <b>Autoname Pattern</b> to your expression.',
+				patternFn: () => 'format:{name_field}-{status}',
+				needsPattern: true,
+			},
+			'Random': {
+				hint: '<b>Random</b> — A random 10-character hash is generated. Good for external-facing IDs. Leave <b>Autoname Pattern</b> blank.',
+				patternFn: () => '',
+				needsPattern: false,
+			},
+			'Set by user': {
+				hint: '<b>Set by user</b> — The user manually types the document name. No auto-naming. Useful when names are externally assigned (e.g. PO reference from supplier).',
+				patternFn: () => '',
+				needsPattern: false,
+			},
+		};
+		const $nrHint = $('<div id="dt_nr_hint" style="font-size:11.5px;color:#5c4da8;background:#f3f0fb;border:1px solid #e0d4fc;border-radius:6px;padding:9px 13px;margin-top:6px;display:none;line-height:1.7"></div>')
+			.insertAfter($c1.find('#dt_nr').closest('.dkst-fld'));
+
+		function _refreshNrHint() {
+			const rule = $c1.find('#dt_nr').val();
+			const meta = _NR_META[rule];
+			if (!meta) { $nrHint.hide(); return; }
+			$nrHint.html(meta.hint).show();
+			const $auFld = $c1.find('#dt_au');
+			if (meta.needsPattern && !$auFld.val()) {
+				const dtName = ($c1.find('#dt_nm').val() || 'Doc').replace(/\s+/g,'');
+				const suggested = meta.patternFn(dtName);
+				if (suggested) $auFld.val(suggested).trigger('input');
+			} else if (!meta.needsPattern) {
+				if ($auFld.val() === ($auFld.attr('data-nr-auto') || '__none__')) $auFld.val('');
+			}
+		}
+		$c1.find('#dt_nr').on('change', function() {
+			const meta = _NR_META[this.value];
+			if (meta?.needsPattern) {
+				const dtName = ($c1.find('#dt_nm').val() || 'Doc').replace(/\s+/g,'');
+				const suggested = meta.patternFn(dtName);
+				$c1.find('#dt_au').attr('data-nr-auto', suggested).attr('placeholder', suggested || 'e.g. SINV-.YYYY.-.####');
+			} else {
+				$c1.find('#dt_au').attr('placeholder', 'Leave blank');
+			}
+			_refreshNrHint();
+		});
+		$c1.find('#dt_nm').on('input', function() {
+			const rule = $c1.find('#dt_nr').val();
+			const meta = _NR_META[rule];
+			if (meta?.needsPattern) {
+				const dtName = (this.value || 'Doc').replace(/\s+/g,'');
+				const suggested = meta.patternFn(dtName);
+				$c1.find('#dt_au').attr('placeholder', suggested || '').attr('data-nr-auto', suggested);
+			}
+		});
+		// Trigger once to initialise placeholder
+		$c1.find('#dt_nr').trigger('change');
 
 		const $c2=card($p,"Flags & Options");
 		$c2.append(`<div class="dkst-checks">
@@ -3330,9 +3418,127 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		}}]);
 	};
 
+	/* ──────────────────────────────────────────────────────────────────────────
+	   FILE SIDE PANEL HELPER
+	   _filePanel($p, patterns, appSelId) — wraps $p content in a two-column
+	   layout (main | side) and fills the side panel with clickable file links.
+	   Clicking a file opens a Monaco edit modal.  appSelId is the <select> whose
+	   value drives which app to scan (watched for changes automatically).
+	   ────────────────────────────────────────────────────────────────────────── */
+	function _filePanel($p, patterns, appSelId) {
+		// Wrap panel in flex layout
+		const $wrap = $('<div class="dkst-fp-wrap"></div>');
+		const $main = $('<div class="dkst-fp-main"></div>');
+		const $side = $('<div class="dkst-fp-side"></div>');
+		// Move all existing children into main
+		$p.children().appendTo($main);
+		$p.append($wrap);
+		$wrap.append($main).append($side);
+
+		// Build side card
+		const $fc = $('<div class="dkst-fp-card"></div>').appendTo($side);
+		const $ftitle = $(`<div class="dkst-fp-title">
+			<span>📁 Files</span>
+			<button class="dkst-fp-refresh" title="Refresh file list">↻</button>
+		</div>`).appendTo($fc);
+		const $flist = $('<div></div>').appendTo($fc);
+
+		function _loadFiles() {
+			const app = $(`#${appSelId}`).val();
+			if (!app) { $flist.html('<div class="dkst-fp-empty">Select an app first.</div>'); return; }
+			$flist.html('<div class="dkst-fp-empty">Loading…</div>');
+			frappe.call({
+				method: 'frappe_devkit.api.code_editor.list_matching_files',
+				args: { app_name: app, patterns_json: JSON.stringify(patterns) },
+				callback: r => {
+					const files = r.message || [];
+					$flist.empty();
+					if (!files.length) {
+						$flist.html('<div class="dkst-fp-empty">No files found yet.</div>');
+						return;
+					}
+					files.forEach(f => {
+						const $a = $(`<a class="dkst-fp-file" title="${frappe.utils.escape_html(f.path)}">
+							<span>${frappe.utils.escape_html(f.name)}</span>
+							<span class="dkst-fp-rel">${frappe.utils.escape_html(f.path)}</span>
+						</a>`).appendTo($flist);
+						$a.on('click', () => _openFileEditor(app, f));
+					});
+				},
+				error: () => $flist.html('<div class="dkst-fp-empty" style="color:#dc2626">Failed to load files.</div>'),
+			});
+		}
+
+		$ftitle.find('.dkst-fp-refresh').on('click', _loadFiles);
+		// Re-scan when app selector changes
+		$p.on('change', `#${appSelId}`, _loadFiles);
+		// Initial load after a tick (DOM is ready)
+		setTimeout(_loadFiles, 200);
+
+		// Return $main so panel builders can keep appending to it
+		return $main;
+	}
+
+	function _openFileEditor(app, file) {
+		const lang = file.name.endsWith('.py') ? 'python'
+		           : file.name.endsWith('.js') ? 'javascript'
+		           : file.name.endsWith('.html') ? 'html'
+		           : file.name.endsWith('.json') ? 'json'
+		           : file.name.endsWith('.txt') ? 'plaintext' : 'python';
+
+		const d = new frappe.ui.Dialog({
+			title: `Edit — ${file.path}`,
+			size: 'extra-large',
+		});
+		const $body = d.$wrapper.find('.modal-body').css({ padding: '0', overflow: 'hidden' });
+		const $mcDiv = $('<div style="height:520px;width:100%"></div>').appendTo($body);
+		const $status = $('<div style="font-size:11.5px;padding:6px 14px;color:#7a70a8;background:#f9f7ff;border-top:1px solid #e0d8f8"></div>').appendTo($body);
+		$status.text('Loading…');
+
+		let _editor = null;
+
+		d.set_primary_action('💾 Save', () => {
+			if (!_editor) return;
+			const content = _editor.getValue();
+			$status.text('Saving…').css('color','#5c4da8');
+			frappe.call({
+				method: 'frappe_devkit.api.code_editor.write_file',
+				args: { app_name: app, file_path: file.path, content },
+				callback: r => {
+					$status.text(`✓ Saved  •  ${file.path}  •  ${new Date().toLocaleTimeString()}`).css('color','#059669');
+					frappe.show_alert({ message: 'File saved', indicator: 'green' }, 3);
+				},
+				error: e => $status.text('Save failed: ' + (e.responseJSON?.exception || '')).css('color','#dc2626'),
+			});
+		});
+		d.set_secondary_action_label('Close');
+
+		d.show();
+
+		frappe.call({
+			method: 'frappe_devkit.api.code_editor.read_file',
+			args: { app_name: app, file_path: file.path },
+			callback: r => {
+				const data = r.message || {};
+				$status.text(`${file.path}  •  ${data.size ? (data.size/1024).toFixed(1)+' KB' : ''}`);
+				_mcLoad(() => {
+					_editor = _mcCreate($mcDiv, lang, data.content || '');
+					// Ctrl+S to save
+					_editor.addCommand(
+						_mcInstance.KeyMod.CtrlCmd | _mcInstance.KeyCode.KeyS,
+						() => d.get_primary_btn().trigger('click')
+					);
+				});
+			},
+			error: () => $status.text('Failed to read file').css('color','#dc2626'),
+		});
+	}
+
 	/* ── Hook ── */
 	PANELS.hook = function($p) {
 		$p.append(phdr("Add Hook","Register handlers in hooks.py — doc events, schedulers, overrides and more.",icoLink(20)));
+		// _filePanel wraps existing children into main column, returns $main
+		const $hookMain = _filePanel($p, ["**/hooks.py", "**/overrides/*.py"], "de_ap");
 		const $tabs=$(`<div class="dkst-stabs">
 			<div class="dkst-stab active" data-t="de">Doc Event</div>
 			<div class="dkst-stab" data-t="sc">Scheduler</div>
@@ -3340,8 +3546,8 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			<div class="dkst-stab" data-t="co">Class Override</div>
 			<div class="dkst-stab" data-t="pq">Permission Query</div>
 			<div class="dkst-stab" data-t="wm">Whitelist Method</div>
-		</div>`).appendTo($p);
-		const $pp=$(`<div></div>`).appendTo($p);
+		</div>`).appendTo($hookMain);
+		const $pp=$(`<div></div>`).appendTo($hookMain);
 
 		function mkSub(id) {
 			const $s=$(`<div class="dkst-spanel ${id==='de'?'active':''}" data-t="${id}"></div>`).appendTo($pp);
@@ -3441,10 +3647,11 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 	/* ── Override File ── */
 	PANELS.override = function($p) {
 		$p.append(phdr("Override File","Scaffold a Python override file in overrides/ with all event stubs ready to fill in.",icoCode(20)));
+		const $ovMain = _filePanel($p, ["**/overrides/*.py"], "ov_ap");
 		const EVTS=["validate","before_save","on_update","before_insert","after_insert",
 			"on_submit","before_submit","on_cancel","before_cancel","on_update_after_submit",
 			"on_trash","after_delete","has_permission","on_change","before_rename","after_rename"];
-		const $c=card($p,"Override File Details");
+		const $c=card($ovMain,"Override File Details");
 		$c.append(`<div class="dkst-g2">
 			${AppSel("ov_ap")}
 			${DtSel("ov_dt","DocType Name")}
@@ -3453,12 +3660,13 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		$c.append(`<div class="dkst-div"></div>`);
 		$c.append(secLbl("Events to include as function stubs"));
 		$c.append(`<div class="dkst-checks">${EVTS.map(e=>CHK("ov_"+e,e,["validate","before_save","on_submit","on_cancel"].includes(e)?1:0)).join("")}</div>`);
-		const $t=term($p);
-		btns($p,[
+		const $t=term($ovMain);
+		btns($ovMain,[
 			{ lbl:"Generate Override File", cls:"dkst-btn-p", fn:()=>{
 				const evts=EVTS.filter(e=>gc("ov_"+e));
 				if(!evts.length){frappe.throw("Select at least one event");return;}
-				api("frappe_devkit.api.hook_builder.scaffold_override_file",{app_name:gv("ov_ap"),doctype_name:gv("ov_dt"),events:JSON.stringify(evts)},$t);
+				api("frappe_devkit.api.hook_builder.scaffold_override_file",{app_name:gv("ov_ap"),doctype_name:gv("ov_dt"),events:JSON.stringify(evts)},$t,
+				() => $p.find(".dkst-fp-refresh").trigger("click"));
 			}},
 			{ lbl:"Select All", cls:"dkst-btn-s", fn:()=>EVTS.forEach(e=>$(`#ov_${e}`).prop("checked",true)) },
 			{ lbl:"Clear All",  cls:"dkst-btn-s", fn:()=>EVTS.forEach(e=>$(`#ov_${e}`).prop("checked",false)) },
@@ -3468,7 +3676,8 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 	/* ── Patch ── */
 	PANELS.patch = function($p) {
 		$p.append(phdr("Patch Builder","Scaffold a one-time migration patch registered in patches.txt.",icoBolt(20)));
-		$p.append(`<div class="dkst-info-box" style="margin:10px 0 4px;font-size:11.5px;line-height:1.7;background:#f7f4ff;border:1px solid #e0d8f8;border-radius:6px;padding:12px 14px">
+		const $paMain = _filePanel($p, ["**/patches.txt", "**/patches/*.py", "**/patches/**/*.py"], "pa_ap");
+		$paMain.append(`<div class="dkst-info-box" style="margin:10px 0 4px;font-size:11.5px;line-height:1.7;background:#f7f4ff;border:1px solid #e0d8f8;border-radius:6px;padding:12px 14px">
 			<b style="color:#5c4da8">📋 How Patches Work</b><br>
 			<ol style="margin:6px 0 0 16px;padding:0;color:#3a2e5e">
 				<li>Fill in <b>App</b>, <b>Patch Module</b> (e.g. <code>v1_0.add_status_field</code>), and optionally an <b>Execute Body</b>.</li>
@@ -3482,7 +3691,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				✔ Use version prefixes: <code>v1_0</code>, <code>v14_0</code>, etc.
 			</div>
 		</div>`);
-		const $c=card($p,"Patch Details");
+		const $c=card($paMain,"Patch Details");
 		$c.append(`<div class="dkst-g2">
 			${AppSel("pa_ap")}
 			${DotPathHtml("pa_mo","v1_0.set_default_fabric_type",{label:"Patch Module (dot path)",required:true,full:false})}
@@ -3508,18 +3717,20 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			const _paMc = _mcCreate($c.find('#pa_bd_mc'), 'python', '');
 			_paMc.onDidChangeModelContent(() => { $('#pa_bd').val(_paMc.getValue()); });
 		});
-		const $t=term($p);
-		btns($p,[{ lbl:"Generate Patch", cls:"dkst-btn-p", fn:()=>{
+		const $t=term($paMain);
+		btns($paMain,[{ lbl:"Generate Patch", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("pa_ap")||!gv("pa_mo")){frappe.throw("App and Patch Module required");return;}
-			api("frappe_devkit.api.patch_builder.scaffold_patch",{app_name:gv("pa_ap"),patch_module:gv("pa_mo"),description:gv("pa_de"),execute_body:gv("pa_bd")},$t);
+			api("frappe_devkit.api.patch_builder.scaffold_patch",{app_name:gv("pa_ap"),patch_module:gv("pa_mo"),description:gv("pa_de"),execute_body:gv("pa_bd")},$t,
+			() => $p.find(".dkst-fp-refresh").trigger("click"));
 		}}]);
 	};
 
 	/* ── Tasks / Scheduler ── */
 	PANELS.tasks = function($p) {
 		$p.append(phdr("Tasks / Scheduler","Scaffold tasks.py with all frequency stubs ready to implement.",icoClock(20)));
-		$p.append(info("Register task functions in hooks.py via the <b>Add Hook → Scheduler</b> panel after generating tasks.py."));
-		const $c=card($p,"Target App");
+		const $tkMain = _filePanel($p, ["**/tasks.py"], "tk_ap");
+		$tkMain.append(info("Register task functions in hooks.py via the <b>Add Hook → Scheduler</b> panel after generating tasks.py."));
+		const $c=card($tkMain,"Target App");
 		$c.append(`<div class="dkst-g2">${AppSel("tk_ap")}</div>`);
 		loadApps().then(()=>fillSel($c.find("#tk_ap"),_apps,"select app"));
 		$c.append(`<div class="dkst-div"></div>
@@ -3529,24 +3740,27 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			${CHK("tk_w","weekly",1)} ${CHK("tk_m","monthly",1)}
 			${CHK("tk_dl","daily_long")} ${CHK("tk_hl","hourly_long")} ${CHK("tk_wl","weekly_long")} ${CHK("tk_ml","monthly_long")}
 		</div>`);
-		const $t=term($p);
-		btns($p,[{ lbl:"Generate tasks.py", cls:"dkst-btn-p", fn:()=>{
+		const $t=term($tkMain);
+		btns($tkMain,[{ lbl:"Generate tasks.py", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("tk_ap")){frappe.throw("Select an app");return;}
-			api("frappe_devkit.api.patch_builder.scaffold_tasks_file",{app_name:gv("tk_ap")},$t);
+			api("frappe_devkit.api.patch_builder.scaffold_tasks_file",{app_name:gv("tk_ap")},$t,
+			() => $p.find(".dkst-fp-refresh").trigger("click"));
 		}}]);
 	};
 
 	/* ── Permissions ── */
 	PANELS.perms = function($p) {
 		$p.append(phdr("Permissions","Scaffold permissions.py with query conditions and has_permission stubs.",icoShield(20)));
-		$p.append(info("Register the generated functions in <span class='dkst-code'>hooks.py</span> under <span class='dkst-code'>permission_query_conditions</span> and <span class='dkst-code'>has_permission</span>."));
-		const $c=card($p,"Target App");
+		const $pmMain = _filePanel($p, ["**/permissions.py"], "pm_ap");
+		$pmMain.append(info("Register the generated functions in <span class='dkst-code'>hooks.py</span> under <span class='dkst-code'>permission_query_conditions</span> and <span class='dkst-code'>has_permission</span>."));
+		const $c=card($pmMain,"Target App");
 		$c.append(`<div class="dkst-g2">${AppSel("pm_ap")}</div>`);
 		loadApps().then(()=>fillSel($c.find("#pm_ap"),_apps,"select app"));
-		const $t=term($p);
-		btns($p,[{ lbl:"Generate permissions.py", cls:"dkst-btn-p", fn:()=>{
+		const $t=term($pmMain);
+		btns($pmMain,[{ lbl:"Generate permissions.py", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("pm_ap")){frappe.throw("Select an app");return;}
-			api("frappe_devkit.api.patch_builder.scaffold_permissions_file",{app_name:gv("pm_ap")},$t);
+			api("frappe_devkit.api.patch_builder.scaffold_permissions_file",{app_name:gv("pm_ap")},$t,
+			() => $p.find(".dkst-fp-refresh").trigger("click"));
 		}}]);
 	};
 
@@ -3873,13 +4087,140 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 
 		$p.append(phdr("Dashboard Chart","Scaffold Dashboard Chart fixtures for Frappe Desk dashboards — pick presets or configure manually.",icoChart(20)));
 
+		/* ── Two-column layout: main (forms) + side (listing) ── */
+		const $dcWrap = $('<div class="dkst-fp-wrap"></div>').appendTo($p);
+		const $dcMain = $('<div class="dkst-fp-main"></div>').appendTo($dcWrap);
+		const $dcSideCol = $('<div class="dkst-fp-side" style="width:240px"></div>').appendTo($dcWrap);
+
+		const $dcListCard = $('<div class="dkst-fp-card" style="position:sticky;top:10px;max-height:calc(100vh - 120px);overflow:hidden;display:flex;flex-direction:column"></div>').appendTo($dcSideCol);
+		$dcListCard.append(`<div class="dkst-fp-title">
+			<span>📈 Created Charts</span>
+			<button class="dkst-fp-refresh dkst-btn dkst-btn-s" id="dc-list-reload" style="font-size:11px;padding:2px 8px">↻</button>
+		</div>`);
+		$dcListCard.append(`<input id="dc-list-search" class="dkst-inp" style="font-size:11.5px;margin-bottom:8px" placeholder="Filter…">`);
+		const $dcListBody = $('<div id="dc-list-body" style="overflow-y:auto;flex:1"></div>').appendTo($dcListCard);
+
+		function _renderDcList(rows) {
+			$dcListBody.empty();
+			if (!rows.length) {
+				$dcListBody.html('<div class="dkst-fp-empty">No Dashboard Charts yet.</div>');
+				return;
+			}
+			rows.forEach(r => {
+				const $item = $(`<div style="padding:6px 4px;border-bottom:1px solid #ede9f8;cursor:pointer" class="dc-list-row">
+					<div style="display:flex;align-items:center;gap:6px;justify-content:space-between">
+						<div style="min-width:0">
+							<div style="font-size:12px;font-weight:600;color:#3d2b8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+								title="${frappe.utils.escape_html(r.name)}">${frappe.utils.escape_html(r.name)}</div>
+							<div style="font-size:10.5px;color:#9080b8">${frappe.utils.escape_html(r.document_type||'')} · ${frappe.utils.escape_html(r.chart_type||'')}</div>
+						</div>
+						<button class="dkst-btn dkst-btn-s" style="font-size:10px;padding:2px 7px;flex-shrink:0" data-dc-manage="${frappe.utils.escape_html(r.name)}">⚙</button>
+					</div>
+				</div>`).appendTo($dcListBody);
+				$item.on('click', function(e) {
+					if ($(e.target).is('button')) return;
+					_openDcManage(r);
+				});
+			});
+		}
+
+		function _openDcManage(r) {
+			const d = new frappe.ui.Dialog({
+				title: `Dashboard Chart — ${r.name}`,
+				size: 'large',
+			});
+			const $b = d.$wrapper.find('.modal-body').css('padding','16px');
+			$b.html(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:16px">
+				<div><span style="color:#9080b8">Name</span><br><b>${frappe.utils.escape_html(r.name)}</b></div>
+				<div><span style="color:#9080b8">Chart Type</span><br><b>${frappe.utils.escape_html(r.chart_type||'—')}</b></div>
+				<div><span style="color:#9080b8">DocType</span><br><b>${frappe.utils.escape_html(r.document_type||'—')}</b></div>
+				<div><span style="color:#9080b8">Visual Type</span><br><b>${frappe.utils.escape_html(r.type||'—')}</b></div>
+				<div><span style="color:#9080b8">Time Interval</span><br><b>${frappe.utils.escape_html(r.time_interval||'—')}</b></div>
+				<div><span style="color:#9080b8">Timespan</span><br><b>${frappe.utils.escape_html(r.timespan||'—')}</b></div>
+			</div>
+			<div style="display:flex;flex-wrap:wrap;gap:8px">
+				<button class="dkst-btn dkst-btn-p" id="dcm-open">📂 Open Form</button>
+				<button class="dkst-btn dkst-btn-s" id="dcm-preview">👁 Preview Chart</button>
+				<button class="dkst-btn dkst-btn-s" id="dcm-copy">📋 Copy Name</button>
+				<button class="dkst-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:12.5px;cursor:pointer" id="dcm-del">🗑 Delete</button>
+			</div>
+			<div id="dcm-status" style="margin-top:10px;font-size:12px;min-height:18px"></div>`);
+			$b.find('#dcm-open').on('click', () => {
+				d.hide();
+				setTimeout(() => frappe.set_route('Form', 'Dashboard Chart', r.name), 300);
+			});
+			$b.find('#dcm-preview').on('click', () => {
+				d.hide();
+				setTimeout(() => frappe.set_route('dashboard-chart', r.name), 300);
+			});
+			$b.find('#dcm-copy').on('click', () => {
+				frappe.utils.copy_to_clipboard(r.name);
+				$b.find('#dcm-status').text('✓ Copied to clipboard').css('color','#059669');
+			});
+			$b.find('#dcm-del').on('click', () => {
+				frappe.confirm(`Delete Dashboard Chart <b>${frappe.utils.escape_html(r.name)}</b>? This cannot be undone.`, () => {
+					frappe.call({
+						method: 'frappe.client.delete',
+						args: { doctype: 'Dashboard Chart', name: r.name },
+						callback: () => {
+							d.hide();
+							frappe.show_alert({ message: `Deleted: ${r.name}`, indicator: 'green' });
+							_loadDcList();
+						},
+						error: e => $b.find('#dcm-status').text('Delete failed: ' + (e.responseJSON?.exception || '')).css('color','#dc2626'),
+					});
+				});
+			});
+			d.show();
+		}
+
+		function _loadDcList() {
+			const app = $('#dc_ap').val();
+			if (!app) {
+				_dcListCache = [];
+				$dcListBody.html('<div class="dkst-fp-empty">Select an app to view its charts.</div>');
+				return;
+			}
+			$dcListBody.html('<div style="padding:12px 0;color:#9080b8;font-size:12px">Loading…</div>');
+			frappe.call({
+				method: 'frappe_devkit.api.advanced_builder.list_app_fixture_records',
+				args: { app_name: app, fixture_file: 'dashboard_chart' },
+				callback: r => {
+					const rows = (r.message || []).map(rec => ({
+						name: rec.name,
+						chart_type: rec.chart_type,
+						document_type: rec.document_type,
+						type: rec.type,
+						time_interval: rec.time_interval,
+						timespan: rec.timespan,
+					}));
+					_dcListCache = rows;
+					_renderDcList(rows);
+				},
+				error: () => $dcListBody.html('<div style="padding:10px;color:#dc2626;font-size:12px">Failed to load charts.</div>'),
+			});
+		}
+		let _dcListCache = [];
+		$dcSideCol.on('click', '[data-dc-manage]', function() {
+			const nm = $(this).data('dc-manage');
+			const r = _dcListCache.find(x => x.name === nm);
+			if (r) _openDcManage(r);
+		});
+		$('#dc-list-reload').on('click', _loadDcList);
+		$dcListCard.on('input', '#dc-list-search', function() {
+			const q = $(this).val().trim().toLowerCase();
+			_renderDcList(q ? _dcListCache.filter(r => r.name.toLowerCase().includes(q) || (r.document_type||'').toLowerCase().includes(q)) : _dcListCache);
+		});
+		_loadDcList();
+
 		/* ── App / Module ── */
-		const $cam = card($p, "App & Module");
+		const $cam = card($dcMain, "App & Module");
 		$cam.append(`<div class="dkst-g2">${AppSel("dc_ap")} ${ModSel("dc_mo")}</div>`);
-		wireAMD($p, "dc_ap", "dc_mo", "dc_dt");
+		wireAMD($dcMain, "dc_ap", "dc_mo", "dc_dt");
+		$dcMain.on('change', '#dc_ap', _loadDcList);
 
 		/* ── Preset Selector ── */
-		const $cp = card($p, "Dashboard Chart Presets");
+		const $cp = card($dcMain, "Dashboard Chart Presets");
 		$cp.append(info("Click to select • hold Shift to multi-select • click again to deselect. Apply auto-fills the form below for individual customisation."));
 
 		const $psw = $(`<div class="dkrb-preset-search-wrap">
@@ -3974,13 +4315,14 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				filters_json: p.filters_json||"[]",
 			}));
 			api("frappe_devkit.api.advanced_builder.scaffold_dashboard_charts_batch",
-				{ app_name: app, module_name: $("#dc_mo").val()||"", charts_json: JSON.stringify(charts) }, $t);
+				{ app_name: app, module_name: $("#dc_mo").val()||"", charts_json: JSON.stringify(charts) }, $t,
+				() => _loadDcList());
 		});
 
 		/* ── Customise / Single card form ── */
 		$cp.append(`<div style="margin-top:8px;text-align:right"><a href="#" id="dc-custom-skip" style="font-size:12px;color:#5c4da8;text-decoration:underline">Add custom chart ›</a></div>`);
-		$p.on('click','#dc-custom-skip',function(e){e.preventDefault();$dcCustomWrap.show();});
-		const $dcCustomWrap = $('<div style="display:none"></div>').appendTo($p);
+		$dcMain.on('click','#dc-custom-skip',function(e){e.preventDefault();$dcCustomWrap.show();});
+		const $dcCustomWrap = $('<div style="display:none"></div>').appendTo($dcMain);
 		const $cc = card($dcCustomWrap, "Customise & Add Single Chart");
 		$cc.append(`<div class="dkst-g2">
 			${FR("dc_nm","Chart Name","text","Monthly Sales")}
@@ -4011,7 +4353,7 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				group_by_type:$("#dc_gbt").val(), time_interval:$("#dc_ti").val(),
 				timespan:$("#dc_ts").val(), visual_type:$("#dc_vty").val(),
 				color:$('#dc_cl').val(), filters_json:$("#dc_fi").val()||"[]",
-			},$t);
+			},$t, () => _loadDcList());
 		}}]);
 	};
 
@@ -4178,13 +4520,138 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 
 		$p.append(phdr("Number Card","Scaffold Number Card fixtures — pick presets or configure a custom card.",icoHash(20)));
 
+		/* ── Two-column layout: main (forms) + side (listing) ── */
+		const $ncWrap = $('<div class="dkst-fp-wrap"></div>').appendTo($p);
+		const $ncMain = $('<div class="dkst-fp-main"></div>').appendTo($ncWrap);
+		const $ncSideCol = $('<div class="dkst-fp-side" style="width:240px"></div>').appendTo($ncWrap);
+
+		const $ncListCard = $('<div class="dkst-fp-card" style="position:sticky;top:10px;max-height:calc(100vh - 120px);overflow:hidden;display:flex;flex-direction:column"></div>').appendTo($ncSideCol);
+		$ncListCard.append(`<div class="dkst-fp-title">
+			<span>🔢 Created Cards</span>
+			<button class="dkst-fp-refresh dkst-btn dkst-btn-s" id="nc-list-reload" style="font-size:11px;padding:2px 8px">↻</button>
+		</div>`);
+		$ncListCard.append(`<input id="nc-list-search" class="dkst-inp" style="font-size:11.5px;margin-bottom:8px" placeholder="Filter…">`);
+		const $ncListBody = $('<div id="nc-list-body" style="overflow-y:auto;flex:1"></div>').appendTo($ncListCard);
+
+		function _renderNcList(rows) {
+			$ncListBody.empty();
+			if (!rows.length) {
+				$ncListBody.html('<div class="dkst-fp-empty">No Number Cards yet.</div>');
+				return;
+			}
+			rows.forEach(r => {
+				const $item = $(`<div style="padding:6px 4px;border-bottom:1px solid #ede9f8;cursor:pointer" class="nc-list-row">
+					<div style="display:flex;align-items:center;gap:6px;justify-content:space-between">
+						<div style="min-width:0">
+							<div style="font-size:12px;font-weight:600;color:#3d2b8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+								title="${frappe.utils.escape_html(r.name)}">${frappe.utils.escape_html(r.name)}</div>
+							<div style="font-size:10.5px;color:#9080b8">${frappe.utils.escape_html(r.document_type||'')} · ${frappe.utils.escape_html(r.function||'')}</div>
+						</div>
+						<button class="dkst-btn dkst-btn-s" style="font-size:10px;padding:2px 7px;flex-shrink:0" data-nc-manage="${frappe.utils.escape_html(r.name)}">⚙</button>
+					</div>
+				</div>`).appendTo($ncListBody);
+				$item.on('click', function(e) {
+					if ($(e.target).is('button')) return;
+					_openNcManage(r);
+				});
+			});
+		}
+
+		function _openNcManage(r) {
+			const d = new frappe.ui.Dialog({
+				title: `Number Card — ${r.name}`,
+				size: 'large',
+			});
+			const $b = d.$wrapper.find('.modal-body').css('padding','16px');
+			$b.html(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:16px">
+				<div><span style="color:#9080b8">Name</span><br><b>${frappe.utils.escape_html(r.name)}</b></div>
+				<div><span style="color:#9080b8">DocType</span><br><b>${frappe.utils.escape_html(r.document_type||'—')}</b></div>
+				<div><span style="color:#9080b8">Function</span><br><b>${frappe.utils.escape_html(r.function||'—')}</b></div>
+				<div><span style="color:#9080b8">Aggregate Field</span><br><b>${frappe.utils.escape_html(r.aggregate_function_based_on||'—')}</b></div>
+				<div><span style="color:#9080b8">Time Interval</span><br><b>${frappe.utils.escape_html(r.stats_time_interval||'—')}</b></div>
+				<div><span style="color:#9080b8">Color</span><br>
+					<span style="display:inline-block;width:18px;height:18px;border-radius:3px;background:${frappe.utils.escape_html(r.color||'#7c5cbf')};vertical-align:middle;margin-right:4px"></span>
+					${frappe.utils.escape_html(r.color||'—')}
+				</div>
+			</div>
+			<div style="display:flex;flex-wrap:wrap;gap:8px">
+				<button class="dkst-btn dkst-btn-p" id="ncm-open">📂 Open Form</button>
+				<button class="dkst-btn dkst-btn-s" id="ncm-copy">📋 Copy Name</button>
+				<button class="dkst-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:12.5px;cursor:pointer" id="ncm-del">🗑 Delete</button>
+			</div>
+			<div id="ncm-status" style="margin-top:10px;font-size:12px;min-height:18px"></div>`);
+			$b.find('#ncm-open').on('click', () => {
+				d.hide();
+				setTimeout(() => frappe.set_route('Form', 'Number Card', r.name), 300);
+			});
+			$b.find('#ncm-copy').on('click', () => {
+				frappe.utils.copy_to_clipboard(r.name);
+				$b.find('#ncm-status').text('✓ Copied to clipboard').css('color','#059669');
+			});
+			$b.find('#ncm-del').on('click', () => {
+				frappe.confirm(`Delete Number Card <b>${frappe.utils.escape_html(r.name)}</b>? This cannot be undone.`, () => {
+					frappe.call({
+						method: 'frappe.client.delete',
+						args: { doctype: 'Number Card', name: r.name },
+						callback: () => {
+							d.hide();
+							frappe.show_alert({ message: `Deleted: ${r.name}`, indicator: 'green' });
+							_loadNcList();
+						},
+						error: e => $b.find('#ncm-status').text('Delete failed: ' + (e.responseJSON?.exception || '')).css('color','#dc2626'),
+					});
+				});
+			});
+			d.show();
+		}
+
+		function _loadNcList() {
+			const app = $('#nc_ap').val();
+			if (!app) {
+				_ncListCache = [];
+				$ncListBody.html('<div class="dkst-fp-empty">Select an app to view its cards.</div>');
+				return;
+			}
+			$ncListBody.html('<div style="padding:12px 0;color:#9080b8;font-size:12px">Loading…</div>');
+			frappe.call({
+				method: 'frappe_devkit.api.advanced_builder.list_app_fixture_records',
+				args: { app_name: app, fixture_file: 'number_card' },
+				callback: r => {
+					const rows = (r.message || []).map(rec => ({
+						name: rec.name,
+						document_type: rec.document_type,
+						function: rec.function,
+						aggregate_function_based_on: rec.aggregate_function_based_on,
+						stats_time_interval: rec.stats_time_interval,
+						color: rec.color,
+					}));
+					_ncListCache = rows;
+					_renderNcList(rows);
+				},
+				error: () => $ncListBody.html('<div style="padding:10px;color:#dc2626;font-size:12px">Failed to load cards.</div>'),
+			});
+		}
+		let _ncListCache = [];
+		$ncSideCol.on('click', '[data-nc-manage]', function() {
+			const nm = $(this).data('nc-manage');
+			const r = _ncListCache.find(x => x.name === nm);
+			if (r) _openNcManage(r);
+		});
+		$('#nc-list-reload').on('click', _loadNcList);
+		$ncListCard.on('input', '#nc-list-search', function() {
+			const q = $(this).val().trim().toLowerCase();
+			_renderNcList(q ? _ncListCache.filter(r => r.name.toLowerCase().includes(q) || (r.document_type||'').toLowerCase().includes(q)) : _ncListCache);
+		});
+		_loadNcList();
+
 		/* ── App / Module ── */
-		const $cam = card($p, "App & Module");
+		const $cam = card($ncMain, "App & Module");
 		$cam.append(`<div class="dkst-g2">${AppSel("nc_ap")} ${ModSel("nc_mo")}</div>`);
-		wireAMD($p, "nc_ap", "nc_mo", "nc_dt");
+		wireAMD($ncMain, "nc_ap", "nc_mo", "nc_dt");
+		$ncMain.on('change', '#nc_ap', _loadNcList);
 
 		/* ── Preset Selector ── */
-		const $cp = card($p, "Number Card Presets");
+		const $cp = card($ncMain, "Number Card Presets");
 		$cp.append(info("Click cards to select • click again to deselect. Use Scaffold All Selected to create multiple cards at once."));
 
 		$cp.append(`<div class="dkrb-preset-search-wrap">
@@ -4268,13 +4735,14 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				filters_json: p.filters_json||"[]", color: p.color_hex||"#5c4da8",
 			}));
 			api("frappe_devkit.api.advanced_builder.scaffold_number_cards_batch",
-				{ app_name: app, module_name: $("#nc_mo").val()||"", cards_json: JSON.stringify(cards) }, $t);
+				{ app_name: app, module_name: $("#nc_mo").val()||"", cards_json: JSON.stringify(cards) }, $t,
+				() => _loadNcList());
 		});
 
 		/* ── Customise / single card form ── */
 		$cp.append(`<div style="margin-top:8px;text-align:right"><a href="#" id="nc-custom-skip" style="font-size:12px;color:#5c4da8;text-decoration:underline">Add custom card ›</a></div>`);
-		const $ncCustomWrap = $('<div style="display:none"></div>').appendTo($p);
-		$p.on('click','#nc-custom-skip',function(e){e.preventDefault();$ncCustomWrap.show();});
+		const $ncCustomWrap = $('<div style="display:none"></div>').appendTo($ncMain);
+		$ncMain.on('click','#nc-custom-skip',function(e){e.preventDefault();$ncCustomWrap.show();});
 		const $cc = card($ncCustomWrap, "Customise & Add Single Card");
 		$cc.append(`<div class="dkst-g2">
 			${FR("nc_nm","Card Name","text","Total Open Orders")}
@@ -4298,14 +4766,130 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 				function:$("#nc_fn").val(), aggregate_function_based_on:$("#nc_af").val(),
 				stats_time_interval:$("#nc_si").val()||"Monthly",
 				filters_json:$("#nc_fi").val()||"[]", color:$('#nc_cl').val(),
-			},$t);
+			},$t, () => _loadNcList());
 		}}]);
 	};
 
 	/* ── Notification ── */
 	PANELS.notification = function($p) {
 		$p.append(phdr("Notification","Scaffold a Frappe Notification fixture — email, system or Slack alerts.",icoBell(20)));
-		const $c1=card($p,"Notification Settings");
+
+		/* ── Two-column layout: main (forms) + side (listing) ── */
+		const $ntWrap = $('<div class="dkst-fp-wrap"></div>').appendTo($p);
+		const $ntMain = $('<div class="dkst-fp-main"></div>').appendTo($ntWrap);
+		const $ntSideCol = $('<div class="dkst-fp-side" style="width:240px"></div>').appendTo($ntWrap);
+
+		const $ntListCard = $('<div class="dkst-fp-card" style="position:sticky;top:10px;max-height:calc(100vh - 120px);overflow:hidden;display:flex;flex-direction:column"></div>').appendTo($ntSideCol);
+		$ntListCard.append(`<div class="dkst-fp-title">
+			<span>🔔 Notifications</span>
+			<button class="dkst-fp-refresh dkst-btn dkst-btn-s" id="nt-list-reload" style="font-size:11px;padding:2px 8px">↻</button>
+		</div>`);
+		$ntListCard.append(`<input id="nt-list-search" class="dkst-inp" style="font-size:11.5px;margin-bottom:8px" placeholder="Filter…">`);
+		const $ntListBody = $('<div id="nt-list-body" style="overflow-y:auto;flex:1"></div>').appendTo($ntListCard);
+
+		function _renderNtList(rows) {
+			$ntListBody.empty();
+			if (!rows.length) {
+				$ntListBody.html('<div class="dkst-fp-empty">No Notifications yet.</div>');
+				return;
+			}
+			rows.forEach(r => {
+				const $item = $(`<div style="padding:6px 4px;border-bottom:1px solid #ede9f8;cursor:pointer" class="nt-list-row">
+					<div style="display:flex;align-items:center;gap:6px;justify-content:space-between">
+						<div style="min-width:0">
+							<div style="font-size:12px;font-weight:600;color:#3d2b8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+								title="${frappe.utils.escape_html(r.name)}">${frappe.utils.escape_html(r.name)}</div>
+							<div style="font-size:10.5px;color:#9080b8">${frappe.utils.escape_html(r.document_type||'')} · ${frappe.utils.escape_html(r.channel||'')}</div>
+						</div>
+						<button class="dkst-btn dkst-btn-s" style="font-size:10px;padding:2px 7px;flex-shrink:0" data-nt-manage="${frappe.utils.escape_html(r.name)}">⚙</button>
+					</div>
+				</div>`).appendTo($ntListBody);
+				$item.on('click', function(e) {
+					if ($(e.target).is('button')) return;
+					_openNtManage(r);
+				});
+			});
+		}
+
+		function _openNtManage(r) {
+			const d = new frappe.ui.Dialog({ title: `Notification — ${r.name}`, size: 'large' });
+			const $b = d.$wrapper.find('.modal-body').css('padding','16px');
+			$b.html(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:16px">
+				<div><span style="color:#9080b8">Name</span><br><b>${frappe.utils.escape_html(r.name)}</b></div>
+				<div><span style="color:#9080b8">DocType</span><br><b>${frappe.utils.escape_html(r.document_type||'—')}</b></div>
+				<div><span style="color:#9080b8">Event</span><br><b>${frappe.utils.escape_html(r.event||'—')}</b></div>
+				<div><span style="color:#9080b8">Channel</span><br><b>${frappe.utils.escape_html(r.channel||'—')}</b></div>
+			</div>
+			<div style="display:flex;flex-wrap:wrap;gap:8px">
+				<button class="dkst-btn dkst-btn-p" id="ntm-open">📂 Open Form</button>
+				<button class="dkst-btn dkst-btn-s" id="ntm-copy">📋 Copy Name</button>
+				<button class="dkst-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:12.5px;cursor:pointer" id="ntm-del">🗑 Delete</button>
+			</div>
+			<div id="ntm-status" style="margin-top:10px;font-size:12px;min-height:18px"></div>`);
+			$b.find('#ntm-open').on('click', () => {
+				d.hide();
+				setTimeout(() => frappe.set_route('Form', 'Notification', r.name), 300);
+			});
+			$b.find('#ntm-copy').on('click', () => {
+				frappe.utils.copy_to_clipboard(r.name);
+				$b.find('#ntm-status').text('✓ Copied to clipboard').css('color','#059669');
+			});
+			$b.find('#ntm-del').on('click', () => {
+				frappe.confirm(`Delete Notification <b>${frappe.utils.escape_html(r.name)}</b>? This cannot be undone.`, () => {
+					frappe.call({
+						method: 'frappe.client.delete',
+						args: { doctype: 'Notification', name: r.name },
+						callback: () => {
+							d.hide();
+							frappe.show_alert({ message: `Deleted: ${r.name}`, indicator: 'green' });
+							_loadNtList();
+						},
+						error: e => $b.find('#ntm-status').text('Delete failed: ' + (e.responseJSON?.exception || '')).css('color','#dc2626'),
+					});
+				});
+			});
+			d.show();
+		}
+
+		function _loadNtList() {
+			const app = $('#nt_ap').val();
+			if (!app) {
+				_ntListCache = [];
+				$ntListBody.html('<div class="dkst-fp-empty">Select an app to view its notifications.</div>');
+				return;
+			}
+			$ntListBody.html('<div style="padding:12px 0;color:#9080b8;font-size:12px">Loading…</div>');
+			frappe.call({
+				method: 'frappe_devkit.api.advanced_builder.list_app_fixture_records',
+				args: { app_name: app, fixture_file: 'notification' },
+				callback: r => {
+					const rows = (r.message || []).map(rec => ({
+						name: rec.name,
+						document_type: rec.document_type,
+						event: rec.event,
+						channel: rec.channel,
+					}));
+					_ntListCache = rows;
+					_renderNtList(rows);
+				},
+				error: () => $ntListBody.html('<div style="padding:10px;color:#dc2626;font-size:12px">Failed to load notifications.</div>'),
+			});
+		}
+		let _ntListCache = [];
+		$ntSideCol.on('click', '[data-nt-manage]', function() {
+			const nm = $(this).data('nt-manage');
+			const r = _ntListCache.find(x => x.name === nm);
+			if (r) _openNtManage(r);
+		});
+		$('#nt-list-reload').on('click', _loadNtList);
+		$ntListCard.on('input', '#nt-list-search', function() {
+			const q = $(this).val().trim().toLowerCase();
+			_renderNtList(q ? _ntListCache.filter(r => r.name.toLowerCase().includes(q) || (r.document_type||'').toLowerCase().includes(q)) : _ntListCache);
+		});
+		_loadNtList();
+
+		/* ── Form ── */
+		const $c1=card($ntMain,"Notification Settings");
 		$c1.append(`<div class="dkst-g2">
 			${AppSel("nt_ap")}
 			${FR("nt_nm","Notification Name","text","New Sales Order Alert")}
@@ -4315,28 +4899,145 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 			${F("nt_cd","Condition (Python)","text","doc.grand_total > 100000")}
 		</div>`);
 		wireAD($c1,"nt_ap","nt_dt");
+		$ntMain.on('change', '#nt_ap', _loadNtList);
 
-		const $c2=card($p,"Email Content");
+		const $c2=card($ntMain,"Email Content");
 		$c2.append(`<div class="dkst-fld" style="margin-bottom:12px"><label class="dkst-lbl">Subject</label>
 			<input class="dkst-inp" id="nt_su" placeholder="[{{ doc.doctype }}] {{ doc.name }} has been submitted"></div>`);
 		$c2.append(`<div class="dkst-fld"><label class="dkst-lbl">Message (HTML / Jinja2)</label></div>`);
 		makeHtmlEditor($c2,'nt_ms',`<h3>{{ doc.name }}</h3>\n<p>Document has been {{ doc.docstatus == 1 and 'submitted' or 'saved' }}.</p>\n<table border="1" cellpadding="5">\n  <tr><td>Customer</td><td>{{ doc.customer }}</td></tr>\n  <tr><td>Amount</td><td>{{ doc.grand_total }}</td></tr>\n</table>\n<p><a href="{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}">View in ERPNext</a></p>`);
 
-		const $t=term($p);
-		btns($p,[{ lbl:"Add Notification", cls:"dkst-btn-p", fn:()=>{
+		const $t=term($ntMain);
+		btns($ntMain,[{ lbl:"Add Notification", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("nt_ap")||!gv("nt_nm")||!gv("nt_dt")){frappe.throw("App, Name and DocType required");return;}
 			api("frappe_devkit.api.advanced_builder.scaffold_notification",{
 				app_name:gv("nt_ap"),notification_name:gv("nt_nm"),doctype:gv("nt_dt"),
 				event:gv("nt_ev"),condition:gv("nt_cd"),channel:gv("nt_ch"),
 				subject:gv("nt_su"),message:gv("nt_ms"),
-			},$t);
+			},$t, _loadNtList);
 		}}]);
 	};
 
 	/* ── Server Script ── */
 	PANELS.server_script = function($p) {
 		$p.append(phdr("Server Script","Create a Server Script fixture — runs Python on DocType events, schedule or as API.",icoTerminal(20)));
-		const $c=card($p,"Script Configuration");
+
+		/* ── Two-column layout: main (forms) + side (listing) ── */
+		const $ssWrap = $('<div class="dkst-fp-wrap"></div>').appendTo($p);
+		const $ssMain = $('<div class="dkst-fp-main"></div>').appendTo($ssWrap);
+		const $ssSideCol = $('<div class="dkst-fp-side" style="width:240px"></div>').appendTo($ssWrap);
+
+		const $ssListCard = $('<div class="dkst-fp-card" style="position:sticky;top:10px;max-height:calc(100vh - 120px);overflow:hidden;display:flex;flex-direction:column"></div>').appendTo($ssSideCol);
+		$ssListCard.append(`<div class="dkst-fp-title">
+			<span>📜 Server Scripts</span>
+			<button class="dkst-fp-refresh dkst-btn dkst-btn-s" id="ss-list-reload" style="font-size:11px;padding:2px 8px">↻</button>
+		</div>`);
+		$ssListCard.append(`<input id="ss-list-search" class="dkst-inp" style="font-size:11.5px;margin-bottom:8px" placeholder="Filter…">`);
+		const $ssListBody = $('<div id="ss-list-body" style="overflow-y:auto;flex:1"></div>').appendTo($ssListCard);
+
+		function _renderSsList(rows) {
+			$ssListBody.empty();
+			if (!rows.length) {
+				$ssListBody.html('<div class="dkst-fp-empty">No Server Scripts yet.</div>');
+				return;
+			}
+			rows.forEach(r => {
+				const $item = $(`<div style="padding:6px 4px;border-bottom:1px solid #ede9f8;cursor:pointer" class="ss-list-row">
+					<div style="display:flex;align-items:center;gap:6px;justify-content:space-between">
+						<div style="min-width:0">
+							<div style="font-size:12px;font-weight:600;color:#3d2b8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+								title="${frappe.utils.escape_html(r.name)}">${frappe.utils.escape_html(r.name)}</div>
+							<div style="font-size:10.5px;color:#9080b8">${frappe.utils.escape_html(r.script_type||'')} · ${frappe.utils.escape_html(r.reference_doctype||'')}</div>
+						</div>
+						<button class="dkst-btn dkst-btn-s" style="font-size:10px;padding:2px 7px;flex-shrink:0" data-ss-manage="${frappe.utils.escape_html(r.name)}">⚙</button>
+					</div>
+				</div>`).appendTo($ssListBody);
+				$item.on('click', function(e) {
+					if ($(e.target).is('button')) return;
+					_openSsManage(r);
+				});
+			});
+		}
+
+		function _openSsManage(r) {
+			const d = new frappe.ui.Dialog({ title: `Server Script — ${r.name}`, size: 'large' });
+			const $b = d.$wrapper.find('.modal-body').css('padding','16px');
+			$b.html(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:16px">
+				<div><span style="color:#9080b8">Name</span><br><b>${frappe.utils.escape_html(r.name)}</b></div>
+				<div><span style="color:#9080b8">Script Type</span><br><b>${frappe.utils.escape_html(r.script_type||'—')}</b></div>
+				<div><span style="color:#9080b8">DocType</span><br><b>${frappe.utils.escape_html(r.reference_doctype||'—')}</b></div>
+				<div><span style="color:#9080b8">Event</span><br><b>${frappe.utils.escape_html(r.doctype_event||'—')}</b></div>
+			</div>
+			<div style="display:flex;flex-wrap:wrap;gap:8px">
+				<button class="dkst-btn dkst-btn-p" id="ssm-open">📂 Open Form</button>
+				<button class="dkst-btn dkst-btn-s" id="ssm-copy">📋 Copy Name</button>
+				<button class="dkst-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:12.5px;cursor:pointer" id="ssm-del">🗑 Delete</button>
+			</div>
+			<div id="ssm-status" style="margin-top:10px;font-size:12px;min-height:18px"></div>`);
+			$b.find('#ssm-open').on('click', () => {
+				d.hide();
+				setTimeout(() => frappe.set_route('Form', 'Server Script', r.name), 300);
+			});
+			$b.find('#ssm-copy').on('click', () => {
+				frappe.utils.copy_to_clipboard(r.name);
+				$b.find('#ssm-status').text('✓ Copied to clipboard').css('color','#059669');
+			});
+			$b.find('#ssm-del').on('click', () => {
+				frappe.confirm(`Delete Server Script <b>${frappe.utils.escape_html(r.name)}</b>? This cannot be undone.`, () => {
+					frappe.call({
+						method: 'frappe.client.delete',
+						args: { doctype: 'Server Script', name: r.name },
+						callback: () => {
+							d.hide();
+							frappe.show_alert({ message: `Deleted: ${r.name}`, indicator: 'green' });
+							_loadSsList();
+						},
+						error: e => $b.find('#ssm-status').text('Delete failed: ' + (e.responseJSON?.exception || '')).css('color','#dc2626'),
+					});
+				});
+			});
+			d.show();
+		}
+
+		function _loadSsList() {
+			const app = $('#ss_ap').val();
+			if (!app) {
+				_ssListCache = [];
+				$ssListBody.html('<div class="dkst-fp-empty">Select an app to view its server scripts.</div>');
+				return;
+			}
+			$ssListBody.html('<div style="padding:12px 0;color:#9080b8;font-size:12px">Loading…</div>');
+			frappe.call({
+				method: 'frappe_devkit.api.advanced_builder.list_app_fixture_records',
+				args: { app_name: app, fixture_file: 'server_script' },
+				callback: r => {
+					const rows = (r.message || []).map(rec => ({
+						name: rec.name,
+						script_type: rec.script_type,
+						reference_doctype: rec.reference_doctype,
+						doctype_event: rec.doctype_event,
+					}));
+					_ssListCache = rows;
+					_renderSsList(rows);
+				},
+				error: () => $ssListBody.html('<div style="padding:10px;color:#dc2626;font-size:12px">Failed to load server scripts.</div>'),
+			});
+		}
+		let _ssListCache = [];
+		$ssSideCol.on('click', '[data-ss-manage]', function() {
+			const nm = $(this).data('ss-manage');
+			const r = _ssListCache.find(x => x.name === nm);
+			if (r) _openSsManage(r);
+		});
+		$('#ss-list-reload').on('click', _loadSsList);
+		$ssListCard.on('input', '#ss-list-search', function() {
+			const q = $(this).val().trim().toLowerCase();
+			_renderSsList(q ? _ssListCache.filter(r => r.name.toLowerCase().includes(q) || (r.script_type||'').toLowerCase().includes(q)) : _ssListCache);
+		});
+		_loadSsList();
+
+		/* ── Form ── */
+		const $c=card($ssMain,"Script Configuration");
 		$c.append(`<div class="dkst-g2">
 			${AppSel("ss_ap")}
 			${FR("ss_nm","Script Name","text","My Server Script")}
@@ -4355,6 +5056,7 @@ if doc.status == "Open":
 frappe.msgprint(f"Processed {doc.name}")</textarea>
 		</div>`);
 		wireAD($c,"ss_ap","ss_dt");
+		$ssMain.on('change', '#ss_ap', _loadSsList);
 
 		// Auto-update script template when type changes
 		$c.find("#ss_ty").on("change",function(){
@@ -4368,13 +5070,13 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			if(tpl) $("#ss_sc").val(tpl);
 		});
 
-		const $t=term($p);
-		btns($p,[{ lbl:"Add Server Script", cls:"dkst-btn-p", fn:()=>{
+		const $t=term($ssMain);
+		btns($ssMain,[{ lbl:"Add Server Script", cls:"dkst-btn-p", fn:()=>{
 			if(!gv("ss_ap")||!gv("ss_nm")){frappe.throw("App and Script Name required");return;}
 			api("frappe_devkit.api.advanced_builder.scaffold_server_script",{
 				app_name:gv("ss_ap"),script_type:gv("ss_ty"),name:gv("ss_nm"),
 				doctype:gv("ss_dt"),event:gv("ss_ev"),script:gv("ss_sc"),
-			},$t);
+			},$t, _loadSsList);
 		}}]);
 	};
 
@@ -5088,7 +5790,8 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		'frappe_devkit.api.site_manager.clear_site_cache':   (a) => `bench --site ${a.site||'<site>'} clear-cache`,
 		'frappe_devkit.api.site_manager.clear_website_cache':(a) => `bench --site ${a.site||'<site>'} clear-website-cache`,
 		'frappe_devkit.api.site_manager.backup_site':        (a) => `bench --site ${a.site||'<site>'} backup${a.with_files?' --with-files':''}${a.compress?' --compress':''}`,
-		'frappe_devkit.api.site_manager.restore_site':       (a) => `bench --site ${a.site||'<site>'} restore ${a.backup_file||'<db-file>'}${a.with_private_files?' --with-private-files '+a.with_private_files:''}${a.with_public_files?' --with-public-files '+a.with_public_files:''}${a.admin_password?' --admin-password <pwd>':''}${parseInt(a.force)?' --force':''}`,
+		'frappe_devkit.api.site_manager.restore_site':       (a) => `bench --site ${a.site||'<site>'} restore ${a.backup_file||'<db-file>'}${a.with_private_files?' --with-private-files '+a.with_private_files:''}${a.with_public_files?' --with-public-files '+a.with_public_files:''}${a.admin_password?' --admin-password <pwd>':''}${a.db_root_password?' --db-root-password <root-pwd>':''}${parseInt(a.force)?' --force':''}`,
+	'frappe_devkit.api.site_manager.clear_restore_lock': (a) => `rm -f sites/${a.site||'<site>'}/locks/site_restore.lock`,
 		'frappe_devkit.api.site_manager.create_site':        (a) => `bench new-site ${a.site||'<site>'} --admin-password <pwd> --db-type ${a.db_type||'mariadb'}`,
 		'frappe_devkit.api.site_manager.drop_site':          (a) => `bench drop-site ${a.site||'<site>'}${a.force?' --force':''}`,
 		'frappe_devkit.api.site_manager.set_admin_password': (a) => `bench --site ${a.site||'<site>'} set-admin-password <new-password>`,
@@ -5261,7 +5964,54 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 	// ── Backup & Restore ──────────────────────────────────
 	PANELS.site_backup = function($p) {
 		$p.append(phdr('Backup & Restore', 'Take, schedule and restore site backups via bench commands.', icoSave(20)));
-		$p.append(info('Backups stored in <span class="dkst-code">sites/&lt;site&gt;/private/backups/</span>. Click a backup row to auto-fill the Restore form.'));
+
+		// ── Quick-start guide ──────────────────────────────────────────────────
+		const $guide = smCard($p, '📖 Backup & Restore Guide');
+		$guide.append(`<div style="font-size:12.5px;line-height:1.8;color:#3a2e5e">
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;margin-bottom:14px">
+				<div>
+					<div style="font-weight:700;color:#5c4da8;margin-bottom:6px">🔒 How to Back Up</div>
+					<ol style="margin:0;padding-left:18px;color:#555">
+						<li>Select a site in <b>Take Backup</b></li>
+						<li>Tick <b>Include uploaded files</b> for full backup</li>
+						<li>Click <b>Take Backup Now</b></li>
+						<li>Open <b>Browse Backups</b> → click <b>⬇ DB</b> to download to your computer</li>
+					</ol>
+				</div>
+				<div>
+					<div style="font-weight:700;color:#c0392b;margin-bottom:6px">♻ How to Restore</div>
+					<ol style="margin:0;padding-left:18px;color:#555">
+						<li>In <b>Browse Backups</b> click <b>Select ↓</b> — auto-fills the Restore form</li>
+						<li><em>Or</em> upload files via <b>Upload Backup Files</b> first, then Browse</li>
+						<li>Optionally set a new admin password</li>
+						<li>Check the confirmation box and click <b>Restore Site</b></li>
+					</ol>
+				</div>
+			</div>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+				<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px">
+					<div style="font-weight:700;color:#15803d;margin-bottom:4px">⏰ Scheduled Backups (CLI)</div>
+					<div style="font-family:monospace;font-size:11.5px;color:#166534;line-height:1.9">
+						bench --site &lt;site&gt; backup --with-files<br>
+						# Add to crontab for daily backups:<br>
+						0 2 * * * /path/to/env/bin/bench --site &lt;site&gt; backup --with-files --compress
+					</div>
+				</div>
+				<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:10px 12px">
+					<div style="font-weight:700;color:#c2410c;margin-bottom:4px">⚠ Before You Restore</div>
+					<ul style="margin:0;padding-left:16px;color:#7c2d12;font-size:12px;line-height:1.8">
+						<li>Always take a fresh backup of the target site first</li>
+						<li>Restore <b>overwrites all current data</b> — cannot be undone</li>
+						<li>Match Frappe/app versions between backup and target</li>
+						<li>Run <code>bench migrate</code> after restore if versions differ</li>
+					</ul>
+				</div>
+			</div>
+			<div style="margin-top:10px;font-size:11.5px;color:#9080b8">
+				<b>Backup files:</b> <code>sites/&lt;site&gt;/private/backups/</code> &nbsp;·&nbsp;
+				<b>Format:</b> <code>&lt;timestamp&gt;-&lt;site&gt;-database.sql.gz</code> (DB) · <code>-files.tar</code> (public) · <code>-private-files.tar</code> (private)
+			</div>
+		</div>`);
 
 		// shared backup list cache per site (key = site name, value = array of backup objects)
 		const _bkCache = {};
@@ -5348,14 +6098,45 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			<label class="dkst-chk"><input type="checkbox" id="bk-verbose"><span>Verbose output</span></label>
 		</div>`);
 		const $t1 = smTerm($p);
-		smBtns($bc, [{ lbl: 'Take Backup Now', cls: 'dkst-btn-p', fn: () => {
-			const site = $bkSite.val();
-			if (!site) { frappe.throw('Select a site'); return; }
-			smApi('frappe_devkit.api.site_manager.backup_site', {
-				site, with_files: $('#bk-files').is(':checked') ? 1 : 0,
-				compress: $('#bk-comp').is(':checked') ? 1 : 0,
-			}, $t1);
-		}}]);
+		smBtns($bc, [
+			{ lbl: 'Take Backup Now', cls: 'dkst-btn-p', fn: () => {
+				const site = $bkSite.val();
+				if (!site) { frappe.throw('Select a site'); return; }
+				smApi('frappe_devkit.api.site_manager.backup_site', {
+					site, with_files: $('#bk-files').is(':checked') ? 1 : 0,
+					compress: $('#bk-comp').is(':checked') ? 1 : 0,
+				}, $t1);
+			}},
+			{ lbl: '⬇ Backup & Download DB', cls: 'dkst-btn-s', title: 'Take backup then immediately download the database file', fn: () => {
+				const site = $bkSite.val();
+				if (!site) { frappe.throw('Select a site'); return; }
+				frappe.show_alert({ message: 'Taking backup…', indicator: 'blue' }, 3);
+				frappe.call({
+					method: 'frappe_devkit.api.site_manager.backup_site',
+					args: { site, with_files: 0, compress: 1 },
+					callback: r => {
+						if (r.message?.ok) {
+							// Re-fetch latest backup list and download the newest DB file
+							frappe.call({
+								method: 'frappe_devkit.api.site_manager.list_backups',
+								args: { site },
+								callback: r2 => {
+									const dbFiles = (r2.message?.backups || []).filter(b => b.type === 'database');
+									if (dbFiles.length) {
+										_downloadBackup(site, dbFiles[0].name);
+										frappe.show_alert({ message: 'Download started — check your browser downloads', indicator: 'green' }, 5);
+									} else {
+										frappe.show_alert({ message: 'Backup taken but no file found to download', indicator: 'orange' }, 5);
+									}
+								}
+							});
+						} else {
+							frappe.show_alert({ message: 'Backup failed — see output above', indicator: 'red' }, 4);
+						}
+					}
+				});
+			}},
+		]);
 
 		// ── Browse & List Backups ──────────────────────────────────
 		const $lc = smCard($p, 'Browse Backups');
@@ -5381,18 +6162,47 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 				frappe.show_alert({ message: 'Backup selected — review the Restore form below.', indicator: 'green' }, 4);
 			});
 		});
-		smBtns($lc, [{ lbl: '↻ Refresh List', cls: 'dkst-btn-s', fn: () => {
-			const site = $blSite.val();
-			if (!site) { frappe.throw('Select a site first'); return; }
-			loadBkList(site, $blRes, g => {
-				$rsSite.val(site).trigger('change');
-				$('#rs-file').val(g.db ? g.db.path : '');
-				$('#rs-priv').val(g.priv ? g.priv.path : '');
-				$('#rs-pub').val(g.pub ? g.pub.path : '');
-				$p.closest('.dkst-panel-area').animate({ scrollTop: $rc.offset().top }, 400);
-				frappe.show_alert({ message: 'Backup selected — review the Restore form below.', indicator: 'green' }, 4);
-			});
-		}}]);
+		smBtns($lc, [
+			{ lbl: '↻ Refresh List', cls: 'dkst-btn-s', fn: () => {
+				const site = $blSite.val();
+				if (!site) { frappe.throw('Select a site first'); return; }
+				loadBkList(site, $blRes, g => {
+					$rsSite.val(site).trigger('change');
+					$('#rs-file').val(g.db ? g.db.path : '');
+					$('#rs-priv').val(g.priv ? g.priv.path : '');
+					$('#rs-pub').val(g.pub ? g.pub.path : '');
+					$p.closest('.dkst-panel-area').animate({ scrollTop: $rc.offset().top }, 400);
+					frappe.show_alert({ message: 'Backup selected — review the Restore form below.', indicator: 'green' }, 4);
+				});
+			}},
+			{ lbl: '⬇ Download Latest Set', cls: 'dkst-btn-s', title: 'Download DB + file archives for the most recent backup', fn: () => {
+				const site = $blSite.val();
+				if (!site) { frappe.throw('Select a site first'); return; }
+				frappe.call({
+					method: 'frappe_devkit.api.site_manager.list_backups',
+					args: { site },
+					callback: r => {
+						const bks = r.message?.backups || [];
+						if (!bks.length) { frappe.show_alert({ message: 'No backups found', indicator: 'orange' }); return; }
+						// Group by date prefix and take the latest
+						const groups = {};
+						bks.forEach(b => {
+							const key = b.name.substring(0, 15);
+							if (!groups[key]) groups[key] = { date: b.date, db: null, priv: null, pub: null };
+							if (b.type === 'database') groups[key].db = b;
+							else if (b.name.includes('private')) groups[key].priv = b;
+							else if (b.name.includes('files') && !b.name.includes('private')) groups[key].pub = b;
+						});
+						const latest = Object.values(groups).sort((a,b) => b.date.localeCompare(a.date))[0];
+						let count = 0;
+						if (latest.db)   { setTimeout(() => _downloadBackup(site, latest.db.name),   0);    count++; }
+						if (latest.pub)  { setTimeout(() => _downloadBackup(site, latest.pub.name),  600);  count++; }
+						if (latest.priv) { setTimeout(() => _downloadBackup(site, latest.priv.name), 1200); count++; }
+						frappe.show_alert({ message: `Downloading ${count} file(s) from ${latest.date}`, indicator: 'green' }, 5);
+					}
+				});
+			}},
+		]);
 
 		// ── Upload Backup ──────────────────────────────────
 		const $uc = smCard($p, 'Upload Backup Files');
@@ -5438,6 +6248,10 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 						if (r.message?.uploaded) {
 							$status.text(`\u2713 Uploaded: ${r.message.filename} (${r.message.size})`).css('color','#27ae60');
 							fileInput.value = '';
+							// Invalidate backup cache so Browse dialog shows the new file
+							const site = $ucSite.val();
+							if (site) { delete _bkCache[site]; }
+							frappe.show_alert({ message: 'File uploaded — backup list refreshed', indicator: 'green' }, 4);
 						} else {
 							$status.text('Upload failed').css('color','#c0392b');
 						}
@@ -5491,8 +6305,8 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 				<input class="dkst-inp" type="password" id="rs-apwd" placeholder="Leave blank to keep current">
 				<span class="dkst-hint">Set a new admin password after restore completes</span></div>
 			<div class="dkst-fld"><label class="dkst-lbl">DB Root Password</label>
-				<input class="dkst-inp" type="password" id="rs-rpwd" placeholder="Required by some MariaDB setups">
-				<span class="dkst-hint">Leave blank if bench manages DB credentials</span></div>
+				<input class="dkst-inp" type="password" id="rs-rpwd" placeholder="MariaDB root password">
+				<span class="dkst-hint">Required when restore prompts for root password — passes <code>--db-root-password</code> to bench</span></div>
 		</div>
 		<div class="dkst-checks" style="margin-top:12px">
 			<label class="dkst-chk"><input type="checkbox" id="rs-force"><span>Force restore — skip errors <span style="color:#9080b8;font-size:11px">(--force)</span></span></label>
@@ -5500,24 +6314,68 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		</div>`);
 
 		const $t2 = smTerm($p);
-		smBtns($rc, [{ lbl: 'Restore Site', cls: 'dkst-btn-r', fn: () => {
-			if (!$('#rs-ok').is(':checked')) { frappe.throw('Check the confirmation box to proceed'); return; }
-			const site = $rsSite.val();
-			const file = $('#rs-file').val().trim();
-			if (!site) { frappe.throw('Select a target site'); return; }
-			if (!file) { frappe.throw('DB backup file path is required — use Browse Backups above to select'); return; }
-			frappe.confirm(`<b>Restore site <code>${site}</code>?</b><br><br>
-				DB file: <code style="font-size:11px;word-break:break-all">${file}</code><br><br>
-				All current data will be <b>permanently replaced</b>. This cannot be undone.`, () => {
-				smApi('frappe_devkit.api.site_manager.restore_site', {
-					site, backup_file: file,
-					with_private_files: $('#rs-priv').val().trim() || '',
-					with_public_files:  $('#rs-pub').val().trim()  || '',
-					admin_password:     $('#rs-apwd').val().trim() || '',
-					force: $('#rs-force').is(':checked') ? 1 : 0,
-				}, $t2);
-			});
-		}}]);
+		smBtns($rc, [
+			{ lbl: 'Restore Site', cls: 'dkst-btn-r', fn: () => {
+				if (!$('#rs-ok').is(':checked')) { frappe.throw('Check the confirmation box to proceed'); return; }
+				const site = $rsSite.val();
+				const file = $('#rs-file').val().trim();
+				if (!site) { frappe.throw('Select a target site'); return; }
+				if (!file) { frappe.throw('DB backup file path is required — use Browse Backups above to select'); return; }
+				frappe.confirm(`<b>Restore site <code>${site}</code>?</b><br><br>
+					DB file: <code style="font-size:11px;word-break:break-all">${file}</code><br><br>
+					All current data will be <b>permanently replaced</b>. This cannot be undone.`, () => {
+					const restoreArgs = {
+						site, backup_file: file,
+						with_private_files:  $('#rs-priv').val().trim() || '',
+						with_public_files:   $('#rs-pub').val().trim()  || '',
+						admin_password:      $('#rs-apwd').val().trim() || '',
+						db_root_password:    $('#rs-rpwd').val().trim() || '',
+						force: $('#rs-force').is(':checked') ? 1 : 0,
+					};
+					const benchHint = `bench --site ${site} restore ${file}`;
+					$t2.text(`$ ${benchHint}\n\n▶  Running…`).removeClass('ok err');
+					frappe.call({
+						method: 'frappe_devkit.api.site_manager.restore_site',
+						args: restoreArgs,
+						callback: r => {
+							const m = r.message;
+							if (m?.status === 'success') {
+								$t2.addClass('ok');
+								let out = `$ ${benchHint}\n\n✓  ${m.message}`;
+								if (m.stdout?.trim()) out += `\n\n── Output ──\n${m.stdout.trim()}`;
+								if (m.stderr?.trim()) out += `\n\n── Stderr ──\n${m.stderr.trim()}`;
+								$t2.text(out);
+								frappe.show_alert({ message: m.message, indicator: 'green' });
+							} else {
+								$t2.addClass('err');
+								const stderr = m?.stderr || '';
+								const isLock = stderr.includes('site_restore.lock') || (m?.message||'').includes('lock');
+								let out = `$ ${benchHint}\n\n✗  ${m?.message || 'Restore failed'}`;
+								if (m?.stdout?.trim()) out += `\n\n── Output ──\n${m.stdout.trim()}`;
+								if (stderr.trim())     out += `\n\n── Stderr ──\n${stderr.trim()}`;
+								if (isLock) {
+									out += `\n\n── Lock Error ──\nA previous restore left a stale lock file.\nClick "🔓 Clear Stale Lock" below, then retry.`;
+								}
+								$t2.text(out);
+								frappe.show_alert({ message: isLock ? 'Restore blocked by stale lock — clear it below' : (m?.message || 'Restore failed'), indicator: 'red' });
+							}
+						},
+						error: e => {
+							$t2.addClass('err');
+							const msg = e.responseJSON?.exception || e.responseJSON?.message || 'Network or server error';
+							const isLock = msg.includes('site_restore.lock') || msg.includes('LockTimeout') || msg.includes('filelock');
+							$t2.text(`$ ${benchHint}\n\n✗  ${msg}` + (isLock ? '\n\nClick "🔓 Clear Stale Lock" below, then retry.' : ''));
+						}
+					});
+				});
+			}},
+			{ lbl: '\uD83D\uDD13 Clear Stale Lock', cls: 'dkst-btn-s', fn: () => {
+				const site = $rsSite.val();
+				if (!site) { frappe.throw('Select a site first'); return; }
+				smApi('frappe_devkit.api.site_manager.clear_restore_lock', { site }, $t2,
+					`rm -f sites/${site}/locks/site_restore.lock`);
+			}},
+		]);
 
 		// ── Browse dialog: lists server backup files for a site ──
 		$rc.on('click', '[data-browse]', function() {
@@ -5615,13 +6473,68 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 		</div>`);
 		const $setSiteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($sc);
 		const $setSite = siteSelRow($setSiteRow, 'set-site', 'select site');
+		// Known Frappe site config keys with descriptions, default values and types
+		const _CFG_KEYS = [
+			{ key: '__custom__',            lbl: '— type a custom key —',         desc: '',                                             default: '',         type: 'string' },
+			// ── Core / Performance ──────────────────────────────────────────────────
+			{ key: 'developer_mode',        lbl: 'developer_mode',                desc: 'Enable developer mode (shows traceback, disables caching)',  default: '1', type: 'int' },
+			{ key: 'production',            lbl: 'production',                    desc: 'Production mode flag',                         default: '1',        type: 'int' },
+			{ key: 'maintenance_mode',      lbl: 'maintenance_mode',              desc: 'Put site in maintenance mode (returns 503)',    default: '1',        type: 'int' },
+			{ key: 'pause_scheduler',       lbl: 'pause_scheduler',               desc: 'Pause the background job scheduler',           default: '1',        type: 'int' },
+			// ── Database ────────────────────────────────────────────────────────────
+			{ key: 'db_host',               lbl: 'db_host',                       desc: 'MariaDB / MySQL host',                         default: '127.0.0.1',type: 'string' },
+			{ key: 'db_port',               lbl: 'db_port',                       desc: 'MariaDB port (default 3306)',                  default: '3306',     type: 'int' },
+			{ key: 'db_name',               lbl: 'db_name',                       desc: 'Database name',                                default: '',         type: 'string' },
+			{ key: 'db_type',               lbl: 'db_type',                       desc: 'Database backend: mariadb or postgres',        default: 'mariadb',  type: 'string' },
+			// ── Files & Storage ─────────────────────────────────────────────────────
+			{ key: 'max_file_size',         lbl: 'max_file_size',                 desc: 'Max upload file size in bytes (default 25 MB)', default: '26214400', type: 'int' },
+			{ key: 'allowed_file_exts',     lbl: 'allowed_file_exts',             desc: 'Comma-separated allowed upload extensions',    default: '',         type: 'string' },
+			{ key: 'use_s3',                lbl: 'use_s3',                        desc: 'Store files on S3 instead of local disk',      default: '1',        type: 'int' },
+			{ key: 'aws_access_key_id',     lbl: 'aws_access_key_id',             desc: 'AWS access key for S3 storage',                default: '',         type: 'string' },
+			{ key: 'aws_secret_access_key', lbl: 'aws_secret_access_key',         desc: 'AWS secret key for S3 storage',                default: '',         type: 'string' },
+			{ key: 's3_bucket_name',        lbl: 's3_bucket_name',                desc: 'S3 bucket name for file storage',              default: '',         type: 'string' },
+			// ── Email ───────────────────────────────────────────────────────────────
+			{ key: 'mail_server',           lbl: 'mail_server',                   desc: 'SMTP server hostname',                         default: '',         type: 'string' },
+			{ key: 'mail_port',             lbl: 'mail_port',                     desc: 'SMTP port',                                    default: '587',      type: 'int' },
+			{ key: 'mail_login',            lbl: 'mail_login',                    desc: 'SMTP login username',                          default: '',         type: 'string' },
+			{ key: 'mail_password',         lbl: 'mail_password',                 desc: 'SMTP password',                                default: '',         type: 'string' },
+			{ key: 'use_ssl',               lbl: 'use_ssl',                       desc: 'Use SSL for SMTP (1 = yes)',                   default: '1',        type: 'int' },
+			{ key: 'auto_email_id',         lbl: 'auto_email_id',                 desc: 'Default "from" address for outgoing email',    default: '',         type: 'string' },
+			{ key: 'email_footer_address',  lbl: 'email_footer_address',          desc: 'Physical address shown in email footer',       default: '',         type: 'string' },
+			// ── Redis / Cache ───────────────────────────────────────────────────────
+			{ key: 'redis_cache',           lbl: 'redis_cache',                   desc: 'Redis URL for caching',                        default: 'redis://localhost:13000', type: 'string' },
+			{ key: 'redis_queue',           lbl: 'redis_queue',                   desc: 'Redis URL for background job queue',           default: 'redis://localhost:11000', type: 'string' },
+			{ key: 'redis_socketio',        lbl: 'redis_socketio',                desc: 'Redis URL for Socket.IO pub/sub',              default: 'redis://localhost:12000', type: 'string' },
+			// ── Security / Auth ─────────────────────────────────────────────────────
+			{ key: 'encryption_key',        lbl: 'encryption_key',                desc: 'Fernet encryption key for sensitive fields',   default: '',         type: 'string' },
+			{ key: 'session_expiry',        lbl: 'session_expiry',                desc: 'Session timeout HH:MM (default 06:00)',        default: '06:00',    type: 'string' },
+			{ key: 'allow_cors',            lbl: 'allow_cors',                    desc: 'Allowed CORS origins (comma-separated or *)',  default: '',         type: 'string' },
+			{ key: 'otp_issuer_name',       lbl: 'otp_issuer_name',               desc: 'Name shown in authenticator app for 2FA',     default: '',         type: 'string' },
+			{ key: 'disable_website_cache', lbl: 'disable_website_cache',         desc: 'Disable website page caching',                 default: '1',        type: 'int' },
+			// ── Logging & Errors ────────────────────────────────────────────────────
+			{ key: 'logging',               lbl: 'logging',                       desc: 'Logging level: 0=error 1=warning 2=info',      default: '1',        type: 'int' },
+			{ key: 'enable_frappe_logger',  lbl: 'enable_frappe_logger',          desc: 'Enable detailed Frappe Python logger',         default: '1',        type: 'int' },
+			// ── Performance tuning ──────────────────────────────────────────────────
+			{ key: 'server_script_enabled', lbl: 'server_script_enabled',         desc: 'Allow Server Scripts to run Python code',     default: '1',        type: 'int' },
+			{ key: 'ignore_csrf',           lbl: 'ignore_csrf',                   desc: 'Disable CSRF check (dev only!)',               default: '1',        type: 'int' },
+			{ key: 'http_timeout',          lbl: 'http_timeout',                  desc: 'HTTP request timeout in seconds',             default: '120',      type: 'int' },
+			{ key: 'gunicorn_workers',      lbl: 'gunicorn_workers',              desc: 'Number of Gunicorn worker processes',          default: '2',        type: 'int' },
+			// ── Backup ──────────────────────────────────────────────────────────────
+			{ key: 'backup_limit',          lbl: 'backup_limit',                  desc: 'Max number of backups to keep per site',       default: '3',        type: 'int' },
+			{ key: 'backup_path',           lbl: 'backup_path',                   desc: 'Custom path to store backup files',            default: '',         type: 'string' },
+		];
+
 		$sc.append(`<div class="dkst-g2" style="margin-top:12px">
 			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Key</label>
-				<input class="dkst-inp" id="set-key" placeholder="e.g. max_file_size, developer_mode">
-				<span class="dkst-hint">Config key name (snake_case)</span></div>
+				<select class="dkst-sel" id="set-key-sel">
+					${_CFG_KEYS.map(k => `<option value="${k.key}" data-default="${k.default}" data-type="${k.type}" data-desc="${k.desc}">${k.lbl}</option>`).join('')}
+				</select>
+				<input class="dkst-inp" id="set-key" placeholder="custom_key_name" style="margin-top:6px;display:none">
+				<div id="set-key-desc" style="font-size:11px;color:#5c4da8;margin-top:4px;min-height:14px;font-style:italic"></div>
+			</div>
 			<div class="dkst-fld"><label class="dkst-lbl">Value</label>
-				<input class="dkst-inp" id="set-val" placeholder="e.g. 10485760, 1, true">
-				<span class="dkst-hint">Leave blank when removing</span></div>
+				<input class="dkst-inp" id="set-val" placeholder="e.g. 10485760">
+				<span class="dkst-hint">Leave blank when removing the key</span></div>
 			<div class="dkst-fld"><label class="dkst-lbl">Value Type</label>
 				<select class="dkst-sel" id="set-type">
 					<option value="string">String</option>
@@ -5630,11 +6543,32 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 					<option value="json">JSON object</option>
 				</select></div>
 		</div>`);
+
+		// Wire up key select → show description, auto-fill value type, show custom input
+		$sc.find('#set-key-sel').on('change', function() {
+			const $opt = $(this).find(':selected');
+			const key  = this.value;
+			const desc = $opt.data('desc') || '';
+			const def  = $opt.data('default') || '';
+			const type = $opt.data('type') || 'string';
+			const isCustom = key === '__custom__';
+			$sc.find('#set-key').toggle(isCustom);
+			$sc.find('#set-key-desc').text(desc);
+			$sc.find('#set-val').attr('placeholder', def || (isCustom ? 'enter value' : 'enter value'));
+			if (!$sc.find('#set-val').val()) $sc.find('#set-val').val(def);
+			const typeMap = { string: 'string', int: 'int', bool: 'bool' };
+			$sc.find('#set-type').val(typeMap[type] || 'string');
+		}).trigger('change');
 		const $t3 = smTerm($p);
+		function _resolveConfigKey() {
+			const selVal = $sc.find('#set-key-sel').val();
+			return selVal === '__custom__' ? $sc.find('#set-key').val().trim() : selVal;
+		}
 		smBtns($sc, [
 			{ lbl: 'Set Config Key', cls: 'dkst-btn-p', fn: () => {
 				const site = $setSite.val();
-				const key = smGv('set-key'); const val = smGv('set-val');
+				const key = _resolveConfigKey();
+				const val = smGv('set-val');
 				if (!site) { frappe.throw('Select a site'); return; }
 				if (!key)  { frappe.throw('Key is required'); return; }
 				if (!val)  { frappe.throw('Value is required — use Remove to delete a key'); return; }
@@ -5644,7 +6578,7 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			}},
 			{ lbl: 'Remove Key', cls: 'dkst-btn-r', fn: () => {
 				const site = $setSite.val();
-				const key = smGv('set-key');
+				const key = _resolveConfigKey();
 				if (!site) { frappe.throw('Select a site'); return; }
 				if (!key)  { frappe.throw('Key is required'); return; }
 				frappe.confirm(`Remove key <b>${key}</b> from <b>${site}</b>?`, () => {
@@ -5673,6 +6607,35 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 				}
 			});
 		}}]);
+
+		// ── Config Key Reference Guide ──────────────────────────────────────────
+		const $refCard = smCard($p, '📖 Config Key Reference');
+		$refCard.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">
+			All recognised <code>site_config.json</code> keys — select one in the form above to auto-fill its default value and type.
+			Use the search box to filter.
+		</div>`);
+		const $refSearch = $('<input class="dkst-inp" placeholder="🔍 Search keys…" style="margin-bottom:10px;font-size:12px">').appendTo($refCard);
+		const _refKeys = (_CFG_KEYS || []).filter(k => k.key !== '__custom__');
+		const $refTbl = $(`<table class="dkst-tbl" style="font-size:11.5px">
+			<thead><tr>
+				<th style="width:200px">Key</th>
+				<th style="width:65px">Type</th>
+				<th style="width:110px">Default</th>
+				<th>Description</th>
+			</tr></thead>
+			<tbody>${_refKeys.map(k => `<tr>
+				<td style="font-family:monospace;color:#5c4da8;font-weight:600">${k.key}</td>
+				<td><span class="dkst-pill" style="background:${k.type==='int'?'#e0f2fe':k.type==='bool'?'#f0fdf4':'#f3f0fb'};color:${k.type==='int'?'#0369a1':k.type==='bool'?'#15803d':'#5c4da8'};font-size:10px">${k.type}</span></td>
+				<td style="font-family:monospace;color:#7a70a8;font-size:11px">${k.default || '—'}</td>
+				<td style="color:#555;line-height:1.5">${k.desc}</td>
+			</tr>`).join('')}</tbody>
+		</table>`).appendTo($refCard);
+		$refSearch.on('input', function() {
+			const q = this.value.toLowerCase();
+			$refTbl.find('tbody tr').each(function() {
+				$(this).toggle(!q || $(this).text().toLowerCase().includes(q));
+			});
+		});
 	};
 
 	// ── Site Apps ──────────────────────────────────

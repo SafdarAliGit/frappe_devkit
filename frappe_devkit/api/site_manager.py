@@ -292,7 +292,7 @@ def list_backups(site):
 
 @frappe.whitelist()
 def restore_site(site, backup_file, with_private_files="", with_public_files="",
-                 admin_password="", force=0):
+                 admin_password="", db_root_password="", force=0):
     """
     Restore a site from backup:
     bench --site <site> restore <backup_file>
@@ -304,6 +304,8 @@ def restore_site(site, backup_file, with_private_files="", with_public_files="",
         cmd += ["--with-public-files", with_public_files]
     if admin_password:
         cmd += ["--admin-password", admin_password]
+    if db_root_password:
+        cmd += ["--db-root-password", db_root_password]
     if int(force):
         cmd.append("--force")
 
@@ -547,6 +549,22 @@ def download_backup_file(site, filename):
     frappe.response["filename"]     = filename
     frappe.response["filecontent"]  = content
     frappe.response["content_type"] = "application/octet-stream"
+
+
+@frappe.whitelist()
+def clear_restore_lock(site):
+    """Remove stale lock files left by crashed restore/new-site operations."""
+    locks_dir = os.path.join(_sites(), site, "locks")
+    candidates = ["site_restore.lock", "bench_new_site.lock"]
+    removed = []
+    for name in candidates:
+        p = os.path.join(locks_dir, name)
+        if os.path.exists(p):
+            os.remove(p)
+            removed.append(p)
+    if removed:
+        return _ok(f"Cleared {len(removed)} lock(s) for '{site}'", info={"removed": removed})
+    return _ok(f"No stale restore locks found for '{site}' — nothing to clear")
 
 
 @frappe.whitelist()

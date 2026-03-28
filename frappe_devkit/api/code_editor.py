@@ -64,6 +64,42 @@ def get_apps():
 
 
 @frappe.whitelist()
+def list_matching_files(app_name, patterns_json):
+    """
+    Return files inside app_name whose relative paths match any of the given glob patterns.
+    patterns_json: JSON array of glob strings, e.g. ["hooks.py", "patches/**/*.py", "overrides/*.py"]
+    Returns list of {name, path, size}.
+    """
+    import glob as _glob
+    import json as _json
+
+    base = _app_base(app_name)
+    if not os.path.isdir(base):
+        return []
+
+    patterns = _json.loads(patterns_json) if isinstance(patterns_json, str) else patterns_json
+    seen = set()
+    results = []
+    for pat in patterns:
+        for full in _glob.glob(os.path.join(base, pat), recursive=True):
+            if not os.path.isfile(full):
+                continue
+            if not _ext_ok(full):
+                continue
+            rel = os.path.relpath(full, base)
+            if rel in seen:
+                continue
+            seen.add(rel)
+            results.append({
+                "name": os.path.basename(full),
+                "path": rel,
+                "size": os.path.getsize(full),
+            })
+    results.sort(key=lambda r: r["path"])
+    return results
+
+
+@frappe.whitelist()
 def get_file_tree(app_name, path=""):
     """Return one level of files/folders for the given path inside app."""
     base = _app_base(app_name)

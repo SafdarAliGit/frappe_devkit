@@ -446,7 +446,7 @@ def _www_html_template(preset, title, css_class, app):
             '  <!-- ── Not logged in ── -->\n'
             '  <div class="container py-5 text-center">\n'
             '    <h2>Please log in to view your dashboard</h2>\n'
-            '    <a href="/login?redirect-to={{{{ request.path }}}}" class="btn btn-lg mt-3" style="background:var(--brand);color:#fff">Log In</a>\n'
+            '    <a href="#" onclick="window.location.href=\'/login?redirect-to=\'+encodeURIComponent(window.location.pathname);return false;" class="btn btn-lg mt-3" style="background:var(--brand);color:#fff">Log In</a>\n'
             '  </div>\n'
             '{{% else %}}\n'
             '<div class="{css_class}-wrapper container-fluid py-4">\n\n'
@@ -668,10 +668,10 @@ def _www_html_template(preset, title, css_class, app):
             '        <a href="/blog?tag={{{{ tag }}}}" class="badge text-decoration-none" style="background:var(--brand-light);color:var(--brand)">{{{{ tag }}}}</a>\n'
             '        {{% endfor %}}\n'
             '      </div>\n'
-            '      <!-- Share buttons -->\n'
+            '      <!-- Share buttons (uncomment to enable) -->\n'
             '      <!-- <div class="mt-4 d-flex gap-3">\n'
-            '        <a href="https://twitter.com/intent/tweet?text={{{{ title|urlencode }}}}&url={{{{ request.url|urlencode }}}}" target="_blank" class="btn btn-sm btn-outline-secondary">Twitter</a>\n'
-            '        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{{{ request.url|urlencode }}}}" target="_blank" class="btn btn-sm btn-outline-secondary">LinkedIn</a>\n'
+            '        <a href="#" onclick="window.open(\'https://twitter.com/intent/tweet?text=\'+encodeURIComponent(document.title)+\'&url=\'+encodeURIComponent(window.location.href),\'_blank\');return false;" class="btn btn-sm btn-outline-secondary">Twitter</a>\n'
+            '        <a href="#" onclick="window.open(\'https://www.linkedin.com/sharing/share-offsite/?url=\'+encodeURIComponent(window.location.href),\'_blank\');return false;" class="btn btn-sm btn-outline-secondary">LinkedIn</a>\n'
             '      </div> -->\n'
             '    </div>\n\n'
             '    <!-- ── Sidebar ── -->\n'
@@ -749,79 +749,113 @@ def _www_py_template(preset, title, app):
     base = f'''import frappe
 from frappe import _
 
-# ── Page settings ─────────────────────────────────────────────────────────────
-no_cache       = 1      # disable HTTP response cache
-# login_required = True   # uncomment to redirect guests to /login
-# allow_guest   = True    # uncomment to allow unauthenticated access
+# ════════════════════════════════════════════════════════════════════════════════
+# {title} — Web Page Backend
+# ════════════════════════════════════════════════════════════════════════════════
+# HOW WWW PAGES WORK
+# ─────────────────────────────────────────────────────────────────────────────
+# Frappe renders {title.lower().replace(" ", "_")}.html with the context dict built here.
+# Route: /{title.lower().replace(" ", "-")} (matches the filename without extension)
+# URL params are in frappe.form_dict  e.g. frappe.form_dict.get("name")
+#
+# HOW TO EXTEND THIS PAGE
+# ─────────────────────────────────────────────────────────────────────────────
+# • Add keys to `context` here → use them as {{ variable }} in the HTML template
+# • Add AJAX endpoints: create @frappe.whitelist() functions in a separate .py file
+#   and call them from JavaScript via frappe.call({{ method: "...", args: {{}} }})
+# • Add a sitemap entry: set context.sitemap = True and context.priority = 0.8
+# • Control caching: set no_cache = 0 and define context.base_template_path for CDN
+# • Create child pages: add {title.lower().replace(" ", "_")}/child-name.html + .py
+# ════════════════════════════════════════════════════════════════════════════════
+
+# ── Page-level settings ───────────────────────────────────────────────────────
+no_cache       = 1      # 1 = no HTTP cache (good for dynamic content)
+# login_required = True   # redirect Guest users to /login automatically
+# allow_guest   = True    # explicitly allow unauthenticated access
+# sitemap       = True    # include this page in the sitemap
 
 
 def get_context(context):
     """
-    Populate the Jinja2 template context.
-    Everything added to `context` becomes available as a variable in the .html.
+    Build the Jinja2 template context for {title}.
 
-    Common patterns — uncomment as needed:
-    ──────────────────────────────────────────────────────────────────────────
+    `context` is a frappe._dict — set attributes directly:
+        context.my_var = "value"        → {{ my_var }} in HTML
+        context.records = [...]         → {{% for r in records %}} in HTML
 
-    # ── Auth check ──────────────────────────────────────────────────────────
-    # if frappe.session.user == "Guest":
-    #     frappe.throw(_("You must be logged in."), frappe.PermissionError)
+    ── Auth & permission guard ────────────────────────────────────────────────
+    # Guest redirect (manual):
+    if frappe.session.user == "Guest":
+        frappe.local.flags.redirect_location = "/login?redirect-to=" + frappe.local.request.path
+        raise frappe.Redirect
+    # Role guard:
+    if not frappe.has_permission("Sales Invoice", "read"):
+        raise frappe.PermissionError
 
-    # ── Title & meta ────────────────────────────────────────────────────────
-    # context.metatags = {{
-    #     "title":       "{title}",
-    #     "description": "Page description for SEO",
-    #     "image":       "/assets/{app}/images/og-cover.png",
-    #     "keywords":    "keyword1, keyword2",
-    # }}
+    ── SEO / Open Graph meta tags ─────────────────────────────────────────────
+    context.metatags = {{
+        "title":       "{title}",
+        "description": "Describe this page in 1-2 sentences for search engines.",
+        "image":       "/assets/{app}/images/og-cover.png",
+        "keywords":    "keyword1, keyword2, keyword3",
+        "og:type":     "website",
+    }}
 
-    # ── Pass current user info ───────────────────────────────────────────────
-    # context.user       = frappe.session.user
-    # context.user_roles = frappe.get_roles()
-    # context.full_name  = frappe.db.get_value("User", frappe.session.user, "full_name")
+    ── Current user info ──────────────────────────────────────────────────────
+    context.current_user   = frappe.session.user
+    context.user_roles     = frappe.get_roles()
+    context.full_name      = frappe.db.get_value("User", frappe.session.user, "full_name")
+    context.is_system_user = "System Manager" in frappe.get_roles()
 
-    # ── Fetch a list of records ──────────────────────────────────────────────
-    # context.records = frappe.get_all(
-    #     "Sales Order",
-    #     filters={{"docstatus": 1}},
-    #     fields=["name", "customer", "grand_total", "transaction_date"],
-    #     order_by="transaction_date desc",
-    #     limit=20
-    # )
+    ── URL query parameters ───────────────────────────────────────────────────
+    context.search    = frappe.form_dict.get("q", "")
+    context.category  = frappe.form_dict.get("category", "")
+    context.page_no   = int(frappe.form_dict.get("page") or 1)
 
-    # ── Fetch a single document ──────────────────────────────────────────────
-    # name = frappe.form_dict.get("name")
-    # if not name:
-    #     frappe.throw(_("Document name is required"), frappe.DoesNotExistError)
-    # context.doc = frappe.get_doc("Sales Invoice", name)
+    ── ORM list query with pagination ────────────────────────────────────────
+    PAGE_SIZE = 20
+    filters = {{"docstatus": 1}}
+    if context.category: filters["item_group"] = context.category
+    if context.search:   filters["item_name"]  = ["like", f"%{{context.search}}%"]
+    context.records = frappe.get_all(
+        "Sales Invoice",
+        filters=filters,
+        fields=["name", "customer", "grand_total", "posting_date", "status"],
+        order_by="posting_date desc",
+        limit_start=(context.page_no - 1) * PAGE_SIZE,
+        limit_page_length=PAGE_SIZE + 1,
+    )
+    context.has_next = len(context.records) > PAGE_SIZE
+    context.records  = context.records[:PAGE_SIZE]
+    context.total    = frappe.db.count("Sales Invoice", filters)
 
-    # ── Pagination ───────────────────────────────────────────────────────────
-    # PAGE_SIZE = 20
-    # context.page = int(frappe.form_dict.get("page") or 1)
-    # offset = (context.page - 1) * PAGE_SIZE
-    # context.items = frappe.get_all("Item", limit=PAGE_SIZE+1, start=offset, fields=["name","item_name","image"])
-    # context.has_more = len(context.items) > PAGE_SIZE
-    # context.items = context.items[:PAGE_SIZE]
+    ── Fetch a single document by URL param ──────────────────────────────────
+    name = frappe.form_dict.get("name")
+    if not name:
+        raise frappe.DoesNotExistError
+    doc = frappe.get_doc("Sales Invoice", name)
+    if not frappe.has_permission("Sales Invoice", "read", doc=doc):
+        raise frappe.PermissionError
+    context.doc = doc.as_dict()
 
-    # ── URL query params ─────────────────────────────────────────────────────
-    # search = frappe.form_dict.get("q", "")
-    # context.search = search
-    # if search:
-    #     context.items = frappe.get_all("Item", filters=[["item_name","like",f"%{{search}}%"]], fields=["name","item_name"])
+    ── System defaults ────────────────────────────────────────────────────────
+    context.company  = frappe.defaults.get_global_default("company")
+    context.currency = frappe.defaults.get_global_default("currency")
 
-    # ── Call a whitelisted API internally ────────────────────────────────────
-    # context.totals = frappe.call("{app}.api.my_module.get_dashboard_totals")
+    ── Cache expensive queries (5 minutes) ───────────────────────────────────
+    cache_key = f"{{frappe.local.site}}:{title.lower().replace(' ','_')}_data"
+    cached = frappe.cache().get_value(cache_key)
+    if not cached:
+        cached = frappe.get_all("Item", fields=["name","item_name"], limit=500)
+        frappe.cache().set_value(cache_key, cached, expires_in_sec=300)
+    context.items = cached
 
-    # ── Pass system defaults ─────────────────────────────────────────────────
-    # context.company  = frappe.defaults.get_global_default("company")
-    # context.currency = frappe.defaults.get_global_default("currency")
+    ── Custom 404 / redirect ──────────────────────────────────────────────────
+    raise frappe.DoesNotExistError          # → shows 404 page
+    frappe.local.flags.redirect_location = "/other-page"
+    raise frappe.Redirect
 
-    # ── Custom 404 / redirect ────────────────────────────────────────────────
-    # raise frappe.DoesNotExistError          # shows 404 page
-    # frappe.local.flags.redirect_location = "/other-page"
-    # raise frappe.Redirect
-
-    # """
+    """
     context.title = "{title}"
 '''
 
@@ -3242,13 +3276,13 @@ bench migrate</code></pre>
 
       <!-- ══ PREV / NEXT NAVIGATION ══════════════════════════════════════════ -->
       <div class="prev-next">
-        {% if prev_article.label %}
+        {% if prev_article is defined and prev_article.label %}
         <a href="{{ prev_article.href }}" class="pn-card" style="text-align:left">
           <div class="pn-label">← Previous</div>
           <div class="pn-title">{{ prev_article.label }}</div>
         </a>
         {% endif %}
-        {% if next_article.label %}
+        {% if next_article is defined and next_article.label %}
         <a href="{{ next_article.href }}" class="pn-card" style="text-align:right;margin-left:auto">
           <div class="pn-label">Next →</div>
           <div class="pn-title">{{ next_article.label }}</div>
@@ -3638,7 +3672,11 @@ def create_desk_page(app, module, page_name, title, preset='blank'):
         mod_dir = os.path.join(root, inner, mod_snake)
         os.makedirs(mod_dir, exist_ok=True)
 
-    page_dir = _safe_join(root, os.path.relpath(mod_dir, root), "page", page_name)
+    # Frappe's load_assets() calls scrub(self.name) which converts hyphens to underscores,
+    # so the directory and all filenames must use underscores even if page_name has hyphens.
+    dir_name = page_name.replace("-", "_")
+
+    page_dir = _safe_join(root, os.path.relpath(mod_dir, root), "page", dir_name)
     if os.path.exists(page_dir):
         frappe.throw(f"Desk page '{page_name}' already exists")
     os.makedirs(page_dir)
@@ -3648,43 +3686,43 @@ def create_desk_page(app, module, page_name, title, preset='blank'):
     os.makedirs(tpl_dir, exist_ok=True)
 
     # relative template path used in render_template (relative to inner package dir)
-    # e.g. my_dev/page/app_shell_sidebar/templates/app_shell_sidebar.html
+    # e.g. my_dev/page/adv_dashboard/templates/adv_dashboard.html
     rel_from_inner = os.path.relpath(page_dir, os.path.join(root, inner)).replace("\\", "/")
-    tpl_path = f"{rel_from_inner}/templates/{page_name}.html"
+    tpl_path = f"{rel_from_inner}/templates/{dir_name}.html"
 
     # Python module path importable from app root (sys.path entry): inner.module.page.name.name
-    # e.g. my_dev.my_dev.page.app_shell_sidebar.app_shell_sidebar.get_app_shell_sidebar
+    # e.g. my_dev.my_dev.page.adv_dashboard.adv_dashboard.get_adv_dashboard
     rel_from_root = os.path.relpath(page_dir, root).replace("\\", "/")
 
-    fn_name = page_name.replace("-", "_")
+    fn_name = dir_name
 
-    # .json
+    # .json — name field keeps the original page_name (may have hyphens, used as URL/DB key)
     page_meta = {
         "doctype": "Page", "name": page_name, "page_name": page_name,
         "title": title, "module": module,
         "roles": [{"doctype": "Has Role", "role": "System Manager"}],
     }
-    with open(os.path.join(page_dir, page_name + ".json"), "w") as f:
+    with open(os.path.join(page_dir, dir_name + ".json"), "w") as f:
         json.dump(page_meta, f, indent=1)
 
     # .py
-    py_body = _desk_py_template(fn_name, tpl_path, app, module, page_name, preset)
-    with open(os.path.join(page_dir, page_name + ".py"), "w") as f:
+    py_body = _desk_py_template(fn_name, tpl_path, app, module, dir_name, preset)
+    with open(os.path.join(page_dir, dir_name + ".py"), "w") as f:
         f.write(py_body)
 
-    # .js
+    # .js — frappe.pages[...] must use the original page_name (hyphens = URL route key)
     method_path = f"{rel_from_root.replace('/', '.')}.{fn_name}.get_{fn_name}"
     js_body = _desk_js_template(page_name, title, method_path, app, preset)
-    with open(os.path.join(page_dir, page_name + ".js"), "w") as f:
+    with open(os.path.join(page_dir, dir_name + ".js"), "w") as f:
         f.write(js_body)
 
     # .html (minimal page-level wrapper)
-    with open(os.path.join(page_dir, page_name + ".html"), "w") as f:
+    with open(os.path.join(page_dir, dir_name + ".html"), "w") as f:
         f.write(f"<!-- Frappe page wrapper for {title} -->\n")
 
-    # templates/{page_name}.html
-    tpl_body = _desk_tpl_template(page_name, title, preset)
-    with open(os.path.join(tpl_dir, page_name + ".html"), "w") as f:
+    # templates/{dir_name}.html
+    tpl_body = _desk_tpl_template(dir_name, title, preset)
+    with open(os.path.join(tpl_dir, dir_name + ".html"), "w") as f:
         f.write(tpl_body)
 
     return {
@@ -3760,28 +3798,78 @@ frappe.pages["{page_name}"].on_page_load = function(wrapper) {{
 }};
 
 frappe.pages["{page_name}"].on_page_show = function(wrapper) {{
-\t// Re-render or refresh data every time the user switches to this page
-\t// wrapper.page_obj && load_data();
+\t// Fires every time the user navigates to this page (tab switch or URL change).
+\t// Useful for refreshing stale data without a full reload.
+\t// var page = wrapper.page_obj;
+\t// if (page) load_data();
+}};
+
+frappe.pages["{page_name}"].on_page_hide = function(wrapper) {{
+\t// Fires when the user leaves this page. Clean up timers, event listeners, etc.
+\t// clearInterval(window._refresh_timer);
+\t// frappe.realtime.off("my_event");
 }};
 
 // ── bind_events: wire up interactive elements after HTML is injected ──────────
+// Called every time load_data() succeeds. Re-attach handlers here because
+// $(page.main).html(...) replaces the DOM, removing all previous listeners.
 function bind_events(page) {{
-\t// Example: handle row clicks in a table
+
+\t// ── Table row → navigate to form ───────────────────────────────────────────
 \t// $(page.main).find(".data-row").on("click", function() {{
-\t//   frappe.set_route("Form", "Item", $(this).data("name"));
+\t//   frappe.set_route("Form", "Sales Invoice", $(this).data("name"));
 \t// }});
 
-\t// Example: handle a button click
-\t// $(page.main).find("#my-btn").on("click", function() {{
-\t//   frappe.call({{ method: "{app}.api.module.do_something", callback: r => load_data() }});
+\t// ── Action button → call backend ───────────────────────────────────────────
+\t// $(page.main).find("[data-action='approve']").on("click", function() {{
+\t//   var name = $(this).data("name");
+\t//   frappe.confirm("Approve this record?", () => {{
+\t//     frappe.call({{
+\t//       method: "{method_path}.approve_record",
+\t//       args: {{ name }},
+\t//       callback: r => {{ frappe.show_alert("Approved", "green"); load_data(); }}
+\t//     }});
+\t//   }});
 \t// }});
 
-\t// Example: initialise a Chart.js chart
-\t// var ctx = $(page.main).find("#my-chart")[0].getContext("2d");
-\t// new Chart(ctx, {{ type: "bar", data: {{ ... }}, options: {{ ... }} }});
+\t// ── Inline edit → save on blur ─────────────────────────────────────────────
+\t// $(page.main).find(".editable-field").on("blur", function() {{
+\t//   frappe.call({{
+\t//     method: "{method_path}.save_field",
+\t//     args: {{ name: $(this).data("name"), field: $(this).data("field"), value: $(this).val() }},
+\t//     callback: r => frappe.show_alert("Saved", "green"),
+\t//   }});
+\t// }});
 
-\t// Example: real-time via frappe.realtime
-\t// frappe.realtime.on("update_event", (data) => load_data());
+\t// ── Chart.js initialisation ────────────────────────────────────────────────
+\t// var $canvas = $(page.main).find("#my-chart");
+\t// if ($canvas.length) {{
+\t//   new Chart($canvas[0].getContext("2d"), {{
+\t//     type: "bar",
+\t//     data: {{
+\t//       labels: JSON.parse($canvas.data("labels") || "[]"),
+\t//       datasets: [{{ label: "Revenue", data: JSON.parse($canvas.data("values") || "[]"),
+\t//                    backgroundColor: "#5c4da880", borderColor: "#5c4da8", borderWidth: 2 }}]
+\t//     }},
+\t//     options: {{ responsive: true, plugins: {{ legend: {{ display: false }} }} }}
+\t//   }});
+\t// }}
+
+\t// ── Real-time push from server ─────────────────────────────────────────────
+\t// frappe.realtime.on("{page_name}_update", (data) => {{
+\t//   // Call frappe.publish_realtime("{page_name}_update", payload) in Python to trigger
+\t//   frappe.show_alert(data.message || "Update received", "blue");
+\t//   load_data();
+\t// }});
+
+\t// ── Infinite scroll ────────────────────────────────────────────────────────
+\t// var _page_no = 1;
+\t// $(page.main).find(".load-more-btn").on("click", function() {{
+\t//   _page_no++;
+\t//   frappe.call({{ method: "...get_{fn}", args: {{ page_no: _page_no }},
+\t//     callback: r => $(page.main).find(".records-list").append(r.message)
+\t//   }});
+\t// }});
 }}
 '''
 
@@ -4361,80 +4449,227 @@ def _desk_py_preset_block(preset, tpl_path, page_name):
     block = _PRESET_BLOCKS.get(preset, '')
     if not block:
         return ''
-    return block
+
+    # Append universal extension guide to every preset block
+    extension_guide = f'''
+# ════════════════════════════════════════════════════════════════════════════
+# HOW TO EXTEND THIS PRESET
+# ════════════════════════════════════════════════════════════════════════════
+# ── Add more data to context ───────────────────────────────────────────────
+# Simply add more keys to the context dict and reference them in the template:
+#   context["my_key"] = frappe.get_all("My DocType", ...)
+#   context["site_name"] = frappe.local.site
+#   context["user_roles"] = frappe.get_roles(frappe.session.user)
+#   context["settings"] = frappe.get_single("My App Settings").as_dict()
+#
+# ── Add toolbar filters (pass from JS args) ────────────────────────────────
+# In the JS frappe.call args: {{ company: "...", from_date: "...", status: "..." }}
+# In Python: company = kwargs.get("company") or frappe.defaults.get_global_default("company")
+#
+# ── Add a real-time refresh ────────────────────────────────────────────────
+# Python (call this from another handler to push data to all clients):
+#   frappe.publish_realtime("{page_name}_refresh", {{"message": "Data updated"}},
+#                           user=frappe.session.user)
+# JavaScript (add inside bind_events):
+#   frappe.realtime.on("{page_name}_refresh", () => load_data());
+#
+# ── Add a background job for heavy queries ─────────────────────────────────
+# Python:
+#   @frappe.whitelist()
+#   def run_{page_name.replace("-","_")}_report(**kwargs):
+#       frappe.enqueue("{{app}}.{{module}}.page.{page_name}.{page_name}.build_report",
+#                      queue="long", job_id="{page_name}_report", **kwargs)
+#       return {{"queued": True}}
+#
+# ── Export to CSV / Excel ──────────────────────────────────────────────────
+# @frappe.whitelist()
+# def export_{page_name.replace("-","_")}_data(**kwargs):
+#     import csv
+#     from io import StringIO
+#     records = frappe.get_all("Sales Invoice", fields=["name","customer","grand_total"])
+#     buf = StringIO()
+#     w = csv.DictWriter(buf, fieldnames=["name","customer","grand_total"])
+#     w.writeheader(); w.writerows([dict(r) for r in records])
+#     frappe.response["filename"]     = "{page_name}_export.csv"
+#     frappe.response["filecontent"]  = buf.getvalue()
+#     frappe.response["type"]         = "download"
+#     frappe.response["content_type"] = "text/csv"
+#
+# ── Cache expensive queries ────────────────────────────────────────────────
+# Use caching to avoid hitting the DB on every page load:
+#   cache_key = f"{page_name}_kpis_{{company}}_{{from_date}}"
+#   cached = frappe.cache().get_value(cache_key)
+#   if not cached:
+#       cached = {{...}}  # your expensive query
+#       frappe.cache().set_value(cache_key, cached, expires_in_sec=300)
+#   context["kpis"] = cached
+#
+# ── Permission guard patterns ──────────────────────────────────────────────
+#   frappe.only_for("System Manager")                           # single role guard
+#   frappe.only_for(["System Manager", "Accounts Manager"])    # any of these roles
+#   if not frappe.has_permission("Sales Invoice", "read"):
+#       frappe.throw(_("Not permitted"), frappe.PermissionError)
+#   if frappe.session.user == "Guest":
+#       frappe.throw(_("Login required"), frappe.AuthenticationError)
+# ════════════════════════════════════════════════════════════════════════════
+'''
+    return block + extension_guide
+
+
+def _desk_py_preset_context_lines(preset):
+    """Return extra lines to inject into the active context dict for presets that require
+    specific variables in their Jinja template (beyond the generic 'title' key)."""
+    _EXTRA = {
+        'wizard': (
+            '        "step": int(kwargs.get("step") or 1),\n'
+            '        "data": frappe.parse_json(kwargs.get("data") or "{}"),\n'
+        ),
+    }
+    return _EXTRA.get(preset, '')
 
 
 def _desk_py_template(fn_name, tpl_path, app, module, page_name, preset='blank'):
     """Return rich commented Python boilerplate for a desk page."""
+    title_str = page_name.replace("-", " ").replace("_", " ").title()
     return f'''import frappe
 from frappe import _
 
 
+# ════════════════════════════════════════════════════════════════════════════════
+# {title_str} — Desk Page Backend
+# ════════════════════════════════════════════════════════════════════════════════
+# HOW THIS PAGE WORKS
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. The JS file calls frappe.call({{ method: "...get_{fn_name}", args: {{...}} }})
+# 2. This function builds a context dict from DB queries / business logic
+# 3. frappe.render_template() renders the Jinja2 HTML template with that context
+# 4. The rendered HTML string is returned to the JS, which sets page.main.html()
+#
+# HOW TO ADD A NEW DATA SOURCE
+# ─────────────────────────────────────────────────────────────────────────────
+# a) frappe.get_all()        — ORM-style: filters, fields, order_by, limit, group_by
+# b) frappe.db.sql()         — Raw SQL for aggregations / complex JOINs
+# c) frappe.db.get_value()   — Single field from a single document
+# d) frappe.db.count()       — Count matching records quickly
+# e) frappe.get_doc()        — Full document including child tables
+#
+# HOW TO EXTEND THIS PAGE
+# ─────────────────────────────────────────────────────────────────────────────
+# • Add new context keys here → reference them in templates/{page_name}.html
+# • Add new @frappe.whitelist() functions below for AJAX actions (save, delete, export)
+# • Add real-time updates: use frappe.publish_realtime() here + frappe.realtime in JS
+# • Cache expensive queries: use frappe.cache().get_value() / set_value()
+# ════════════════════════════════════════════════════════════════════════════════
+
+
 @frappe.whitelist()
 def get_{fn_name}(**kwargs):
-    """
-    Backend handler for the {page_name} desk page.
-    Called by frappe.call() in the .js file.
-    Returns rendered HTML that is injected into page.main.
-
-    Parameters passed from JS via args: {{ ... }} are received as **kwargs.
-
-    Common patterns — uncomment as needed:
-    ──────────────────────────────────────────────────────────────────────────
-
-    # ── Check permission ────────────────────────────────────────────────────
-    # frappe.only_for("System Manager")   # restrict to one role
+    """Main data loader — called on every page load / filter change."""
+    # All JS frappe.call({{args: {{...}}}}) kwargs arrive here.
+    #
+    # ── Permission guard (choose one) ────────────────────────────────────────────
+    # frappe.only_for("System Manager")
+    # frappe.only_for(["System Manager", "Accounts Manager"])
     # if not frappe.has_permission("Sales Invoice", "read"):
     #     frappe.throw(_("Not permitted"), frappe.PermissionError)
-
-    # ── Read filter args from the JS call ───────────────────────────────────
+    #
+    # ── Read filter args sent by the JS toolbar ───────────────────────────────────
     # company   = kwargs.get("company")   or frappe.defaults.get_global_default("company")
-    # from_date = kwargs.get("from_date") or frappe.utils.add_months(frappe.utils.today(), -1)
+    # from_date = kwargs.get("from_date") or frappe.utils.add_months(frappe.utils.today(), -3)
     # to_date   = kwargs.get("to_date")   or frappe.utils.today()
-
-    # ── Query the database ───────────────────────────────────────────────────
+    # status    = kwargs.get("status")    or ""
+    # search    = kwargs.get("search")    or ""
+    #
+    # ── ORM list query ────────────────────────────────────────────────────────────
+    # filters = {{"company": company, "docstatus": 1}}
+    # if status:  filters["status"] = status
+    # if search:  filters["name"]   = ["like", f"%{{search}}%"]
     # records = frappe.get_all(
     #     "Sales Invoice",
-    #     filters={{"company": company, "docstatus": 1}},
-    #     fields=["name", "customer", "grand_total", "posting_date", "status"],
-    #     order_by="posting_date desc",
-    #     limit=100,
+    #     filters=filters,
+    #     fields=["name", "customer", "customer_name", "grand_total",
+    #             "outstanding_amount", "posting_date", "status"],
+    #     order_by="posting_date desc", limit=200,
     # )
-
-    # ── Aggregate / summarise with SQL ───────────────────────────────────────
-    # totals = frappe.db.sql("""
-    #     SELECT
-    #         SUM(grand_total) AS total_sales,
-    #         COUNT(*) AS invoice_count,
-    #         customer
-    #     FROM `tabSales Invoice`
-    #     WHERE docstatus = 1
-    #       AND company = %(company)s
-    #     GROUP BY customer
-    #     ORDER BY total_sales DESC
-    #     LIMIT 10
-    # """, {{"company": company}}, as_dict=1)
-
-    # ── Compute KPI cards ────────────────────────────────────────────────────
+    #
+    # ── SQL aggregate ─────────────────────────────────────────────────────────────
+    # totals = frappe.db.sql(
+    #     "SELECT IFNULL(SUM(grand_total),0) AS total_invoiced,"
+    #     "       IFNULL(SUM(outstanding_amount),0) AS total_outstanding,"
+    #     "       COUNT(*) AS invoice_count, COUNT(DISTINCT customer) AS customer_count"
+    #     " FROM `tabSales Invoice`"
+    #     " WHERE docstatus=1 AND company=%(company)s"
+    #     "   AND posting_date BETWEEN %(from_date)s AND %(to_date)s",
+    #     {{"company": company, "from_date": from_date, "to_date": to_date}},
+    #     as_dict=1,
+    # )[0]
+    #
+    # ── KPI cards ─────────────────────────────────────────────────────────────────
     # kpis = [
-    #     {{"label": "Open Orders",    "value": frappe.db.count("Sales Order",   {{"status": "To Deliver and Bill"}}), "color": "#5c4da8"}},
-    #     {{"label": "Unpaid Invoices","value": frappe.db.count("Sales Invoice", {{"outstanding_amount": [">", 0]}}),  "color": "#dc2626"}},
+    #     {{"label": "Total Invoiced", "value": frappe.utils.fmt_money(totals.total_invoiced),    "icon": "💰", "color": "#5c4da8"}},
+    #     {{"label": "Outstanding",    "value": frappe.utils.fmt_money(totals.total_outstanding), "icon": "⏳", "color": "#dc2626"}},
+    #     {{"label": "Invoices",       "value": totals.invoice_count,                             "icon": "📄", "color": "#0369a1"}},
+    #     {{"label": "Customers",      "value": totals.customer_count,                            "icon": "👥", "color": "#059669"}},
     # ]
-
-    # ── Render a Jinja2 template ─────────────────────────────────────────────
+    #
+    # ── Render template ───────────────────────────────────────────────────────────
     # html = frappe.render_template("{tpl_path}", {{
-    #     "records": records,
-    #     "totals": totals,
-    #     "kpis": kpis,
+    #     "title":     "{title_str}",
+    #     "records":   records,
+    #     "totals":    totals,
+    #     "kpis":      kpis,
+    #     "from_date": from_date,
+    #     "to_date":   to_date,
+    #     "company":   company,
     # }})
     # return html
-    # """
+    # ─────────────────────────────────────────────────────────────────────────────
     context = {{
-        "title": "{page_name.replace("-", " ").replace("_", " ").title()}",
-        # "records": [],
-    }}
+        "title": "{title_str}",
+{_desk_py_preset_context_lines(preset)}    }}
     html = frappe.render_template("{tpl_path}", context)
     return html
+
+
+# ── Additional whitelisted actions — add as many as you need ──────────────────
+
+# @frappe.whitelist()
+# def save_{fn_name}_record(**kwargs):
+#     """Save or update a record from the page form."""
+#     frappe.only_for("System Manager")
+#     data = frappe.parse_json(kwargs.get("data") or "{{}}")
+#     if kwargs.get("name"):
+#         doc = frappe.get_doc("{title_str}", kwargs["name"])
+#         doc.update(data)
+#     else:
+#         doc = frappe.get_doc({{"doctype": "{title_str}", **data}})
+#     doc.save()
+#     frappe.db.commit()
+#     return {{"name": doc.name, "status": "ok"}}
+
+
+# @frappe.whitelist()
+# def delete_{fn_name}_record(name, **kwargs):
+#     """Delete a record by name."""
+#     frappe.only_for("System Manager")
+#     frappe.delete_doc("{title_str}", name, force=1)
+#     frappe.db.commit()
+#     return {{"deleted": name}}
+
+
+# @frappe.whitelist()
+# def export_{fn_name}_csv(**kwargs):
+#     """Export current data as CSV — called by an Export button in the JS."""
+#     from io import StringIO
+#     import csv
+#     records = frappe.get_all("{title_str}", fields=["name", "status"])
+#     buf = StringIO()
+#     w = csv.DictWriter(buf, fieldnames=["name", "status"])
+#     w.writeheader(); w.writerows([dict(r) for r in records])
+#     frappe.response["filename"]     = "{page_name}_export.csv"
+#     frappe.response["filecontent"]  = buf.getvalue()
+#     frappe.response["type"]         = "download"
+#     frappe.response["content_type"] = "text/csv"
 ''' + _desk_py_preset_block(preset, tpl_path, page_name)
 
 

@@ -17,6 +17,20 @@ def _get_hooks_path(app_name):
     return None
 
 
+def _has_key(content, key):
+    """Return True only if `key` appears as a real (uncommented) assignment in hooks.py."""
+    return bool(re.search(r'^' + re.escape(key) + r'\s*=', content, re.MULTILINE))
+
+
+def _inject_after(content, key, new_text):
+    """Insert new_text right after the opening brace/bracket of an uncommented `key = {` or `key = [`."""
+    return re.sub(
+        r'^(' + re.escape(key) + r'\s*=\s*[\{\[])',
+        lambda m: m.group(0) + new_text,
+        content, count=1, flags=re.MULTILINE,
+    )
+
+
 @frappe.whitelist()
 def add_doc_event(app_name, doctype, event, handler_path):
     """Add a doc_events entry to the target app's hooks.py."""
@@ -26,15 +40,17 @@ def add_doc_event(app_name, doctype, event, handler_path):
     content = read_file(hooks_path)
     if handler_path in content:
         return {"status": "exists", "message": f"Handler '{handler_path}' already registered"}
-    if "doc_events" not in content:
+    if not _has_key(content, "doc_events"):
         content += f'\ndoc_events = {{\n    "{doctype}": {{\n        "{event}": "{handler_path}"\n    }}\n}}\n'
     else:
-        pat = re.compile(r'(["\'])' + re.escape(doctype) + r'\1\s*:\s*\{', re.MULTILINE)
+        # Check if doctype block already exists (uncommented line only)
+        pat = re.compile(r'^(\s*)(["\'])' + re.escape(doctype) + r'\2\s*:\s*\{', re.MULTILINE)
         if pat.search(content):
-            content = pat.sub(lambda m: m.group(0) + f'\n        "{event}": "{handler_path}",', content, count=1)
+            content = pat.sub(lambda m: m.group(0) + f'\n{m.group(1)}    "{event}": "{handler_path}",', content, count=1)
         else:
-            content = re.sub(r'(doc_events\s*=\s*\{)', lambda m: m.group(0) + f'\n    "{doctype}": {{\n        "{event}": "{handler_path}"\n    }},', content, count=1)
+            content = _inject_after(content, "doc_events", f'\n    "{doctype}": {{\n        "{event}": "{handler_path}"\n    }},')
     write_file(hooks_path, content, overwrite=True)
+    _ensure_override_file(app_name, doctype, [event])
     return {"status": "success", "message": f"doc_event '{event}' for '{doctype}' added to hooks.py"}
 
 
@@ -47,14 +63,14 @@ def add_scheduler_event(app_name, frequency, handler_path):
     content = read_file(hooks_path)
     if handler_path in content:
         return {"status": "exists", "message": "Handler already registered"}
-    if "scheduler_events" not in content:
+    if not _has_key(content, "scheduler_events"):
         content += f'\nscheduler_events = {{\n    "{frequency}": [\n        "{handler_path}"\n    ]\n}}\n'
     else:
-        pat = re.compile(r'(["\'])' + re.escape(frequency) + r'\1\s*:\s*\[', re.MULTILINE)
+        pat = re.compile(r'^(\s*)(["\'])' + re.escape(frequency) + r'\2\s*:\s*\[', re.MULTILINE)
         if pat.search(content):
-            content = pat.sub(lambda m: m.group(0) + f'\n        "{handler_path}",', content, count=1)
+            content = pat.sub(lambda m: m.group(0) + f'\n{m.group(1)}    "{handler_path}",', content, count=1)
         else:
-            content = re.sub(r'(scheduler_events\s*=\s*\{)', lambda m: m.group(0) + f'\n    "{frequency}": ["{handler_path}"],', content, count=1)
+            content = _inject_after(content, "scheduler_events", f'\n    "{frequency}": ["{handler_path}"],')
     write_file(hooks_path, content, overwrite=True)
     return {"status": "success", "message": f"Scheduler '{frequency}' -> '{handler_path}' added"}
 
@@ -70,10 +86,10 @@ def add_fixture_filter(app_name, dt, filters):
     fixture_entry = json.dumps({"dt": dt, "filters": filters})
     if fixture_entry in content:
         return {"status": "exists", "message": "Fixture filter already registered"}
-    if "fixtures" not in content:
+    if not _has_key(content, "fixtures"):
         content += f"\nfixtures = [\n    {fixture_entry}\n]\n"
     else:
-        content = re.sub(r'(fixtures\s*=\s*\[)', lambda m: m.group(0) + f"\n    {fixture_entry},", content, count=1)
+        content = _inject_after(content, "fixtures", f"\n    {fixture_entry},")
     write_file(hooks_path, content, overwrite=True)
     return {"status": "success", "message": f"Fixture filter for '{dt}' added to hooks.py"}
 
@@ -87,11 +103,12 @@ def add_override_doctype_class(app_name, doctype, class_path):
     content = read_file(hooks_path)
     if class_path in content:
         return {"status": "exists", "message": "Override already registered"}
-    if "override_doctype_class" not in content:
+    if not _has_key(content, "override_doctype_class"):
         content += f'\noverride_doctype_class = {{\n    "{doctype}": "{class_path}"\n}}\n'
     else:
-        content = re.sub(r'(override_doctype_class\s*=\s*\{)', lambda m: m.group(0) + f'\n    "{doctype}": "{class_path}",', content, count=1)
+        content = _inject_after(content, "override_doctype_class", f'\n    "{doctype}": "{class_path}",')
     write_file(hooks_path, content, overwrite=True)
+    _ensure_class_override_file(app_name, doctype, class_path)
     return {"status": "success", "message": f"override_doctype_class for '{doctype}' added"}
 
 
@@ -104,12 +121,55 @@ def add_permission_query(app_name, doctype, handler_path):
     content = read_file(hooks_path)
     if handler_path in content:
         return {"status": "exists", "message": "Already registered"}
-    if "permission_query_conditions" not in content:
+    if not _has_key(content, "permission_query_conditions"):
         content += f'\npermission_query_conditions = {{\n    "{doctype}": "{handler_path}"\n}}\n'
     else:
-        content = re.sub(r'(permission_query_conditions\s*=\s*\{)', lambda m: m.group(0) + f'\n    "{doctype}": "{handler_path}",', content, count=1)
+        content = _inject_after(content, "permission_query_conditions", f'\n    "{doctype}": "{handler_path}",')
     write_file(hooks_path, content, overwrite=True)
     return {"status": "success", "message": f"permission_query_conditions for '{doctype}' added"}
+
+
+def _ensure_override_file(app_name, doctype, events):
+    """Create a Python override file with event stubs if it does not already exist."""
+    app_path = get_app_path(app_name)
+    overrides_dir = os.path.join(app_path, app_name, "overrides")
+    os.makedirs(overrides_dir, exist_ok=True)
+    init_path = os.path.join(overrides_dir, "__init__.py")
+    if not os.path.exists(init_path):
+        write_file(init_path, "")
+    file_name = doctype.lower().replace(" ", "_")
+    file_path = os.path.join(overrides_dir, f"{file_name}.py")
+    if os.path.exists(file_path):
+        return  # already exists — don't overwrite developer's work
+    fns = "\n".join([f'''
+def {e}(doc, method):
+    pass
+''' for e in events])
+    write_file(file_path, f"import frappe\nfrom frappe import _\n{fns}\n")
+
+
+def _ensure_class_override_file(app_name, doctype, class_path):
+    """Create a Python class override file if it does not already exist."""
+    class_name = class_path.split(".")[-1]
+    app_path = get_app_path(app_name)
+    overrides_dir = os.path.join(app_path, app_name, "overrides")
+    os.makedirs(overrides_dir, exist_ok=True)
+    init_path = os.path.join(overrides_dir, "__init__.py")
+    if not os.path.exists(init_path):
+        write_file(init_path, "")
+    file_name = doctype.lower().replace(" ", "_")
+    file_path = os.path.join(overrides_dir, f"{file_name}.py")
+    if os.path.exists(file_path):
+        return  # already exists — don't overwrite developer's work
+    content = f"""import frappe
+from frappe import _
+from frappe.model.document import Document
+
+
+class {class_name}(Document):
+    pass
+"""
+    write_file(file_path, content)
 
 
 @frappe.whitelist()
@@ -558,10 +618,10 @@ def add_whitelist_override(app_name, original, override):
     content = read_file(hooks_path)
     if override in content:
         return {"status": "exists", "message": "Override already registered"}
-    if "override_whitelisted_methods" not in content:
+    if not _has_key(content, "override_whitelisted_methods"):
         content += f'\noverride_whitelisted_methods = {{\n    "{original}": "{override}"\n}}\n'
     else:
-        content = re.sub(r'(override_whitelisted_methods\s*=\s*\{)',
-            lambda m: m.group(0) + f'\n    "{original}": "{override}",', content, count=1)
+        content = _inject_after(content, "override_whitelisted_methods", f'\n    "{original}": "{override}",')
+
     write_file(hooks_path, content, overwrite=True)
     return {"status": "success", "message": f"override_whitelisted_methods entry added to hooks.py"}
