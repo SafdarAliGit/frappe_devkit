@@ -615,6 +615,327 @@ def restart_workers():
     return _result("Restart workers", _run(["bench", "restart"], timeout=120))
 
 
+# ─── backup all sites ─────────────────────────────────────────────────────────
+@frappe.whitelist()
+def backup_all_sites(with_files=0, compress=0):
+    """bench backup-all-sites — back up every site in the bench."""
+    cmd = ["bench", "backup-all-sites"]
+    if int(with_files):
+        cmd.append("--with-files")
+    if int(compress):
+        cmd.append("--compress")
+    try:
+        r = _run(cmd, timeout=600)
+    except subprocess.TimeoutExpired:
+        return _err("backup-all-sites timed out (>10 min)")
+    return _result("Backup all sites", r)
+
+
+# ─── partial restore ──────────────────────────────────────────────────────────
+@frappe.whitelist()
+def partial_restore(site, backup_file, verbose=0):
+    """
+    bench --site <site> partial-restore <backup_file>
+    Restores only the tables included in a partial backup
+    (one created with --only or --exclude).
+    """
+    cmd = ["bench", "--site", site, "partial-restore", backup_file]
+    if int(verbose):
+        cmd.append("-v")
+    try:
+        r = _run(cmd, timeout=600)
+    except subprocess.TimeoutExpired:
+        return _err("Partial restore timed out")
+    return _result(f"Partial restore '{site}'", r)
+
+
+# ─── list installed apps on site ──────────────────────────────────────────────
+@frappe.whitelist()
+def list_site_apps(site):
+    """bench --site <site> list-apps — apps installed on a specific site."""
+    r = _run(["bench", "--site", site, "list-apps"])
+    apps = [line.strip() for line in r["stdout"].splitlines() if line.strip()]
+    return _result(f"Installed apps on '{site}'", r) | {"apps": apps}
+
+
+# ─── background job management ────────────────────────────────────────────────
+@frappe.whitelist()
+def show_pending_jobs(site):
+    """bench --site <site> show-pending-jobs — list queued background jobs."""
+    r = _run(["bench", "--site", site, "show-pending-jobs"])
+    return _result(f"Pending jobs for '{site}'", r)
+
+
+@frappe.whitelist()
+def purge_jobs(site):
+    """
+    bench --site <site> purge-jobs — clear all pending background jobs.
+    Use when workers are stuck or after a failed deployment.
+    """
+    r = _run(["bench", "--site", site, "purge-jobs"])
+    return _result(f"Purge jobs for '{site}'", r)
+
+
+@frappe.whitelist()
+def ready_for_migration(site):
+    """
+    bench --site <site> ready-for-migration
+    Checks whether all background jobs have finished — safe to run before migrate.
+    """
+    r = _run(["bench", "--site", site, "ready-for-migration"])
+    return _result(f"Migration readiness check for '{site}'", r)
+
+
+@frappe.whitelist()
+def trigger_scheduler_event(site, event="all"):
+    """
+    bench --site <site> trigger-scheduler-event <event>
+    Force-run a scheduled event now.
+    event: all | daily | weekly | monthly | hourly | daily_long | hourly_long
+    """
+    valid = {"all", "daily", "weekly", "monthly", "hourly", "daily_long", "hourly_long"}
+    if event not in valid:
+        return _err(f"Invalid event '{event}'. Valid: {', '.join(sorted(valid))}")
+    r = _run(["bench", "--site", site, "trigger-scheduler-event", event], timeout=120)
+    return _result(f"Trigger scheduler event '{event}' on '{site}'", r)
+
+
+# ─── search & permissions ─────────────────────────────────────────────────────
+@frappe.whitelist()
+def rebuild_global_search(site):
+    """bench --site <site> rebuild-global-search — rebuild the full-text search index."""
+    try:
+        r = _run(["bench", "--site", site, "rebuild-global-search"], timeout=300)
+    except subprocess.TimeoutExpired:
+        return _err("Rebuild global search timed out")
+    return _result(f"Rebuild global search for '{site}'", r)
+
+
+@frappe.whitelist()
+def reset_perms(site):
+    """
+    bench --site <site> reset-perms
+    Restore all DocType permissions to their app defaults.
+    Use after custom permission changes cause access issues.
+    """
+    r = _run(["bench", "--site", site, "reset-perms"])
+    return _result(f"Reset permissions for '{site}'", r)
+
+
+# ─── sessions ─────────────────────────────────────────────────────────────────
+@frappe.whitelist()
+def destroy_all_sessions(site):
+    """
+    bench --site <site> destroy-all-sessions
+    Force-log out all active users. Use after a security incident
+    or before a major schema change that requires a fresh login.
+    """
+    r = _run(["bench", "--site", site, "destroy-all-sessions"])
+    return _result(f"Destroy all sessions for '{site}'", r)
+
+
+# ─── patches ──────────────────────────────────────────────────────────────────
+@frappe.whitelist()
+def run_patch(site, patch_module):
+    """
+    bench --site <site> run-patch <patch_module>
+    Re-run a specific patch by its dotted module path.
+    Example: frappe.patches.v14.drop_data_import_legacy
+    """
+    if not patch_module or "." not in patch_module:
+        return _err("patch_module must be a dotted path, e.g. myapp.patches.v1.fix_something")
+    r = _run(["bench", "--site", site, "run-patch", patch_module], timeout=180)
+    return _result(f"Run patch '{patch_module}' on '{site}'", r)
+
+
+# ─── user management ──────────────────────────────────────────────────────────
+@frappe.whitelist()
+def add_system_manager(site, email, first_name="", last_name="", send_welcome_email=0):
+    """
+    bench --site <site> add-system-manager <email>
+    Add a System Manager user. Safe to run when locked out of the site.
+    """
+    cmd = ["bench", "--site", site, "add-system-manager", email]
+    if first_name:
+        cmd += ["--first-name", first_name]
+    if last_name:
+        cmd += ["--last-name", last_name]
+    if int(send_welcome_email):
+        cmd.append("--send-welcome-email")
+    r = _run(cmd)
+    return _result(f"Add system manager '{email}' on '{site}'", r)
+
+
+@frappe.whitelist()
+def add_user(site, email, first_name="", last_name="", roles=None, password=""):
+    """bench --site <site> add-user <email>"""
+    if isinstance(roles, str):
+        roles = json.loads(roles) if roles else []
+    roles = roles or []
+
+    cmd = ["bench", "--site", site, "add-user", email]
+    if first_name:
+        cmd += ["--first-name", first_name]
+    if last_name:
+        cmd += ["--last-name", last_name]
+    if password:
+        cmd += ["--user-password", password]
+    for role in roles:
+        cmd += ["--add-role", role]
+    r = _run(cmd)
+    return _result(f"Add user '{email}' on '{site}'", r)
+
+
+@frappe.whitelist()
+def disable_user(site, email):
+    """bench --site <site> disable-user <email>"""
+    r = _run(["bench", "--site", site, "disable-user", email])
+    return _result(f"Disable user '{email}' on '{site}'", r)
+
+
+@frappe.whitelist()
+def set_password(site, user, password):
+    """bench --site <site> set-password <user> <password>"""
+    if not password or len(password) < 6:
+        return _err("Password must be at least 6 characters")
+    r = _run(["bench", "--site", site, "set-password", user, password])
+    return _result(f"Set password for '{user}' on '{site}'", r)
+
+
+# ─── database maintenance ─────────────────────────────────────────────────────
+@frappe.whitelist()
+def trim_database(site, dry_run=0, output_format="table", no_backup=0):
+    """
+    bench --site <site> trim-database
+    Remove tables with no matching DocType (orphaned after uninstalling apps).
+    Always run with dry_run=1 first to preview what will be removed.
+    """
+    cmd = ["bench", "--site", site, "trim-database"]
+    if int(dry_run):
+        cmd.append("--dry-run")
+    if output_format.lower() == "json":
+        cmd += ["--format", "json"]
+    if int(no_backup):
+        cmd.append("--no-backup")
+    try:
+        r = _run(cmd, timeout=300)
+    except subprocess.TimeoutExpired:
+        return _err("trim-database timed out")
+    return _result(f"Trim database for '{site}'", r)
+
+
+@frappe.whitelist()
+def trim_tables(site, dry_run=0, output_format="text", no_backup=0):
+    """
+    bench --site <site> trim-tables
+    Remove columns with no matching DocType field (reduces backup size, speeds up queries).
+    Always run with dry_run=1 first.
+    """
+    cmd = ["bench", "--site", site, "trim-tables"]
+    if int(dry_run):
+        cmd.append("--dry-run")
+    if output_format.lower() == "json":
+        cmd += ["--format", "json"]
+    if int(no_backup):
+        cmd.append("--no-backup")
+    try:
+        r = _run(cmd, timeout=300)
+    except subprocess.TimeoutExpired:
+        return _err("trim-tables timed out")
+    return _result(f"Trim tables for '{site}'", r)
+
+
+@frappe.whitelist()
+def transform_database(site, table="all", engine="", row_format="", failfast=0):
+    """
+    bench --site <site> transform-database (MariaDB, Frappe v14+)
+    Change storage engine or row format for one or all tables.
+    engine: InnoDB | MyISAM
+    row_format: DYNAMIC | COMPACT | REDUNDANT | COMPRESSED
+    """
+    cmd = ["bench", "--site", site, "transform-database"]
+    if table:
+        cmd += ["--table", table]
+    if engine:
+        cmd += ["--engine", engine]
+    if row_format:
+        cmd += ["--row_format", row_format]
+    if int(failfast):
+        cmd.append("--failfast")
+    try:
+        r = _run(cmd, timeout=600)
+    except subprocess.TimeoutExpired:
+        return _err("transform-database timed out")
+    return _result(f"Transform database for '{site}'", r)
+
+
+# ─── testing ──────────────────────────────────────────────────────────────────
+@frappe.whitelist()
+def run_tests(site, app="", module="", test="", parallel=0):
+    """
+    bench --site <site> run-tests
+    Requires allow_tests = 1 in site_config.json.
+    Never leave allow_tests enabled on production.
+    """
+    cmd = ["bench", "--site", site,
+           "run-parallel-tests" if int(parallel) else "run-tests"]
+    if app:
+        cmd += ["--app", app]
+    if module:
+        cmd += ["--module", module]
+    if test:
+        cmd += ["--test", test]
+    try:
+        r = _run(cmd, timeout=600)
+    except subprocess.TimeoutExpired:
+        return _err("run-tests timed out (>10 min)")
+    return _result(f"Run tests on '{site}'", r)
+
+
+# ─── data import / export ─────────────────────────────────────────────────────
+@frappe.whitelist()
+def data_import(site, doctype, file_path, submit_after_import=0, overwrite=0):
+    """
+    bench --site <site> data-import --doctype <dt> --file <file>
+    Import records from CSV/XLSX into a DocType.
+    """
+    cmd = ["bench", "--site", site, "data-import",
+           "--doctype", doctype, "--file", file_path]
+    if int(submit_after_import):
+        cmd.append("--submit-after-import")
+    if int(overwrite):
+        cmd.append("--overwrite")
+    try:
+        r = _run(cmd, timeout=300)
+    except subprocess.TimeoutExpired:
+        return _err("data-import timed out")
+    return _result(f"Data import '{doctype}' on '{site}'", r)
+
+
+@frappe.whitelist()
+def export_csv(site, doctype, file_path, all_doctypes=0):
+    """
+    bench --site <site> export-csv --doctype <dt> --path <file>
+    Export a DocType as a CSV template (data import format).
+    """
+    cmd = ["bench", "--site", site, "export-csv",
+           "--doctype", doctype, "--path", file_path]
+    if int(all_doctypes):
+        cmd.append("--all-doctypes")
+    r = _run(cmd, timeout=120)
+    return _result(f"Export CSV '{doctype}' on '{site}'", r)
+
+
+@frappe.whitelist()
+def bulk_rename(site, doctype, csv_file):
+    """
+    bench --site <site> bulk-rename <doctype> <csv_file>
+    CSV format: old_name,new_name per row.
+    """
+    r = _run(["bench", "--site", site, "bulk-rename", doctype, csv_file], timeout=120)
+    return _result(f"Bulk rename '{doctype}' on '{site}'", r)
+
+
 # ─── utils ────────────────────────────────────────────────────────────────────
 def _human_size(n):
     for unit in ["B", "KB", "MB", "GB"]:

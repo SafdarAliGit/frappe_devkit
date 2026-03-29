@@ -141,11 +141,14 @@ def _ensure_override_file(app_name, doctype, events):
     file_path = os.path.join(overrides_dir, f"{file_name}.py")
     if os.path.exists(file_path):
         return  # already exists — don't overwrite developer's work
-    fns = "\n".join([f'''
-def {e}(doc, method):
-    pass
-''' for e in events])
-    write_file(file_path, f"import frappe\nfrom frappe import _\n{fns}\n")
+    fns = "\n".join([_event_stub(doctype, e) for e in events])
+    write_file(file_path, (
+        "import frappe\n"
+        "from frappe import _\n"
+        "from frappe.utils import flt, cint, nowdate, getdate, now_datetime\n"
+        "\n"
+        + fns + "\n"
+    ))
 
 
 def _ensure_class_override_file(app_name, doctype, class_path):
@@ -161,15 +164,7 @@ def _ensure_class_override_file(app_name, doctype, class_path):
     file_path = os.path.join(overrides_dir, f"{file_name}.py")
     if os.path.exists(file_path):
         return  # already exists — don't overwrite developer's work
-    content = f"""import frappe
-from frappe import _
-from frappe.model.document import Document
-
-
-class {class_name}(Document):
-    pass
-"""
-    write_file(file_path, content)
+    write_file(file_path, _class_override_content(doctype, class_name))
 
 
 @frappe.whitelist()
@@ -189,19 +184,14 @@ def scaffold_override_file(app_name, doctype_name, events=None):
     file_name = doctype_name.lower().replace(" ", "_")
     file_path = os.path.join(overrides_dir, f"{file_name}.py")
 
-    fns = "\n".join([f'''
-def {e}(doc, method):
-    """
-    Hook: {doctype_name} - {e}
-    """
-    pass
-''' for e in events])
-
-    content = f"""import frappe
-from frappe import _
-from frappe.utils import flt, cint, nowdate
-{fns}
-"""
+    fns = "\n".join([_event_stub(doctype_name, e) for e in events])
+    content = (
+        "import frappe\n"
+        "from frappe import _\n"
+        "from frappe.utils import flt, cint, nowdate, getdate, now_datetime\n"
+        "\n"
+        + fns + "\n"
+    )
     write_file(file_path, content, overwrite=True)
     return {"status": "success", "message": f"Override file scaffolded at {file_path}", "path": file_path}
 
@@ -209,6 +199,284 @@ from frappe.utils import flt, cint, nowdate
 # ─────────────────────────────────────────────────────────────────────────────
 # JS OVERRIDE SCAFFOLDING
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CODE GENERATION HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Per-event commented pattern bodies — every event gets its own relevant snippet
+_EVENT_PATTERNS = {
+    "validate": """\
+    # ── Required field check ──────────────────────────────────────────────────
+    # if not doc.customer:
+    #     frappe.throw(_("Customer is required"), title=_("Validation Error"))
+    #
+    # ── Date validation ───────────────────────────────────────────────────────
+    # if doc.end_date and doc.start_date and getdate(doc.end_date) < getdate(doc.start_date):
+    #     frappe.throw(_("End Date cannot be before Start Date"))
+    #
+    # ── Unique value check ────────────────────────────────────────────────────
+    # existing = frappe.db.get_value(doc.doctype, {"email": doc.email, "name": ["!=", doc.name or ""]})
+    # if existing:
+    #     frappe.throw(_("Email {0} already used in {1}").format(doc.email, existing))
+    #
+    # ── Child table aggregation ───────────────────────────────────────────────
+    # doc.total_amount = sum(flt(row.amount) for row in doc.get("items") or [])
+    #
+    # ── Status auto-set ───────────────────────────────────────────────────────
+    # if not doc.status:
+    #     doc.status = "Draft\"""",
+
+    "before_insert": """\
+    # ── Set computed defaults before first save ───────────────────────────────
+    # doc.posting_date = nowdate()
+    # doc.status = "Draft"
+    # doc.created_by = frappe.session.user
+    #
+    # ── Auto-generate a reference number ─────────────────────────────────────
+    # if not doc.reference_no:
+    #     doc.reference_no = frappe.generate_hash(length=8).upper()""",
+
+    "after_insert": """\
+    # ── Side-effects after first INSERT ──────────────────────────────────────
+    # frappe.sendmail(
+    #     recipients=[doc.email],
+    #     subject=f"New {doc.doctype}: {doc.name}",
+    #     message=f"Your record {doc.name} has been created."
+    # )
+    #
+    # ── Realtime notification ─────────────────────────────────────────────────
+    # frappe.publish_realtime(
+    #     "doc_created",
+    #     {"doctype": doc.doctype, "name": doc.name},
+    #     user=frappe.session.user
+    # )
+    #
+    # ── Create a linked document ──────────────────────────────────────────────
+    # log = frappe.new_doc("Activity Log")
+    # log.reference_doctype = doc.doctype
+    # log.reference_name = doc.name
+    # log.subject = f"{doc.doctype} {doc.name} created"
+    # log.insert(ignore_permissions=True)""",
+
+    "before_save": """\
+    # ── Final computed field before DB write ─────────────────────────────────
+    # doc.last_modified_by = frappe.session.user
+    # doc.modified_at = now_datetime()
+    #
+    # ── Round totals ──────────────────────────────────────────────────────────
+    # doc.grand_total = round(flt(doc.subtotal) + flt(doc.tax_amount), 2)
+    #
+    # ── Recompute child table amounts ─────────────────────────────────────────
+    # for row in doc.get("items") or []:
+    #     row.amount = flt(row.qty) * flt(row.rate)
+    # doc.total_qty = sum(flt(r.qty) for r in doc.get("items") or [])""",
+
+    "on_update": """\
+    # ── Propagate status change to linked documents ───────────────────────────
+    # frappe.db.set_value("Related DocType", doc.ref_name, "status", doc.status)
+    #
+    # ── Invalidate a cache key ────────────────────────────────────────────────
+    # frappe.cache().delete_key(f"my_app:summary:{doc.company}")
+    #
+    # ── Trigger a background job ──────────────────────────────────────────────
+    # frappe.enqueue(
+    #     "my_app.tasks.recalculate_totals",
+    #     queue="short",
+    #     ref_name=doc.name,
+    #     now=frappe.flags.in_test
+    # )""",
+
+    "on_submit": """\
+    # ── Update a related document status ─────────────────────────────────────
+    # frappe.db.set_value("Sales Order", doc.sales_order, "status", "Completed")
+    #
+    # ── Create a GL entry ─────────────────────────────────────────────────────
+    # from erpnext.accounts.general_ledger import make_gl_entries
+    # make_gl_entries(doc.get_gl_entries())
+    #
+    # ── Send confirmation email ───────────────────────────────────────────────
+    # frappe.sendmail(
+    #     recipients=[doc.email],
+    #     subject=f"{doc.doctype} Submitted",
+    #     message=f"Your {doc.doctype} {doc.name} has been submitted."
+    # )""",
+
+    "before_submit": """\
+    # ── Final validation before submit ────────────────────────────────────────
+    # if not doc.items:
+    #     frappe.throw(_("Cannot submit without items"))
+    #
+    # ── Check required fields that only matter on submit ─────────────────────
+    # if not doc.supplier:
+    #     frappe.throw(_("Supplier is required before submission"))
+    #
+    # ── Prevent double submit ─────────────────────────────────────────────────
+    # if frappe.db.exists(doc.doctype, {"ref_no": doc.ref_no, "docstatus": 1, "name": ["!=", doc.name]}):
+    #     frappe.throw(_("A submitted record with ref {0} already exists").format(doc.ref_no))""",
+
+    "on_cancel": """\
+    # ── Reverse effects of submit ─────────────────────────────────────────────
+    # frappe.db.set_value("Sales Order", doc.sales_order, "status", "Open")
+    #
+    # ── Cancel linked GL entries ──────────────────────────────────────────────
+    # from erpnext.accounts.general_ledger import make_reverse_gl_entries
+    # make_reverse_gl_entries(voucher_type=doc.doctype, voucher_no=doc.name)
+    #
+    # ── Notify on cancellation ────────────────────────────────────────────────
+    # frappe.sendmail(
+    #     recipients=[doc.email],
+    #     subject=f"{doc.doctype} Cancelled",
+    #     message=f"{doc.name} has been cancelled."
+    # )""",
+
+    "before_cancel": """\
+    # ── Block cancellation under certain conditions ───────────────────────────
+    # if doc.status == "Delivered":
+    #     frappe.throw(_("Cannot cancel a delivered order"))
+    #
+    # if frappe.db.exists("Payment Entry", {"reference_name": doc.name, "docstatus": 1}):
+    #     frappe.throw(_("Cannot cancel — has linked payment entries"))""",
+
+    "on_update_after_submit": """\
+    # ── Allow specific field edits on submitted documents ─────────────────────
+    # (Only fields with allow_on_submit=1 can change here)
+    # frappe.db.set_value("Related", doc.ref, "remarks", doc.remarks)
+    #
+    # ── Recalculate outstanding ───────────────────────────────────────────────
+    # doc.outstanding_amount = flt(doc.grand_total) - flt(doc.paid_amount)
+    # doc.db_update()""",
+
+    "on_trash": """\
+    # ── Prevent deletion under certain conditions ─────────────────────────────
+    # if frappe.db.count("Child DocType", {"parent": doc.name}):
+    #     frappe.throw(_("Cannot delete — has linked child records"))
+    #
+    # if doc.docstatus == 1:
+    #     frappe.throw(_("Cannot delete a submitted document"))
+    #
+    # ── Clean up related records ──────────────────────────────────────────────
+    # frappe.db.delete("Log Entry", {"ref_name": doc.name})""",
+
+    "after_delete": """\
+    # ── Post-deletion cleanup ─────────────────────────────────────────────────
+    # frappe.db.delete("Notification Log", {"reference_name": doc.name})
+    # frappe.cache().delete_key(f"summary:{doc.name}")""",
+
+    "on_change": """\
+    # ── React to field changes (also fires on set_value without full save) ─────
+    # Use sparingly — prefer validate or on_update for most logic
+    # frappe.publish_realtime(
+    #     "doc_changed",
+    #     {"name": doc.name, "status": doc.status},
+    #     user=frappe.session.user
+    # )""",
+}
+
+_DEFAULT_EVENT_PATTERN = """\
+    # ── Add your logic here ───────────────────────────────────────────────────
+    # frappe.db.get_value(doc.doctype, doc.name, "field")
+    # frappe.db.set_value(doc.doctype, doc.name, "field", value)
+    # frappe.throw(_("Error message"))
+    # frappe.msgprint(_("Info message"))"""
+
+
+def _event_stub(doctype: str, event: str) -> str:
+    """Return a fully documented function stub for a doc_event hook."""
+    pattern = _EVENT_PATTERNS.get(event, _DEFAULT_EVENT_PATTERN)
+    return (
+        f"\n"
+        f"def {event}(doc, method):\n"
+        f'    """\n'
+        f"    Hook: {doctype} — {event}\n"
+        f"    Registered in hooks.py > doc_events.\n"
+        f"    `doc` is the Document instance; `method` is the event name string.\n"
+        f"    Uncomment the patterns below that apply to your use case.\n"
+        f'    """\n'
+        f"{pattern}\n"
+        f"    pass\n"
+    )
+
+
+def _class_override_content(doctype: str, class_name: str) -> str:
+    """Return a fully documented class override file."""
+    return f'''\
+import frappe
+from frappe import _
+from frappe.utils import flt, cint, nowdate, getdate, now_datetime
+
+# ════════════════════════════════════════════════════════════════════════════
+# {doctype} — Class Override
+# ════════════════════════════════════════════════════════════════════════════
+# This class REPLACES the original {doctype} controller entirely.
+# Every method you add here shadows the parent; call super() to preserve it.
+#
+# Register in hooks.py:
+#   override_doctype_class = {{
+#       "{doctype}": "{class_name.__module__ if hasattr(class_name, "__module__") else "your_app.overrides." + doctype.lower().replace(" ", "_")}.{class_name}"
+#   }}
+#
+# LIFECYCLE ORDER (no submit):
+#   before_insert → validate → after_insert → before_save → on_update
+# ════════════════════════════════════════════════════════════════════════════
+
+try:
+    from erpnext.{doctype.lower().replace(" ", "_")}.doctype.{doctype.lower().replace(" ", "_")}.{doctype.lower().replace(" ", "_")} import {class_name.replace("Custom", doctype.replace(" ", ""))} as Base{class_name}
+except ImportError:
+    from frappe.model.document import Document as Base{class_name}
+
+
+class {class_name}(Base{class_name}):
+
+    def autoname(self):
+        # Override auto-naming. Call super() to keep original naming.
+        # super().autoname()
+        # self.name = f"MY-{{self.company[:3].upper()}}-{{frappe.generate_hash(length=6).upper()}}"
+        super().autoname()
+
+    def validate(self):
+        # Always call super() first to run original validation.
+        super().validate()
+        #
+        # ── Add extra validation ───────────────────────────────────────────
+        # if not self.custom_approval and flt(self.grand_total) > 100000:
+        #     frappe.throw(_("Orders above 1,00,000 require custom approval"))
+        #
+        # ── Override a computed field ──────────────────────────────────────
+        # self.custom_total = sum(flt(r.amount) for r in self.get("items") or [])
+
+    def before_save(self):
+        super().before_save()
+        # self.custom_last_saved_by = frappe.session.user
+
+    def on_update(self):
+        super().on_update()
+        # frappe.db.set_value("Related DocType", self.ref, "status", self.status)
+
+    def on_submit(self):
+        super().on_submit()
+        # ── Run after submit ───────────────────────────────────────────────
+        # frappe.enqueue("your_app.tasks.post_submit", ref=self.name, queue="short")
+
+    def on_cancel(self):
+        super().on_cancel()
+        # ── Reverse submit effects ─────────────────────────────────────────
+        # frappe.db.set_value("Related DocType", self.ref, "status", "Open")
+
+    def on_trash(self):
+        super().on_trash()
+        # ── Block deletion ──────────────────────────────────────────────────
+        # if frappe.db.count("Child", {{"parent": self.name}}):
+        #     frappe.throw(_("Cannot delete — linked child records exist"))
+
+    # ── Add completely new methods ─────────────────────────────────────────────
+    #
+    # @frappe.whitelist()
+    # def my_custom_action(self):
+    #     """Custom action callable from form JS via frappe.call."""
+    #     return {{"status": "ok", "name": self.name}}
+'''
+
 
 @frappe.whitelist()
 def scaffold_doctype_js_override(

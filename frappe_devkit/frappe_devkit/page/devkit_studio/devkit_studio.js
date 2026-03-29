@@ -1189,6 +1189,16 @@ frappe.pages["devkit-studio"].on_page_load = function (wrapper) {
 		{ id:"site_backup",      lbl:"Backup & Restore",     ico:icoSave()     },
 		{ id:"site_config",      lbl:"Site Config",          ico:icoSliders()  },
 		{ id:"site_ops",         lbl:"Site Operations",      ico:icoTools()    },
+		{ id:"site_users",       lbl:"User Management",      ico:icoShield()   },
+		{ id:"site_jobs",        lbl:"Jobs & Workers",       ico:icoClock()    },
+		{ id:"site_db",          lbl:"DB Maintenance",       ico:icoDatabase() },
+		{ id:"site_data",        lbl:"Data Import / Export", ico:icoExport()   },
+		{ sep:true },
+		{ sec:"🖥  Server & Production" },
+		{ id:"server_nginx",     lbl:"Nginx & Domains",      ico:icoGlobe()    },
+		{ id:"server_ssl",       lbl:"SSL / HTTPS",          ico:icoShield()   },
+		{ id:"server_prod",      lbl:"Production Setup",     ico:icoTools()    },
+		{ id:"server_bench",     lbl:"Bench Operations",     ico:icoBolt()     },
 		{ sep:true },
 		{ sec:"🌐  Web & Page Builder" },
 		{ id:"www_editor",       lbl:"WWW File Manager",     ico:icoGlobe()    },
@@ -5807,7 +5817,25 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 				if (!app) { frappe.throw("Select an app"); return; }
 				api("frappe_devkit.api.app_builder.register_existing_app", { app_name: app }, $t);
 			}},
+			{ lbl:"Remove App from Bench", cls:"dkst-btn-r", fn:() => {
+				const app = $ac.find("#am-sel-app").val();
+				if (!app) { frappe.throw("Select an app"); return; }
+				const delFolder = $ac.find("#am-del-folder").is(":checked") ? 1 : 0;
+				const msg = delFolder
+					? `<b>PERMANENTLY REMOVE <code>${app}</code> from the bench?</b><br><br>This will delete the app folder from <code>apps/${app}/</code> and remove all registry entries. This cannot be undone.`
+					: `Remove <code>${app}</code> from bench registries (apps.txt + apps.json)?<br>The app folder will be kept on disk.`;
+				frappe.confirm(msg, () => {
+					api("frappe_devkit.api.app_builder.remove_app_from_bench", { app_name: app, delete_folder: delFolder }, $t);
+				});
+			}},
 		]);
+		// Extra checkbox for delete folder — rendered below the btns
+		$ac.append(`<div class="dkst-checks" style="margin-top:8px">
+			<label class="dkst-chk" style="color:#c0392b;font-weight:600">
+				<input type="checkbox" id="am-del-folder">
+				<span>Also delete app folder from disk (<code>bench/apps/&lt;app&gt;/</code>) — irreversible</span>
+			</label>
+		</div>`);
 
 		// ── load functions ──
 		let _bench_apps = [], _bench_sites = [];
@@ -7141,6 +7169,868 @@ frappe.msgprint(f"Processed {doc.name}")</textarea>
 			$pp.find('.dkst-spanel').removeClass('active'); $pp.find(`[data-t="${t}"]`).addClass('active');
 		});
 	};
+
+	/* ══════════════════════════════════════════════════════════════════
+	   SITE — USER MANAGEMENT
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.site_users = function($p) {
+		$p.append(phdr('User Management', 'Add users, reset passwords, disable accounts, destroy sessions.', icoShield(20)));
+		$p.append(info('All operations target the selected site. Equivalent bench commands shown in terminal output.'));
+
+		const $sel = smCard($p, 'Target Site');
+		const $siteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($sel);
+		const $opsSite = siteSelRow($siteRow, 'su-site', 'select site');
+		function gsite() { const s=$opsSite.val(); if(!s){frappe.throw('Select a site first');return '';} return s; }
+
+		const $tabs = $(`<div class="dkst-stabs">
+			<div class="dkst-stab active" data-t="add_mgr">Add System Manager</div>
+			<div class="dkst-stab" data-t="add_usr">Add User</div>
+			<div class="dkst-stab" data-t="dis_usr">Disable User</div>
+			<div class="dkst-stab" data-t="set_pwd">Set Password</div>
+			<div class="dkst-stab" data-t="sessions" style="color:#c0392b">Destroy Sessions</div>
+		</div>`).appendTo($p);
+		const $pp = $('<div></div>').appendTo($p);
+		function mkSub(id){return $(`<div class="dkst-spanel ${id==='add_mgr'?'active':''}" data-t="${id}"></div>`).appendTo($pp);}
+
+		// Add System Manager
+		const $amg = mkSub('add_mgr');
+		const $ac = smCard($amg, 'Add System Manager');
+		$ac.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; add-system-manager &lt;email&gt;</span><br>Safe to run when locked out of the Administrator account.</div>`);
+		$ac.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Email</label><input class="dkst-inp" id="su-mgr-email" placeholder="user@example.com"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">First Name</label><input class="dkst-inp" id="su-mgr-fn" placeholder="optional"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Last Name</label><input class="dkst-inp" id="su-mgr-ln" placeholder="optional"></div>
+		</div>`);
+		const $at = smTerm($amg);
+		smBtns($ac, [{ lbl:'Add System Manager', cls:'dkst-btn-p', fn:()=>{
+			const site=gsite(); if(!site) return;
+			const email=$('#su-mgr-email').val().trim(); if(!email){frappe.throw('Email required');return;}
+			smApi('frappe_devkit.api.site_manager.add_system_manager',{site,email,first_name:$('#su-mgr-fn').val().trim(),last_name:$('#su-mgr-ln').val().trim()},$at);
+		}}]);
+
+		// Add User
+		const $aus = mkSub('add_usr');
+		const $uc = smCard($aus, 'Add User');
+		$uc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; add-user &lt;email&gt;</span></div>`);
+		$uc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Email</label><input class="dkst-inp" id="su-usr-email" placeholder="user@example.com"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">First Name</label><input class="dkst-inp" id="su-usr-fn" placeholder="optional"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Last Name</label><input class="dkst-inp" id="su-usr-ln" placeholder="optional"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Password</label><input class="dkst-inp" type="password" id="su-usr-pwd" placeholder="optional"></div>
+		</div>`);
+		const $ut = smTerm($aus);
+		smBtns($uc, [{ lbl:'Add User', cls:'dkst-btn-p', fn:()=>{
+			const site=gsite(); if(!site) return;
+			const email=$('#su-usr-email').val().trim(); if(!email){frappe.throw('Email required');return;}
+			smApi('frappe_devkit.api.site_manager.add_user',{site,email,first_name:$('#su-usr-fn').val().trim(),last_name:$('#su-usr-ln').val().trim(),password:$('#su-usr-pwd').val()},$ut);
+		}}]);
+
+		// Disable User
+		const $dis = mkSub('dis_usr');
+		const $dc = smCard($dis, 'Disable User');
+		$dc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; disable-user &lt;email&gt;</span></div>`);
+		$dc.append(`<div class="dkst-fld"><label class="dkst-lbl dkst-req">Email</label><input class="dkst-inp" id="su-dis-email" placeholder="user@example.com"></div>`);
+		const $dt = smTerm($dis);
+		smBtns($dc, [{ lbl:'Disable User', cls:'dkst-btn-r', fn:()=>{
+			const site=gsite(); if(!site) return;
+			const email=$('#su-dis-email').val().trim(); if(!email){frappe.throw('Email required');return;}
+			smApi('frappe_devkit.api.site_manager.disable_user',{site,email},$dt);
+		}}]);
+
+		// Set Password
+		const $spwd = mkSub('set_pwd');
+		const $pc = smCard($spwd, 'Set User Password');
+		$pc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; set-password &lt;user&gt; &lt;password&gt;</span></div>`);
+		$pc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">User (email or name)</label><input class="dkst-inp" id="su-spwd-user" placeholder="user@example.com"></div>
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">New Password</label><input class="dkst-inp" type="password" id="su-spwd-pwd" placeholder="Min 6 characters"></div>
+		</div>`);
+		const $pt = smTerm($spwd);
+		smBtns($pc, [{ lbl:'Set Password', cls:'dkst-btn-p', fn:()=>{
+			const site=gsite(); if(!site) return;
+			const user=$('#su-spwd-user').val().trim(); const pwd=$('#su-spwd-pwd').val();
+			if(!user){frappe.throw('User required');return;} if(!pwd||pwd.length<6){frappe.throw('Password must be at least 6 characters');return;}
+			smApi('frappe_devkit.api.site_manager.set_password',{site,user,password:pwd},$pt);
+		}}]);
+
+		// Destroy Sessions
+		const $sess = mkSub('sessions');
+		const $sc = smCard($sess);
+		$sc.append(`<div style="background:#fde8e6;border:1px solid #e8a8a0;border-radius:6px;padding:14px 16px;margin-bottom:14px">
+			<div style="font-size:13px;font-weight:700;color:#c0392b;margin-bottom:4px">⚠ Force Logout All Users</div>
+			<div style="font-size:12px;color:#7a2020;line-height:1.6">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; destroy-all-sessions</span><br>
+			All active users will be immediately logged out. Use after a security incident or before a major migration.</div>
+		</div>`);
+		const $st = smTerm($sess);
+		smBtns($sc, [{ lbl:'Destroy All Sessions', cls:'dkst-btn-r', fn:()=>{
+			const site=gsite(); if(!site) return;
+			frappe.confirm(`Force-logout ALL users on <b>${site}</b>?`, ()=>smApi('frappe_devkit.api.site_manager.destroy_all_sessions',{site},$st));
+		}}]);
+
+		$tabs.on('click','.dkst-stab',function(){
+			const t=$(this).data('t');
+			$tabs.find('.dkst-stab').removeClass('active');$(this).addClass('active');
+			$pp.find('.dkst-spanel').removeClass('active');$pp.find(`[data-t="${t}"]`).addClass('active');
+		});
+	};
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   SITE — JOBS & WORKERS
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.site_jobs = function($p) {
+		$p.append(phdr('Jobs & Workers', 'Inspect and manage background job queues and scheduled events.', icoClock(20)));
+
+		const $sel = smCard($p, 'Target Site');
+		const $siteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($sel);
+		const $opsSite = siteSelRow($siteRow, 'sj-site', 'select site');
+		function gsite() { const s=$opsSite.val(); if(!s){frappe.throw('Select a site first');return '';} return s; }
+
+		const $tabs = $(`<div class="dkst-stabs">
+			<div class="dkst-stab active" data-t="pending">Pending Jobs</div>
+			<div class="dkst-stab" data-t="purge">Purge Jobs</div>
+			<div class="dkst-stab" data-t="ready">Migration Check</div>
+			<div class="dkst-stab" data-t="trigger">Trigger Event</div>
+			<div class="dkst-stab" data-t="search">Rebuild Search</div>
+			<div class="dkst-stab" data-t="patch">Run Patch</div>
+			<div class="dkst-stab" data-t="perms">Reset Perms</div>
+		</div>`).appendTo($p);
+		const $pp = $('<div></div>').appendTo($p);
+		function mkSub(id){return $(`<div class="dkst-spanel ${id==='pending'?'active':''}" data-t="${id}"></div>`).appendTo($pp);}
+
+		// Pending Jobs
+		const $pend = mkSub('pending');
+		const $pc = smCard($pend, 'Show Pending Jobs');
+		$pc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; show-pending-jobs</span><br>Lists all background jobs waiting to be processed by workers.</div>`);
+		const $pt = smTerm($pend);
+		smBtns($pc, [{ lbl:'Show Pending Jobs', cls:'dkst-btn-p', fn:()=>{ const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.show_pending_jobs',{site:s},$pt); }}]);
+
+		// Purge Jobs
+		const $purge = mkSub('purge');
+		const $pgc = smCard($purge);
+		$pgc.append(`<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:14px 16px;margin-bottom:14px">
+			<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">⚠ Clear All Pending Jobs</div>
+			<div style="font-size:12px;color:#78350f;line-height:1.6">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; purge-jobs</span><br>
+			Removes all queued background jobs. Use when workers are stuck after a failed deployment.</div>
+		</div>`);
+		const $pgt = smTerm($purge);
+		smBtns($pgc, [{ lbl:'Purge All Jobs', cls:'dkst-btn-r', fn:()=>{
+			const s=gsite(); if(!s) return;
+			frappe.confirm(`Purge all pending jobs on <b>${s}</b>?`, ()=>smApi('frappe_devkit.api.site_manager.purge_jobs',{site:s},$pgt));
+		}}]);
+
+		// Migration Check
+		const $ready = mkSub('ready');
+		const $rc = smCard($ready, 'Check Migration Readiness');
+		$rc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; ready-for-migration</span><br>Checks whether all background jobs have finished. Run before a <code>bench update</code> or <code>migrate</code>.</div>`);
+		const $rt = smTerm($ready);
+		smBtns($rc, [{ lbl:'Check Readiness', cls:'dkst-btn-p', fn:()=>{ const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.ready_for_migration',{site:s},$rt); }}]);
+
+		// Trigger Event
+		const $trig = mkSub('trigger');
+		const $tc = smCard($trig, 'Trigger Scheduler Event');
+		$tc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; trigger-scheduler-event &lt;event&gt;</span><br>Force-run a scheduled event immediately without waiting for its next scheduled time.</div>`);
+		$tc.append(`<div class="dkst-fld"><label class="dkst-lbl dkst-req">Event</label>
+			<select class="dkst-sel" id="sj-event">
+				<option value="all">all — run every scheduled task</option>
+				<option value="daily">daily</option>
+				<option value="hourly">hourly</option>
+				<option value="weekly">weekly</option>
+				<option value="monthly">monthly</option>
+				<option value="daily_long">daily_long</option>
+				<option value="hourly_long">hourly_long</option>
+			</select></div>`);
+		const $tt = smTerm($trig);
+		smBtns($tc, [{ lbl:'Trigger Event', cls:'dkst-btn-p', fn:()=>{
+			const s=gsite(); if(!s) return;
+			smApi('frappe_devkit.api.site_manager.trigger_scheduler_event',{site:s,event:$('#sj-event').val()},$tt);
+		}}]);
+
+		// Rebuild Search
+		const $srch = mkSub('search');
+		const $sc = smCard($srch, 'Rebuild Global Search Index');
+		$sc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; rebuild-global-search</span><br>Run if global search returns no or incorrect results. Also run after large data imports.</div>`);
+		const $st = smTerm($srch);
+		smBtns($sc, [{ lbl:'Rebuild Search Index', cls:'dkst-btn-p', fn:()=>{ const s=gsite(); if(s) smApi('frappe_devkit.api.site_manager.rebuild_global_search',{site:s},$st); }}]);
+
+		// Run Patch
+		const $ptch = mkSub('patch');
+		const $pac = smCard($ptch, 'Run a Specific Patch');
+		$pac.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; run-patch &lt;dotted.module.path&gt;</span><br>Re-run a patch that failed or needs to be applied manually.</div>`);
+		$pac.append(`<div class="dkst-fld"><label class="dkst-lbl dkst-req">Patch Module (dotted path)</label>
+			<input class="dkst-inp" id="sj-patch" placeholder="e.g. frappe.patches.v14.drop_data_import_legacy">
+			<span class="dkst-hint">Must be a Python module path containing an execute() function</span></div>`);
+		const $pat = smTerm($ptch);
+		smBtns($pac, [{ lbl:'Run Patch', cls:'dkst-btn-p', fn:()=>{
+			const s=gsite(); if(!s) return;
+			const m=$('#sj-patch').val().trim(); if(!m){frappe.throw('Patch module required');return;}
+			smApi('frappe_devkit.api.site_manager.run_patch',{site:s,patch_module:m},$pat);
+		}}]);
+
+		// Reset Perms
+		const $prm = mkSub('perms');
+		const $prc = smCard($prm, 'Reset DocType Permissions');
+		$prc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; reset-perms</span><br>Restores all DocType permissions to their app defaults. Use when custom permission changes cause access issues.</div>`);
+		const $prmt = smTerm($prm);
+		smBtns($prc, [{ lbl:'Reset Permissions', cls:'dkst-btn-r', fn:()=>{
+			const s=gsite(); if(!s) return;
+			frappe.confirm(`Reset ALL DocType permissions to defaults on <b>${s}</b>? This will undo any custom role permission changes.`, ()=>smApi('frappe_devkit.api.site_manager.reset_perms',{site:s},$prmt));
+		}}]);
+
+		$tabs.on('click','.dkst-stab',function(){
+			const t=$(this).data('t');
+			$tabs.find('.dkst-stab').removeClass('active');$(this).addClass('active');
+			$pp.find('.dkst-spanel').removeClass('active');$pp.find(`[data-t="${t}"]`).addClass('active');
+		});
+	};
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   SITE — DB MAINTENANCE
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.site_db = function($p) {
+		$p.append(phdr('DB Maintenance', 'Trim orphaned tables/columns, transform storage engine, run tests.', icoDatabase(20)));
+		$p.append(info('Always run with <b>Dry Run</b> first to preview what will be removed. Back up before applying changes.'));
+
+		const $sel = smCard($p, 'Target Site');
+		const $siteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($sel);
+		const $opsSite = siteSelRow($siteRow, 'sdb-site', 'select site');
+		function gsite() { const s=$opsSite.val(); if(!s){frappe.throw('Select a site first');return '';} return s; }
+
+		const $tabs = $(`<div class="dkst-stabs">
+			<div class="dkst-stab active" data-t="trim_db">Trim Tables</div>
+			<div class="dkst-stab" data-t="trim_col">Trim Columns</div>
+			<div class="dkst-stab" data-t="transform">Transform DB</div>
+			<div class="dkst-stab" data-t="tests">Run Tests</div>
+		</div>`).appendTo($p);
+		const $pp = $('<div></div>').appendTo($p);
+		function mkSub(id){return $(`<div class="dkst-spanel ${id==='trim_db'?'active':''}" data-t="${id}"></div>`).appendTo($pp);}
+
+		// Trim Tables
+		const $td = mkSub('trim_db');
+		const $tdc = smCard($td, 'Trim Orphaned Tables');
+		$tdc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; trim-database [--dry-run]</span><br>
+		Removes database tables with no matching DocType. Appears after uninstalling apps. Always dry-run first.</div>`);
+		$tdc.append(`<div class="dkst-checks">
+			<label class="dkst-chk"><input type="checkbox" id="sdb-td-dry" checked><span>Dry run — preview only, no changes made</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="sdb-td-json"><span>JSON output format</span></label>
+		</div>`);
+		const $tdt = smTerm($td);
+		smBtns($tdc, [{ lbl:'Run', cls:'dkst-btn-p', fn:()=>{
+			const s=gsite(); if(!s) return;
+			smApi('frappe_devkit.api.site_manager.trim_database',{site:s,dry_run:$('#sdb-td-dry').is(':checked')?1:0,output_format:$('#sdb-td-json').is(':checked')?'json':'table'},$tdt);
+		}}]);
+
+		// Trim Columns
+		const $tc = mkSub('trim_col');
+		const $tcc = smCard($tc, 'Trim Orphaned Columns');
+		$tcc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; trim-tables [--dry-run]</span><br>
+		Removes database columns with no matching DocType field. Reduces backup size and speeds up queries.</div>`);
+		$tcc.append(`<div class="dkst-checks">
+			<label class="dkst-chk"><input type="checkbox" id="sdb-tc-dry" checked><span>Dry run — preview only, no changes made</span></label>
+		</div>`);
+		const $tct = smTerm($tc);
+		smBtns($tcc, [{ lbl:'Run', cls:'dkst-btn-p', fn:()=>{
+			const s=gsite(); if(!s) return;
+			smApi('frappe_devkit.api.site_manager.trim_tables',{site:s,dry_run:$('#sdb-tc-dry').is(':checked')?1:0},$tct);
+		}}]);
+
+		// Transform DB
+		const $tx = mkSub('transform');
+		const $txc = smCard($tx, 'Transform Database (MariaDB v14+)');
+		$txc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; transform-database --table all --row_format DYNAMIC</span><br>
+		Change storage engine or row format. Use DYNAMIC row format to fix "Row size too large" errors.</div>`);
+		$txc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl">Table</label>
+				<input class="dkst-inp" id="sdb-tx-tbl" value="all" placeholder="all — or a specific table name">
+				<span class="dkst-hint">Use 'all' for every table, or enter exact table name e.g. tabSales Invoice</span></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Engine</label>
+				<select class="dkst-sel" id="sdb-tx-eng"><option value="">— unchanged —</option><option value="InnoDB">InnoDB</option><option value="MyISAM">MyISAM</option></select></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Row Format</label>
+				<select class="dkst-sel" id="sdb-tx-fmt"><option value="">— unchanged —</option><option value="DYNAMIC">DYNAMIC (recommended)</option><option value="COMPACT">COMPACT</option><option value="REDUNDANT">REDUNDANT</option><option value="COMPRESSED">COMPRESSED</option></select></div>
+		</div>
+		<div class="dkst-checks"><label class="dkst-chk"><input type="checkbox" id="sdb-tx-ff"><span>Failfast — stop on first error</span></label></div>`);
+		const $txt = smTerm($tx);
+		smBtns($txc, [{ lbl:'Transform', cls:'dkst-btn-r', fn:()=>{
+			const s=gsite(); if(!s) return;
+			frappe.confirm('This will alter table structure on <b>'+s+'</b>. Take a backup first. Continue?', ()=>{
+				smApi('frappe_devkit.api.site_manager.transform_database',{
+					site:s, table:$('#sdb-tx-tbl').val().trim()||'all',
+					engine:$('#sdb-tx-eng').val(), row_format:$('#sdb-tx-fmt').val(),
+					failfast:$('#sdb-tx-ff').is(':checked')?1:0
+				},$txt);
+			});
+		}}]);
+
+		// Run Tests
+		const $ts = mkSub('tests');
+		const $tsc = smCard($ts, 'Run Tests');
+		$tsc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; run-tests [--app &lt;app&gt;]</span><br>
+		Requires <code>allow_tests = 1</code> in site_config. <b>Never leave this enabled on production.</b></div>`);
+		$tsc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl">App (leave blank for all)</label><input class="dkst-inp" id="sdb-ts-app" placeholder="e.g. erpnext"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Module (optional)</label><input class="dkst-inp" id="sdb-ts-mod" placeholder="e.g. erpnext.accounts.doctype.sales_invoice.test_sales_invoice"></div>
+		</div>
+		<div class="dkst-checks"><label class="dkst-chk"><input type="checkbox" id="sdb-ts-par"><span>Run in parallel (<code>run-parallel-tests</code>)</span></label></div>`);
+		const $tst = smTerm($ts);
+		smBtns($tsc, [{ lbl:'Run Tests', cls:'dkst-btn-p', fn:()=>{
+			const s=gsite(); if(!s) return;
+			smApi('frappe_devkit.api.site_manager.run_tests',{site:s,app:$('#sdb-ts-app').val().trim(),module:$('#sdb-ts-mod').val().trim(),parallel:$('#sdb-ts-par').is(':checked')?1:0},$tst);
+		}}]);
+
+		$tabs.on('click','.dkst-stab',function(){
+			const t=$(this).data('t');
+			$tabs.find('.dkst-stab').removeClass('active');$(this).addClass('active');
+			$pp.find('.dkst-spanel').removeClass('active');$pp.find(`[data-t="${t}"]`).addClass('active');
+		});
+	};
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   SITE — DATA IMPORT / EXPORT
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.site_data = function($p) {
+		$p.append(phdr('Data Import / Export', 'Import CSV/XLSX records, export templates, bulk rename.', icoExport(20)));
+
+		const $sel = smCard($p, 'Target Site');
+		const $siteRow = $('<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label></div>').appendTo($sel);
+		const $opsSite = siteSelRow($siteRow, 'sd-site', 'select site');
+		function gsite() { const s=$opsSite.val(); if(!s){frappe.throw('Select a site first');return '';} return s; }
+
+		const $tabs = $(`<div class="dkst-stabs">
+			<div class="dkst-stab active" data-t="imp">Import CSV</div>
+			<div class="dkst-stab" data-t="exp">Export CSV</div>
+			<div class="dkst-stab" data-t="rename">Bulk Rename</div>
+			<div class="dkst-stab" data-t="bkall">Backup All Sites</div>
+		</div>`).appendTo($p);
+		const $pp = $('<div></div>').appendTo($p);
+		function mkSub(id){return $(`<div class="dkst-spanel ${id==='imp'?'active':''}" data-t="${id}"></div>`).appendTo($pp);}
+
+		// Import
+		const $imp = mkSub('imp');
+		const $ic = smCard($imp, 'Import from CSV / XLSX');
+		$ic.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; data-import --doctype &lt;dt&gt; --file &lt;path&gt;</span></div>`);
+		$ic.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">DocType</label><input class="dkst-inp" id="sd-imp-dt" placeholder="e.g. Customer"></div>
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">File Path (server-side)</label><input class="dkst-inp" id="sd-imp-file" placeholder="/path/to/import.csv">
+				<span class="dkst-hint">Must be an absolute path accessible from the bench server</span></div>
+		</div>
+		<div class="dkst-checks">
+			<label class="dkst-chk"><input type="checkbox" id="sd-imp-over"><span>Overwrite existing records</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="sd-imp-sub"><span>Submit after import</span></label>
+		</div>`);
+		const $it = smTerm($imp);
+		smBtns($ic, [{ lbl:'Import', cls:'dkst-btn-p', fn:()=>{
+			const s=gsite(); if(!s) return;
+			const dt=$('#sd-imp-dt').val().trim(); const fp=$('#sd-imp-file').val().trim();
+			if(!dt||!fp){frappe.throw('DocType and file path required');return;}
+			smApi('frappe_devkit.api.site_manager.data_import',{site:s,doctype:dt,file_path:fp,overwrite:$('#sd-imp-over').is(':checked')?1:0,submit_after_import:$('#sd-imp-sub').is(':checked')?1:0},$it);
+		}}]);
+
+		// Export
+		const $exp = mkSub('exp');
+		const $ec = smCard($exp, 'Export CSV Template');
+		$ec.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; export-csv --doctype &lt;dt&gt; --path &lt;file&gt;</span><br>Exports a data import template pre-filled with existing records.</div>`);
+		$ec.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">DocType</label><input class="dkst-inp" id="sd-exp-dt" placeholder="e.g. Customer"></div>
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Output File Path (server-side)</label><input class="dkst-inp" id="sd-exp-file" placeholder="/tmp/customers.csv"></div>
+		</div>`);
+		const $et = smTerm($exp);
+		smBtns($ec, [{ lbl:'Export CSV', cls:'dkst-btn-p', fn:()=>{
+			const s=gsite(); if(!s) return;
+			const dt=$('#sd-exp-dt').val().trim(); const fp=$('#sd-exp-file').val().trim();
+			if(!dt||!fp){frappe.throw('DocType and file path required');return;}
+			smApi('frappe_devkit.api.site_manager.export_csv',{site:s,doctype:dt,file_path:fp},$et);
+		}}]);
+
+		// Bulk Rename
+		const $ren = mkSub('rename');
+		const $rc = smCard($ren, 'Bulk Rename Records');
+		$rc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench --site &lt;site&gt; bulk-rename &lt;doctype&gt; &lt;csv&gt;</span><br>CSV format: <code>old_name,new_name</code> one pair per row, no header.</div>`);
+		$rc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">DocType</label><input class="dkst-inp" id="sd-ren-dt" placeholder="e.g. Customer"></div>
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">CSV File Path (server-side)</label><input class="dkst-inp" id="sd-ren-file" placeholder="/tmp/renames.csv"></div>
+		</div>`);
+		const $rt = smTerm($ren);
+		smBtns($rc, [{ lbl:'Bulk Rename', cls:'dkst-btn-r', fn:()=>{
+			const s=gsite(); if(!s) return;
+			const dt=$('#sd-ren-dt').val().trim(); const fp=$('#sd-ren-file').val().trim();
+			if(!dt||!fp){frappe.throw('DocType and CSV path required');return;}
+			smApi('frappe_devkit.api.site_manager.bulk_rename',{site:s,doctype:dt,csv_file:fp},$rt);
+		}}]);
+
+		// Backup All Sites
+		const $bka = mkSub('bkall');
+		const $bac = smCard($bka, 'Backup All Sites');
+		$bac.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Equivalent: <span class="dkst-code">bench backup-all-sites</span><br>Backs up every site in this bench in one command.</div>`);
+		$bac.append(`<div class="dkst-checks">
+			<label class="dkst-chk"><input type="checkbox" id="sd-bka-files"><span>Include public and private files (<code>--with-files</code>)</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="sd-bka-compress"><span>Compress as .tgz (<code>--compress</code>)</span></label>
+		</div>`);
+		const $bat = smTerm($bka);
+		smBtns($bac, [{ lbl:'Backup All Sites', cls:'dkst-btn-p', fn:()=>{
+			smApi('frappe_devkit.api.site_manager.backup_all_sites',{with_files:$('#sd-bka-files').is(':checked')?1:0,compress:$('#sd-bka-compress').is(':checked')?1:0},$bat);
+		}}]);
+
+		$tabs.on('click','.dkst-stab',function(){
+			const t=$(this).data('t');
+			$tabs.find('.dkst-stab').removeClass('active');$(this).addClass('active');
+			$pp.find('.dkst-spanel').removeClass('active');$pp.find(`[data-t="${t}"]`).addClass('active');
+		});
+	};
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   SERVER — NGINX & DOMAINS
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.server_nginx = function($p) {
+		$p.append(phdr('Nginx & Domains', 'Generate Nginx config, manage ports, custom domains, multi-tenancy.', icoGlobe(20)));
+		$p.append(info('After any domain, port, or SSL change: always run <b>Setup Nginx</b> then <b>Reload Nginx</b>.'));
+
+		const $tabs = $(`<div class="dkst-stabs">
+			<div class="dkst-stab active" data-t="nginx">Nginx Config</div>
+			<div class="dkst-stab" data-t="port">Port / URL</div>
+			<div class="dkst-stab" data-t="multi">Multi-Tenancy</div>
+			<div class="dkst-stab" data-t="domain">Custom Domains</div>
+		</div>`).appendTo($p);
+		const $pp = $('<div></div>').appendTo($p);
+		function mkSub(id){return $(`<div class="dkst-spanel ${id==='nginx'?'active':''}" data-t="${id}"></div>`).appendTo($pp);}
+		function smSrv(method, args, $term) { smApi('frappe_devkit.api.server_manager.'+method, args, $term); }
+
+		// Nginx Config
+		const $ng = mkSub('nginx');
+		const $nc = smCard($ng, 'Nginx Configuration');
+		$nc.append(`<div style="font-size:12.5px;color:#4a4470;line-height:1.8;margin-bottom:14px">
+			<span class="dkst-code">bench setup nginx</span> — regenerate config file<br>
+			<span class="dkst-code">bench setup reload-nginx</span> — validate + reload<br>
+			<span class="dkst-code">sudo nginx -t</span> — test syntax only (no reload)
+		</div>`);
+		const $nt = smTerm($ng);
+		smBtns($nc, [
+			{ lbl:'Setup Nginx',   cls:'dkst-btn-p', fn:()=>smSrv('setup_nginx',{},$nt) },
+			{ lbl:'Reload Nginx',  cls:'dkst-btn-p', fn:()=>smSrv('reload_nginx',{},$nt) },
+			{ lbl:'Test Config',   cls:'dkst-btn-s', fn:()=>smSrv('test_nginx',{},$nt)   },
+		]);
+
+		// Port / URL
+		const $pt = mkSub('port');
+		const $pc = smCard($pt, 'Port & URL Assignment');
+		$pc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			<span class="dkst-code">bench set-nginx-port &lt;site&gt; &lt;port&gt;</span> — port-based multi-tenancy<br>
+			<span class="dkst-code">bench set-url-root &lt;site&gt; &lt;url&gt;</span> — canonical URL root
+		</div>`);
+		$pc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label><input class="dkst-inp" id="srv-ng-site" placeholder="mysite.local"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Port</label><input class="dkst-inp" id="srv-ng-port" type="number" placeholder="e.g. 8080"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">URL Root</label><input class="dkst-inp" id="srv-ng-url" placeholder="https://mysite.local"></div>
+		</div>`);
+		const $pterm = smTerm($pt);
+		smBtns($pc, [
+			{ lbl:'Set Port',     cls:'dkst-btn-p', fn:()=>{
+				const site=$('#srv-ng-site').val().trim(); const port=$('#srv-ng-port').val().trim();
+				if(!site||!port){frappe.throw('Site and port required');return;}
+				smSrv('set_nginx_port',{site,port},$pterm);
+			}},
+			{ lbl:'Set URL Root', cls:'dkst-btn-s', fn:()=>{
+				const site=$('#srv-ng-site').val().trim(); const url=$('#srv-ng-url').val().trim();
+				if(!site||!url){frappe.throw('Site and URL required');return;}
+				smSrv('set_url_root',{site,url},$pterm);
+			}},
+		]);
+
+		// Multi-Tenancy
+		const $mt = mkSub('multi');
+		const $mc = smCard($mt, 'DNS Multi-Tenancy');
+		$mc.append(`<div style="font-size:12.5px;color:#4a4470;line-height:1.8;margin-bottom:14px">
+			<span class="dkst-code">bench config dns_multitenant on|off</span><br>
+			<b>On:</b> each site served by its own domain (site name must match DNS)<br>
+			<b>Off:</b> single-site or port-based routing<br>
+			Run <b>Setup Nginx → Reload Nginx</b> after changing this setting.
+		</div>`);
+		const $mterm = smTerm($mt);
+		smBtns($mc, [
+			{ lbl:'Enable DNS Multi-Tenancy',  cls:'dkst-btn-p', fn:()=>smSrv('set_dns_multitenant',{enable:1},$mterm) },
+			{ lbl:'Disable DNS Multi-Tenancy', cls:'dkst-btn-s', fn:()=>smSrv('set_dns_multitenant',{enable:0},$mterm) },
+		]);
+
+		// Custom Domains
+		const $cd = mkSub('domain');
+		const $dmc = smCard($cd, 'Custom Domain Management');
+		$dmc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			<span class="dkst-code">bench setup add-domain &lt;domain&gt; --site &lt;site&gt;</span><br>
+			After adding: run <b>SSL setup</b> for the new domain, then regenerate Nginx.
+		</div>`);
+		$dmc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Domain</label><input class="dkst-inp" id="srv-dm-domain" placeholder="mydomain.com"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Site (for add-domain)</label><input class="dkst-inp" id="srv-dm-site" placeholder="mysite.local"></div>
+		</div>`);
+		const $dterm = smTerm($cd);
+		smBtns($dmc, [
+			{ lbl:'Add Domain',   cls:'dkst-btn-p', fn:()=>{
+				const d=$('#srv-dm-domain').val().trim(); const s=$('#srv-dm-site').val().trim();
+				if(!d||!s){frappe.throw('Domain and site required');return;}
+				smSrv('add_domain',{site:s,domain:d},$dterm);
+			}},
+			{ lbl:'Remove Domain', cls:'dkst-btn-r', fn:()=>{
+				const d=$('#srv-dm-domain').val().trim();
+				if(!d){frappe.throw('Domain required');return;}
+				frappe.confirm(`Remove domain <b>${d}</b>?`, ()=>smSrv('remove_domain',{domain:d},$dterm));
+			}},
+			{ lbl:'Sync Domains',  cls:'dkst-btn-s', fn:()=>smSrv('sync_domains',{},$dterm) },
+		]);
+
+		$tabs.on('click','.dkst-stab',function(){
+			const t=$(this).data('t');
+			$tabs.find('.dkst-stab').removeClass('active');$(this).addClass('active');
+			$pp.find('.dkst-spanel').removeClass('active');$pp.find(`[data-t="${t}"]`).addClass('active');
+		});
+	};
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   SERVER — SSL / HTTPS
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.server_ssl = function($p) {
+		$p.append(phdr('SSL / HTTPS', "Let's Encrypt, Certbot, and manual certificate management.", icoShield(20)));
+		$p.append(info('Commands marked <b>[SUDO]</b> require passwordless sudo. Run once: <span class="dkst-code">bench setup sudoers $USER</span>'));
+
+		const $tabs = $(`<div class="dkst-stabs">
+			<div class="dkst-stab active" data-t="le">Let's Encrypt</div>
+			<div class="dkst-stab" data-t="certbot">Certbot</div>
+			<div class="dkst-stab" data-t="manual">Manual Cert</div>
+		</div>`).appendTo($p);
+		const $pp = $('<div></div>').appendTo($p);
+		function mkSub(id){return $(`<div class="dkst-spanel ${id==='le'?'active':''}" data-t="${id}"></div>`).appendTo($pp);}
+		function smSrv(method, args, $term) { smApi('frappe_devkit.api.server_manager.'+method, args, $term); }
+
+		// Let's Encrypt
+		const $le = mkSub('le');
+		const $lec = smCard($le, "Let's Encrypt (Recommended)");
+		$lec.append(`<div style="font-size:12.5px;color:#4a4470;line-height:1.8;margin-bottom:14px">
+			<span class="dkst-code">sudo -H bench setup lets-encrypt &lt;site&gt;</span><br>
+			Issues a free certificate and configures Nginx automatically. Adds monthly auto-renewal cron.<br>
+			<b>Requirements:</b> DNS A record → this server, port 80 open, DNS multitenancy enabled.
+		</div>`);
+		$lec.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site Name</label><input class="dkst-inp" id="ssl-le-site" placeholder="mysite.example.com"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Custom Domain (optional)</label><input class="dkst-inp" id="ssl-le-domain" placeholder="www.example.com"></div>
+		</div>`);
+		const $let = smTerm($le);
+		smBtns($lec, [
+			{ lbl:"Issue Certificate", cls:'dkst-btn-p', fn:()=>{
+				const site=$('#ssl-le-site').val().trim(); if(!site){frappe.throw('Site name required');return;}
+				smSrv('setup_lets_encrypt',{site,custom_domain:$('#ssl-le-domain').val().trim()},$let);
+			}},
+			{ lbl:'Renew All Certs',   cls:'dkst-btn-s', fn:()=>smSrv('renew_lets_encrypt',{},$let) },
+			{ lbl:'Wildcard SSL',      cls:'dkst-btn-s', fn:()=>smSrv('setup_wildcard_ssl',{},$let)   },
+		]);
+
+		// Certbot
+		const $cb = mkSub('certbot');
+		const $cbc = smCard($cb, 'Certbot');
+		$cbc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			<span class="dkst-code">sudo certbot --nginx -d &lt;domain&gt;</span> — issue and configure Nginx<br>
+			Use when you need more control than <code>bench setup lets-encrypt</code> provides. [SUDO]
+		</div>`);
+		$cbc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Primary Domain</label><input class="dkst-inp" id="ssl-cb-domain" placeholder="mysite.com"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Additional SANs (comma-separated)</label><input class="dkst-inp" id="ssl-cb-sans" placeholder="www.mysite.com,api.mysite.com"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Delete cert name (for delete action)</label><input class="dkst-inp" id="ssl-cb-del" placeholder="cert name shown in certbot certificates"></div>
+		</div>
+		<div class="dkst-checks"><label class="dkst-chk"><input type="checkbox" id="ssl-cb-only"><span>Cert only — do not modify Nginx config</span></label></div>`);
+		const $cbt = smTerm($cb);
+		smBtns($cbc, [
+			{ lbl:'Issue Cert',       cls:'dkst-btn-p', fn:()=>{
+				const d=$('#ssl-cb-domain').val().trim(); if(!d){frappe.throw('Domain required');return;}
+				smSrv('certbot_issue',{domain:d,extra_domains:$('#ssl-cb-sans').val().trim(),cert_only:$('#ssl-cb-only').is(':checked')?1:0},$cbt);
+			}},
+			{ lbl:'Renew All',        cls:'dkst-btn-s', fn:()=>smSrv('certbot_renew',{dry_run:0},$cbt) },
+			{ lbl:'Renew (Dry Run)',  cls:'dkst-btn-s', fn:()=>smSrv('certbot_renew',{dry_run:1},$cbt) },
+			{ lbl:'List Certs',       cls:'dkst-btn-s', fn:()=>smSrv('certbot_list',{},$cbt) },
+			{ lbl:'Delete Cert',      cls:'dkst-btn-r', fn:()=>{
+				const n=$('#ssl-cb-del').val().trim(); if(!n){frappe.throw('Cert name required');return;}
+				frappe.confirm(`Delete certificate <b>${n}</b>?`, ()=>smSrv('certbot_delete',{cert_name:n},$cbt));
+			}},
+		]);
+
+		// Manual Cert
+		const $mn = mkSub('manual');
+		const $mnc = smCard($mn, 'Manual Certificate');
+		$mnc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			Register a certificate you obtained from your own CA with bench and Nginx.
+			Then regenerate the Nginx config and reload.
+		</div>`);
+		$mnc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Site</label><input class="dkst-inp" id="ssl-mn-site" placeholder="mysite.local"></div>
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Certificate File Path</label><input class="dkst-inp" id="ssl-mn-cert" placeholder="/etc/nginx/conf.d/ssl/certificate_bundle.crt"></div>
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Private Key Path</label><input class="dkst-inp" id="ssl-mn-key" placeholder="/etc/nginx/conf.d/ssl/private.key"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Check Expiry of Cert Path</label><input class="dkst-inp" id="ssl-mn-exp" placeholder="/etc/nginx/conf.d/ssl/certificate_bundle.crt"></div>
+		</div>`);
+		const $mnt = smTerm($mn);
+		smBtns($mnc, [
+			{ lbl:'Register Certificate', cls:'dkst-btn-p', fn:()=>{
+				const site=$('#ssl-mn-site').val().trim(); const cert=$('#ssl-mn-cert').val().trim(); const key=$('#ssl-mn-key').val().trim();
+				if(!site||!cert||!key){frappe.throw('Site, certificate, and key paths are required');return;}
+				smSrv('set_ssl_certificate',{site,cert_path:cert},$mnt);
+				smSrv('set_ssl_key',{site,key_path:key},$mnt);
+			}},
+			{ lbl:'Check Expiry',    cls:'dkst-btn-s', fn:()=>{
+				const p=$('#ssl-mn-exp').val().trim(); if(!p){frappe.throw('Certificate path required');return;}
+				smSrv('check_ssl_expiry',{cert_path:p},$mnt);
+			}},
+		]);
+
+		$tabs.on('click','.dkst-stab',function(){
+			const t=$(this).data('t');
+			$tabs.find('.dkst-stab').removeClass('active');$(this).addClass('active');
+			$pp.find('.dkst-spanel').removeClass('active');$pp.find(`[data-t="${t}"]`).addClass('active');
+		});
+	};
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   SERVER — PRODUCTION SETUP
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.server_prod = function($p) {
+		$p.append(phdr('Production Setup', 'Supervisor, systemd, firewall, fail2ban, and production mode.', icoTools(20)));
+		$p.append(info('Commands marked <b>[SUDO]</b> require passwordless sudo. Run once: <span class="dkst-code">bench setup sudoers $USER</span>'));
+
+		const $tabs = $(`<div class="dkst-stabs">
+			<div class="dkst-stab active" data-t="prod">Production Mode</div>
+			<div class="dkst-stab" data-t="sup">Supervisor</div>
+			<div class="dkst-stab" data-t="syd">Systemd</div>
+			<div class="dkst-stab" data-t="sec">Security</div>
+		</div>`).appendTo($p);
+		const $pp = $('<div></div>').appendTo($p);
+		function mkSub(id){return $(`<div class="dkst-spanel ${id==='prod'?'active':''}" data-t="${id}"></div>`).appendTo($pp);}
+		function smSrv(method, args, $term) { smApi('frappe_devkit.api.server_manager.'+method, args, $term); }
+
+		// Production Mode
+		const $prod = mkSub('prod');
+		const $pc = smCard($prod, 'Full Production Setup');
+		$pc.append(`<div style="font-size:12.5px;color:#4a4470;line-height:1.8;margin-bottom:14px">
+			<span class="dkst-code">sudo bench setup production &lt;user&gt;</span><br>
+			One-command setup: Nginx reverse proxy + Supervisor workers + fail2ban.<br>
+			Run once on a fresh server. <b>User</b> must be the Linux user that owns the bench.
+		</div>`);
+		$pc.append(`<div class="dkst-fld"><label class="dkst-lbl">Linux User (leave blank to auto-detect)</label>
+			<input class="dkst-inp" id="srv-pd-user" placeholder="frappe"></div>`);
+		const $pterm = smTerm($prod);
+		smBtns($pc, [
+			{ lbl:'Setup Production',   cls:'dkst-btn-p', fn:()=>smSrv('setup_production',{user:$('#srv-pd-user').val().trim()},$pterm) },
+			{ lbl:'Disable Production', cls:'dkst-btn-r', fn:()=>frappe.confirm('Remove Nginx + Supervisor configs?', ()=>smSrv('disable_production',{},$pterm)) },
+		]);
+
+		// Supervisor
+		const $sup = mkSub('sup');
+		const $sc = smCard($sup, 'Supervisor Process Manager');
+		$sc.append(`<div style="font-size:12.5px;color:#4a4470;line-height:1.8;margin-bottom:14px">
+			<span class="dkst-code">bench setup supervisor</span> — regenerate config<br>
+			<span class="dkst-code">sudo supervisorctl reload</span> — reload all processes<br>
+			<span class="dkst-code">sudo supervisorctl restart frappe:</span> — restart all Frappe processes
+		</div>`);
+		$sc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl">Process name (for start/stop/restart)</label>
+				<input class="dkst-inp" id="srv-sv-proc" value="frappe:" placeholder="frappe: or frappe:frappe-web">
+				<span class="dkst-hint">Use <code>frappe:</code> for all Frappe processes</span></div>
+		</div>
+		<div class="dkst-checks"><label class="dkst-chk"><input type="checkbox" id="srv-sv-skredis"><span>Skip Redis section (<code>--skip-redis</code>)</span></label></div>`);
+		const $sterm = smTerm($sup);
+		smBtns($sc, [
+			{ lbl:'Setup Config',  cls:'dkst-btn-p', fn:()=>smSrv('setup_supervisor',{skip_redis:$('#srv-sv-skredis').is(':checked')?1:0},$sterm) },
+			{ lbl:'Status',        cls:'dkst-btn-s', fn:()=>smSrv('supervisor_action',{action:'status'},$sterm) },
+			{ lbl:'Reload',        cls:'dkst-btn-s', fn:()=>smSrv('supervisor_action',{action:'reload'},$sterm) },
+			{ lbl:'Restart',       cls:'dkst-btn-p', fn:()=>smSrv('supervisor_action',{action:'restart',process:$('#srv-sv-proc').val()||'frappe:'},$sterm) },
+			{ lbl:'Stop',          cls:'dkst-btn-r', fn:()=>smSrv('supervisor_action',{action:'stop',process:$('#srv-sv-proc').val()||'frappe:'},$sterm) },
+			{ lbl:'Start',         cls:'dkst-btn-g', fn:()=>smSrv('supervisor_action',{action:'start',process:$('#srv-sv-proc').val()||'frappe:'},$sterm) },
+		]);
+
+		// Systemd
+		const $syd = mkSub('syd');
+		const $syc = smCard($syd, 'Systemd Unit Management');
+		$syc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			<span class="dkst-code">bench setup systemd</span> — generate unit files<br>
+			<span class="dkst-code">sudo systemctl restart frappe-web</span> — restart the web process
+		</div>`);
+		$syc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl">Unit Name</label>
+				<input class="dkst-inp" id="srv-sy-unit" value="frappe-web" placeholder="frappe-web"></div>
+		</div>`);
+		const $syterm = smTerm($syd);
+		smBtns($syc, [
+			{ lbl:'Generate Files',   cls:'dkst-btn-p', fn:()=>smSrv('setup_systemd',{},$syterm) },
+			{ lbl:'Status',           cls:'dkst-btn-s', fn:()=>smSrv('systemd_action',{action:'status',unit:$('#srv-sy-unit').val()||'frappe-web'},$syterm) },
+			{ lbl:'Restart',          cls:'dkst-btn-p', fn:()=>smSrv('systemd_action',{action:'restart',unit:$('#srv-sy-unit').val()||'frappe-web'},$syterm) },
+			{ lbl:'Enable on Boot',   cls:'dkst-btn-g', fn:()=>smSrv('systemd_action',{action:'enable',unit:$('#srv-sy-unit').val()||'frappe-web'},$syterm) },
+			{ lbl:'Disable on Boot',  cls:'dkst-btn-r', fn:()=>smSrv('systemd_action',{action:'disable',unit:$('#srv-sy-unit').val()||'frappe-web'},$syterm) },
+			{ lbl:'Daemon Reload',    cls:'dkst-btn-s', fn:()=>smSrv('systemd_action',{action:'daemon-reload',unit:''},$syterm) },
+		]);
+
+		// Security
+		const $sec = mkSub('sec');
+		const $secc = smCard($sec, 'Security & Sudoers');
+		$secc.append(`<div style="font-size:12.5px;color:#4a4470;line-height:1.8;margin-bottom:14px">
+			<span class="dkst-code">bench setup firewall</span> — configure UFW (ports 22, 80, 443)<br>
+			<span class="dkst-code">bench setup fail2ban</span> — block brute-force attempts<br>
+			<span class="dkst-code">bench setup sudoers &lt;user&gt;</span> — allow bench to manage services without a sudo password
+		</div>`);
+		$secc.append(`<div class="dkst-fld"><label class="dkst-lbl">Linux User (for sudoers)</label>
+			<input class="dkst-inp" id="srv-sec-user" placeholder="frappe"></div>`);
+		const $sect = smTerm($sec);
+		smBtns($secc, [
+			{ lbl:'Setup Firewall',  cls:'dkst-btn-p', fn:()=>smSrv('setup_firewall',{},$sect) },
+			{ lbl:'Setup fail2ban',  cls:'dkst-btn-p', fn:()=>smSrv('setup_fail2ban',{},$sect) },
+			{ lbl:'Setup Sudoers',   cls:'dkst-btn-s', fn:()=>smSrv('setup_sudoers',{user:$('#srv-sec-user').val().trim()},$sect) },
+		]);
+
+		$tabs.on('click','.dkst-stab',function(){
+			const t=$(this).data('t');
+			$tabs.find('.dkst-stab').removeClass('active');$(this).addClass('active');
+			$pp.find('.dkst-spanel').removeClass('active');$pp.find(`[data-t="${t}"]`).addClass('active');
+		});
+	};
+
+
+	/* ══════════════════════════════════════════════════════════════════
+	   SERVER — BENCH OPERATIONS
+	   ══════════════════════════════════════════════════════════════════ */
+	PANELS.server_bench = function($p) {
+		$p.append(phdr('Bench Operations', 'Update, restart, doctor, build assets, config, Redis, cron backups.', icoBolt(20)));
+
+		const $tabs = $(`<div class="dkst-stabs">
+			<div class="dkst-stab active" data-t="upd">Update</div>
+			<div class="dkst-stab" data-t="info">Bench Info</div>
+			<div class="dkst-stab" data-t="cfg">Bench Config</div>
+			<div class="dkst-stab" data-t="redis">Redis & DB Host</div>
+			<div class="dkst-stab" data-t="cron">Backups & Cron</div>
+		</div>`).appendTo($p);
+		const $pp = $('<div></div>').appendTo($p);
+		function mkSub(id){return $(`<div class="dkst-spanel ${id==='upd'?'active':''}" data-t="${id}"></div>`).appendTo($pp);}
+		function smSrv(method, args, $term) { smApi('frappe_devkit.api.server_manager.'+method, args, $term); }
+
+		// Update
+		const $upd = mkSub('upd');
+		const $uc = smCard($upd, 'Bench Update');
+		$uc.append(`<div style="font-size:12.5px;color:#4a4470;line-height:1.8;margin-bottom:14px">
+			<span class="dkst-code">bench update</span> — full update: pull + build + migrate + restart<br>
+			Use selective flags for targeted operations. In production, enable maintenance mode first.
+		</div>`);
+		$uc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl">App (leave blank for all)</label>
+				<input class="dkst-inp" id="srv-upd-app" placeholder="e.g. erpnext"></div>
+		</div>
+		<div class="dkst-checks">
+			<label class="dkst-chk"><input type="checkbox" id="srv-upd-pull"><span><code>--pull</code> only pull code</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="srv-upd-build"><span><code>--build</code> only rebuild assets</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="srv-upd-patch"><span><code>--patch</code> only run migrations</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="srv-upd-restart"><span><code>--restart</code> only restart services</span></label>
+			<label class="dkst-chk"><input type="checkbox" id="srv-upd-reset"><span><code>--reset</code> discard local changes before pull</span></label>
+		</div>`);
+		const $uterm = smTerm($upd);
+		smBtns($uc, [
+			{ lbl:'Full Update',     cls:'dkst-btn-p', fn:()=>smSrv('bench_update',{app:$('#srv-upd-app').val().trim()},$uterm) },
+			{ lbl:'Run Selective',   cls:'dkst-btn-s', fn:()=>smSrv('bench_update',{
+				app:$('#srv-upd-app').val().trim(),
+				pull:$('#srv-upd-pull').is(':checked')?1:0, build:$('#srv-upd-build').is(':checked')?1:0,
+				patch:$('#srv-upd-patch').is(':checked')?1:0, restart:$('#srv-upd-restart').is(':checked')?1:0,
+				reset:$('#srv-upd-reset').is(':checked')?1:0,
+			},$uterm)},
+			{ lbl:'Restart Workers', cls:'dkst-btn-s', fn:()=>smSrv('bench_restart',{},$uterm) },
+			{ lbl:'Doctor (Health)', cls:'dkst-btn-s', fn:()=>smSrv('bench_doctor',{},$uterm) },
+		]);
+
+		// Bench Info
+		const $info = mkSub('info');
+		const $ic = smCard($info, 'Bench Diagnostics');
+		$ic.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:10px">Collects bench version, all sites, all apps, and common_site_config.json in one call.</div>`);
+		const $iterm = smTerm($info);
+		smBtns($ic, [{ lbl:'Get Bench Info', cls:'dkst-btn-p', fn:()=>smSrv('get_bench_info',{},$iterm) }]);
+
+		// Bench Config
+		const $cfg = mkSub('cfg');
+		const $cc = smCard($cfg, 'Bench-Level Config');
+		$cc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">
+			<span class="dkst-code">bench config &lt;key&gt; &lt;value&gt;</span> — bench-level config<br>
+			<span class="dkst-code">bench config set-common-config -c &lt;key&gt; &lt;value&gt;</span> — common_site_config.json (applies to all sites)
+		</div>`);
+		$cc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Key</label>
+				<select class="dkst-sel" id="srv-cfg-key">
+					<option value="serve_default_site">serve_default_site — serve default site on port 80</option>
+					<option value="http_timeout">http_timeout — Gunicorn HTTP timeout (seconds)</option>
+					<option value="update_bench_on_update">update_bench_on_update — auto-update bench CLI on bench update</option>
+					<option value="restart_supervisor_on_update">restart_supervisor_on_update — auto-restart supervisor after update</option>
+					<option value="restart_systemd_on_update">restart_systemd_on_update — auto-restart systemd after update</option>
+					<option value="developer_mode">developer_mode — enable developer mode (common config)</option>
+					<option value="allow_tests">allow_tests — allow test endpoints (common config)</option>
+					<option value="server_script_enabled">server_script_enabled — enable server scripts (common config)</option>
+				</select></div>
+			<div class="dkst-fld"><label class="dkst-lbl dkst-req">Value</label>
+				<input class="dkst-inp" id="srv-cfg-val" placeholder="on | off | 0 | 1 | <number>"></div>
+		</div>`);
+		const $cterm = smTerm($cfg);
+		smBtns($cc, [
+			{ lbl:'Set Bench Config',   cls:'dkst-btn-p', fn:()=>{
+				const k=$('#srv-cfg-key').val(); const v=$('#srv-cfg-val').val().trim();
+				if(!v){frappe.throw('Value required');return;}
+				smSrv('bench_config',{key:k,value:v},$cterm);
+			}},
+			{ lbl:'Set Common Config',  cls:'dkst-btn-s', fn:()=>{
+				const k=$('#srv-cfg-key').val(); const v=$('#srv-cfg-val').val().trim();
+				if(!v){frappe.throw('Value required');return;}
+				smSrv('set_common_config',{key:k,value:v},$cterm);
+			}},
+			{ lbl:'Remove Common Key',  cls:'dkst-btn-r', fn:()=>{
+				const k=$('#srv-cfg-key').val();
+				frappe.confirm(`Remove key <b>${k}</b> from common_site_config.json?`, ()=>smSrv('remove_common_config',{key:k},$cterm));
+			}},
+		]);
+
+		// Redis & DB Host
+		const $redis = mkSub('redis');
+		const $rc = smCard($redis, 'Redis & Database Host');
+		$rc.append(`<div style="font-size:12px;color:#7a70a8;margin-bottom:12px">Point bench at external Redis or MariaDB servers. Run <b>Setup Redis</b> after changing Redis hosts.</div>`);
+		$rc.append(`<div class="dkst-g2">
+			<div class="dkst-fld"><label class="dkst-lbl">MariaDB Host</label><input class="dkst-inp" id="srv-rd-mariadb" placeholder="hostname or IP"></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Redis Type</label>
+				<select class="dkst-sel" id="srv-rd-type"><option value="cache">cache</option><option value="queue">queue</option><option value="socketio">socketio</option></select></div>
+			<div class="dkst-fld"><label class="dkst-lbl">Redis Host:Port</label><input class="dkst-inp" id="srv-rd-host" placeholder="redis-server:6379"></div>
+		</div>`);
+		const $rterm = smTerm($redis);
+		smBtns($rc, [
+			{ lbl:'Set MariaDB Host', cls:'dkst-btn-p', fn:()=>{
+				const h=$('#srv-rd-mariadb').val().trim(); if(!h){frappe.throw('Host required');return;}
+				smSrv('set_mariadb_host',{host:h},$rterm);
+			}},
+			{ lbl:'Set Redis Host', cls:'dkst-btn-s', fn:()=>{
+				const t=$('#srv-rd-type').val(); const h=$('#srv-rd-host').val().trim(); if(!h){frappe.throw('Host:Port required');return;}
+				smSrv('set_redis_host',{redis_type:t,host:h},$rterm);
+			}},
+			{ lbl:'Setup Redis',    cls:'dkst-btn-s', fn:()=>smSrv('setup_redis',{},$rterm) },
+		]);
+
+		// Backups & Cron
+		const $cron = mkSub('cron');
+		const $cronc = smCard($cron, 'Automated Backups & Environment');
+		$cronc.append(`<div style="font-size:12.5px;color:#4a4470;line-height:1.8;margin-bottom:14px">
+			<span class="dkst-code">bench setup backups</span> — add daily backup cron for all sites<br>
+			<span class="dkst-code">bench setup requirements</span> — install/update Python + Node deps<br>
+			<span class="dkst-code">bench setup env</span> — recreate the Python virtualenv
+		</div>`);
+		const $cronterm = smTerm($cron);
+		smBtns($cronc, [
+			{ lbl:'Setup Backup Cron',   cls:'dkst-btn-p', fn:()=>smSrv('setup_backups_cron',{},$cronterm) },
+			{ lbl:'Setup Requirements',  cls:'dkst-btn-s', fn:()=>smSrv('setup_requirements',{},$cronterm) },
+			{ lbl:'Recreate Virtualenv', cls:'dkst-btn-s', fn:()=>frappe.confirm('Recreate the Python virtualenv?', ()=>smSrv('setup_env',{},$cronterm)) },
+		]);
+
+		$tabs.on('click','.dkst-stab',function(){
+			const t=$(this).data('t');
+			$tabs.find('.dkst-stab').removeClass('active');$(this).addClass('active');
+			$pp.find('.dkst-spanel').removeClass('active');$pp.find(`[data-t="${t}"]`).addClass('active');
+		});
+	};
+
 
 	/* ══════════════════════════════════════════════════════════════════
 	   QUERY EDITOR

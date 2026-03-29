@@ -33,22 +33,85 @@ def scaffold_patch(app_name, patch_module, description="", execute_body=""):
     if body_lines:
         indented_body = "\n".join("    " + line for line in body_lines)
     else:
-        indented_body = "    # TODO: Add patch logic here"
+        indented_body = "    pass"
 
-    patch_content = f"""import frappe
+    patch_content = f'''import frappe
 
 
 def execute():
-    \"\"\"
+    """
     Patch: {app_name}.patches.{patch_module}
-    {description}
+    {description or "Describe what this patch does and why it is needed."}
 
-    Runs once during bench migrate. Must be idempotent.
-    \"\"\"
+    Runs once during `bench migrate`. Must be idempotent — safe to run
+    multiple times without causing errors or duplicate changes.
+
+    To re-run manually:
+        bench --site <site> run-patch {app_name}.patches.{patch_module}
+    """
+
+    # ── Pattern 1: Rename / add a field value across existing records ─────────
+    # frappe.db.sql("""
+    #     UPDATE `tabSales Invoice`
+    #     SET custom_new_field = 'Default Value'
+    #     WHERE custom_new_field IS NULL OR custom_new_field = ''
+    # """)
+
+    # ── Pattern 2: Iterate and update documents (triggers hooks/validation) ───
+    # for name in frappe.get_all("Customer", pluck="name"):
+    #     doc = frappe.get_doc("Customer", name)
+    #     doc.custom_migrated = 1
+    #     doc.save(ignore_permissions=True)
+
+    # ── Pattern 3: Idempotent column migration ────────────────────────────────
+    # if not frappe.db.has_column("Sales Invoice", "custom_status"):
+    #     frappe.db.add_column("Sales Invoice", "custom_status", "varchar(140)")
+    #     frappe.db.sql("""
+    #         UPDATE `tabSales Invoice` SET custom_status = 'Pending'
+    #         WHERE custom_status IS NULL
+    #     """)
+
+    # ── Pattern 4: Rename a DocType field (safe idempotent rename) ───────────
+    # frappe.rename_field("Sales Invoice", "old_field_name", "new_field_name")
+
+    # ── Pattern 5: Delete orphaned or deprecated records ─────────────────────
+    # frappe.db.delete("Old DocType", {{"status": "Deprecated"}})
+
+    # ── Pattern 6: Move data from one field to another ────────────────────────
+    # frappe.db.sql("""
+    #     UPDATE `tabSales Invoice`
+    #     SET new_field = old_field
+    #     WHERE new_field IS NULL OR new_field = ''
+    # """)
+
+    # ── Pattern 7: Create new configuration records ───────────────────────────
+    # if not frappe.db.exists("Payment Terms", "Net 30"):
+    #     pt = frappe.new_doc("Payment Terms")
+    #     pt.payment_terms_name = "Net 30"
+    #     pt.due_date_based_on = "Day(s) after invoice date"
+    #     pt.credit_days = 30
+    #     pt.insert(ignore_permissions=True)
+
+    # ── Pattern 8: Reload DocType metadata after field changes ────────────────
+    # frappe.reload_doctype("Sales Invoice")
+    # frappe.clear_cache(doctype="Sales Invoice")
+
+    # ── Pattern 9: Remove deprecated Custom Field ─────────────────────────────
+    # if frappe.db.exists("Custom Field", "Sales Invoice-old_custom_field"):
+    #     frappe.delete_doc("Custom Field", "Sales Invoice-old_custom_field",
+    #                       ignore_permissions=True)
+
+    # ── Pattern 10: Migrate child table rows ──────────────────────────────────
+    # frappe.db.sql("""
+    #     UPDATE `tabSales Invoice Item`
+    #     SET new_child_field = old_child_field
+    #     WHERE new_child_field IS NULL
+    # """)
+
 {indented_body}
 
     frappe.db.commit()
-"""
+'''
 
     write_file(patch_path, patch_content, overwrite=True)
 
@@ -65,46 +128,260 @@ def execute():
 
 @frappe.whitelist()
 def scaffold_tasks_file(app_name):
-    """Scaffold tasks.py with all scheduler frequency stubs."""
+    """Scaffold tasks.py with all scheduler frequency stubs and commented usage patterns."""
     app_pkg    = os.path.join(get_app_path(app_name), app_name)
     tasks_path = os.path.join(app_pkg, "tasks.py")
-    content = """import frappe
+    content = f'''"""
+{app_name} — tasks.py
+{"=" * (len(app_name) + 12)}
+Scheduler entry points for all standard Frappe task frequencies.
+
+Register in hooks.py
+────────────────────
+    scheduler_events = {{
+        "all":          ["{app_name}.tasks.all"],
+        "daily":        ["{app_name}.tasks.daily"],
+        "hourly":       ["{app_name}.tasks.hourly"],
+        "weekly":       ["{app_name}.tasks.weekly"],
+        "monthly":      ["{app_name}.tasks.monthly"],
+        "daily_long":   ["{app_name}.tasks.daily_long"],
+        "hourly_long":  ["{app_name}.tasks.hourly_long"],
+    }}
+
+Or register individual functions from other modules:
+    scheduler_events = {{
+        "daily": [
+            "{app_name}.tasks.daily",
+            "{app_name}.utils.send_daily_digest",
+        ],
+    }}
+
+Trigger manually during testing:
+    bench --site <site> trigger-scheduler-event daily
+    bench --site <site> run-tests --module {app_name}.tasks
+"""
+
+import frappe
 
 
 def all():
-    \"\"\"Every scheduler tick (~1 min). Keep very light.\"\"\"
+    """
+    Runs every scheduler tick (~1 minute).
+    Keep this function extremely fast — it runs on every tick for ALL sites.
+
+    Good for:
+    - Checking a flag and immediately delegating to a background job
+    - Very lightweight status polls
+    - Updating a single in-memory cache key
+
+    BAD — do NOT put here:
+    - DB queries over large tables
+    - Email sending
+    - API calls to external services
+
+    ── Patterns ──────────────────────────────────────────────────────────────
+    # Check a queue flag and enqueue real work
+    # if frappe.db.get_single_value("My Settings", "run_sync_now"):
+    #     frappe.db.set_single_value("My Settings", "run_sync_now", 0)
+    #     frappe.enqueue("{app_name}.tasks._do_sync", queue="default")
+
+    # Heartbeat: touch a timestamp so monitoring can detect scheduler death
+    # frappe.cache().set_value("scheduler_heartbeat", frappe.utils.now(), expires_in_sec=300)
+    """
     pass
 
 
 def daily():
-    \"\"\"Once per day.\"\"\"
+    """
+    Runs once every day (midnight by default).
+    Register in hooks.py under scheduler_events["daily"].
+
+    Good for:
+    - Sending daily digest emails
+    - Recalculating aggregated fields (totals, aging)
+    - Archiving or expiring records
+    - Syncing data with an external system
+
+    ── Patterns ──────────────────────────────────────────────────────────────
+    # Send a daily summary email to all System Managers
+    # from {app_name}.utils.emails import send_daily_summary
+    # send_daily_summary()
+
+    # Auto-expire overdue records
+    # frappe.db.sql("""
+    #     UPDATE `tabMy DocType`
+    #     SET status = 'Overdue'
+    #     WHERE due_date < CURDATE() AND status = 'Open'
+    # """)
+    # frappe.db.commit()
+
+    # Recalculate a totals field on a Settings doc
+    # settings = frappe.get_single("My Settings")
+    # settings.total_active_users = frappe.db.count("User", {{"enabled": 1}})
+    # settings.save(ignore_permissions=True)
+
+    # Enqueue heavy work to the long queue (does not block default queue)
+    # frappe.enqueue("{app_name}.tasks._heavy_daily_job",
+    #                queue="long", job_name="daily_heavy_job", deduplicate=True)
+    """
     pass
 
 
 def hourly():
-    \"\"\"Once per hour.\"\"\"
+    """
+    Runs once every hour.
+    Register in hooks.py under scheduler_events["hourly"].
+
+    Good for:
+    - Refreshing external API data caches
+    - Sending time-sensitive alerts (SLA breach approaching)
+    - Clearing stale in-progress flags
+    - Triggering a lightweight sync
+
+    ── Patterns ──────────────────────────────────────────────────────────────
+    # Send SLA-breach alerts for tickets open > 4 hours
+    # breach_threshold = frappe.utils.add_to_date(frappe.utils.now_datetime(), hours=-4)
+    # overdue = frappe.get_all(
+    #     "Support Ticket",
+    #     filters={{"status": "Open", "creation": ("<", breach_threshold)}},
+    #     pluck="name",
+    # )
+    # for ticket in overdue:
+    #     frappe.enqueue(
+    #         "{app_name}.utils.send_sla_alert",
+    #         ticket_name=ticket, queue="default",
+    #     )
+
+    # Clear stale "In Progress" flags older than 2 hours
+    # stale_time = frappe.utils.add_to_date(None, hours=-2)
+    # frappe.db.sql("""
+    #     UPDATE `tabMy DocType`
+    #     SET status = 'Pending'
+    #     WHERE status = 'In Progress' AND modified < %(stale_time)s
+    # """, {{"stale_time": stale_time}})
+    # frappe.db.commit()
+    """
     pass
 
 
 def weekly():
-    \"\"\"Once per week.\"\"\"
+    """
+    Runs once every week (Sunday midnight by default).
+    Register in hooks.py under scheduler_events["weekly"].
+
+    Good for:
+    - Sending weekly performance / activity reports
+    - Purging old log files or notification records
+    - Running weekly data integrity checks
+
+    ── Patterns ──────────────────────────────────────────────────────────────
+    # Delete notification logs older than 90 days
+    # frappe.db.delete("Notification Log", {{
+    #     "creation": ("<", frappe.utils.add_to_date(None, days=-90))
+    # }})
+    # frappe.db.commit()
+
+    # Send weekly activity report to managers
+    # managers = frappe.get_all("User", filters={{"role_profile_name": "Manager"}}, pluck="name")
+    # for mgr in managers:
+    #     frappe.enqueue(
+    #         "{app_name}.utils.send_weekly_report",
+    #         user=mgr, queue="default",
+    #     )
+    """
     pass
 
 
 def monthly():
-    \"\"\"Once per month.\"\"\"
+    """
+    Runs once every month (1st of the month, midnight).
+    Register in hooks.py under scheduler_events["monthly"].
+
+    Good for:
+    - Generating monthly invoices or statements
+    - Archiving old records to a history table
+    - Sending monthly summaries to management
+
+    ── Patterns ──────────────────────────────────────────────────────────────
+    # Generate monthly usage statement for each customer
+    # customers = frappe.get_all("Customer", filters={{"disabled": 0}}, pluck="name")
+    # for customer in customers:
+    #     frappe.enqueue(
+    #         "{app_name}.billing.generate_monthly_statement",
+    #         customer=customer, queue="long",
+    #     )
+
+    # Archive records older than 1 year
+    # cutoff = frappe.utils.add_to_date(None, years=-1)
+    # old_records = frappe.get_all(
+    #     "My DocType",
+    #     filters={{"creation": ("<", cutoff), "status": "Closed"}},
+    #     pluck="name",
+    # )
+    # for name in old_records:
+    #     frappe.rename_doc("My DocType", name, f"ARCHIVED-{{name}}", ignore_permissions=True)
+    """
     pass
 
 
 def daily_long():
-    \"\"\"Once per day — long-running worker.\"\"\"
+    """
+    Same schedule as `daily()` but dispatched to the **long** worker queue.
+    Use this for tasks that may take several minutes to complete.
+
+    The long worker has a higher timeout limit and will not block
+    the default queue from processing user-triggered background jobs.
+
+    Good for:
+    - Full-table data recalculations
+    - Large export file generation
+    - Bulk email campaigns
+    - Heavy external API syncs
+
+    ── Patterns ──────────────────────────────────────────────────────────────
+    # Rebuild a heavy analytics table from raw transactions
+    # from {app_name}.analytics import rebuild_monthly_summary
+    # rebuild_monthly_summary()
+
+    # Bulk-send a marketing newsletter (thousands of recipients)
+    # from {app_name}.campaigns import send_campaign_emails
+    # campaign = frappe.db.get_single_value("Campaign Settings", "active_campaign")
+    # if campaign:
+    #     send_campaign_emails(campaign)
+    """
     pass
 
 
 def hourly_long():
-    \"\"\"Once per hour — long-running worker.\"\"\"
+    """
+    Same schedule as `hourly()` but dispatched to the **long** worker queue.
+    Use for hourly tasks that may run for more than a few seconds.
+
+    Good for:
+    - Syncing a large dataset from an external API every hour
+    - Processing a batch of pending records
+    - Running integrity checks across multiple tables
+
+    ── Patterns ──────────────────────────────────────────────────────────────
+    # Process pending webhook deliveries (up to 500 at a time)
+    # pending = frappe.get_all(
+    #     "Webhook Log",
+    #     filters={{"status": "Pending"}},
+    #     limit=500,
+    #     pluck="name",
+    # )
+    # for log_name in pending:
+    #     frappe.enqueue(
+    #         "{app_name}.webhooks.deliver",
+    #         log_name=log_name, queue="default",
+    #     )
+
+    # Sync inventory levels from an external WMS every hour
+    # from {app_name}.integrations.wms import sync_inventory_levels
+    # sync_inventory_levels()
+    """
     pass
-"""
+'''
     write_file(tasks_path, content, overwrite=True)
     return {"status": "success", "message": f"tasks.py scaffolded at {tasks_path}", "path": tasks_path}
 
